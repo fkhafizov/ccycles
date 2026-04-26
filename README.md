@@ -3,9 +3,11 @@
 
 
 
-* /Users/paulpaul/iCloudDocs/code/cc2-zk-n/cc2-zk-n-sonnet46-v2.html
-* /Users/paulpaul/iCloudDocs/code/cc3-zk-n/cc3-zk-n-sonnet46-v5.html
-* /Users/paulpaul/iCloudDocs/code/cc3-zk-n/cc3-moves.html
+* /Users/paulpaul/iCloudDocs/code/cc2-zk-n/
+  * cc2-zk-n-sonnet46-v2.html
+* /Users/paulpaul/iCloudDocs/code/cc3-zk-n/
+  * cc3-zk-n-sonnet46-v5.html
+  * cc3-moves.html
 
 
 
