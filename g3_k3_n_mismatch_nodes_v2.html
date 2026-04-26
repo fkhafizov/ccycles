@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Number of Mismatch Nodes — G₃(3,n)</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14; --surface: #13161e; --surface2: #1a1e2a;
+    --border: #252a38; --accent: #4fc3f7; --accent2: #81c784;
+    --red: #ef5350; --text: #c9d1e0; --muted: #5a6380;
+    --gold: #ffd54f; --purple: #ce93d8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Crimson Pro', serif;
+    font-size: 15px; min-height: 100vh; padding: 2rem 1.5rem 4rem; }
+
+  header { max-width: 860px; margin: 0 auto 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.2rem; }
+  header h1 { font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; color: var(--accent);
+    font-weight: 700; margin-bottom: 0.35rem; }
+  header p { color: var(--muted); font-style: italic; font-size: 0.95rem; }
+
+  .formula { max-width: 860px; margin: 0 auto 1.5rem; background: var(--surface);
+    border: 1px solid var(--border); border-left: 3px solid var(--purple);
+    border-radius: 6px; padding: 0.8rem 1.2rem; font-size: 0.88rem; color: #a0aabf;
+    line-height: 1.8; }
+  .formula code { font-family: 'JetBrains Mono', monospace; color: var(--gold); }
+
+  .layout { max-width: 860px; margin: 0 auto; display: grid;
+    grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
+  .table-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+
+  table { width: 100%; border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+
+  thead th { background: var(--surface2); color: var(--accent); font-weight: 700;
+    padding: 0.65rem 0.75rem; text-align: right; border-bottom: 2px solid var(--border);
+    font-size: 0.72rem; letter-spacing: 0.02em; white-space: nowrap; }
+  thead th:first-child { text-align: center; }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.even-n { background: rgba(79,195,247,0.035); }
+  tbody tr.zero td.m-col { color: var(--muted); }
+
+  td { padding: 0.36rem 0.75rem; text-align: right; }
+  td.n-col   { text-align: center; color: var(--muted); font-weight: 600; }
+  td.t-col   { color: #e0e0e0; }
+  td.m-col   { color: var(--accent2); font-weight: 600; }
+  td.r-col   { color: var(--purple); }
+
+  /* ratio bar embedded in ratio cell */
+  .r-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+  .r-bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 3px; max-width: 60px; }
+  .r-bar    { height: 6px; border-radius: 3px; background: var(--purple); opacity: 0.7; }
+  .r-val    { min-width: 46px; text-align: right; color: var(--purple); }
+
+  /* asymptote line in ratio */
+  .asym { color: var(--gold); font-style: italic; font-size: 0.7rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Number of Mismatch Nodes in G₃(3, n)</h1>
+  <p>n = 4 … 100 &nbsp;·&nbsp; k = 3 &nbsp;·&nbsp; source $A = 0^3 1^{n-3}$</p>
+</header>
+<div class="formula">
+  <code>t(n) = C(n, 3)</code> &nbsp;(total vertices) &nbsp;·&nbsp;
+  <code>m(n) = C(⌊n/2⌋, 3)</code> &nbsp;(all zeros at even positions) &nbsp;·&nbsp;
+  <code>ratio = m/t → 1/8 = 0.125</code> as n → ∞
+</div>
+
+<div class="layout">
+  <div class="table-wrap"><table id="t1"></table></div>
+  <div class="table-wrap"><table id="t2"></table></div>
+</div>
+
+<script>
+function C(n, r) {
+  if (r < 0 || r > n) return 0;
+  if (r === 0) return 1;
+  let num = 1, den = 1;
+  for (let i = 0; i < r; i++) { num *= (n - i); den *= (i + 1); }
+  return num / den;
+}
+
+const ASYM = 1/8;
+const data = [];
+for (let n = 4; n <= 100; n++) {
+  const t = C(n, 3);
+  const m = C(Math.floor(n/2), 3);
+  const ratio = m / t;
+  data.push({ n, t, m, ratio });
+}
+
+const half = Math.ceil(data.length / 2);
+const chunks = [data.slice(0, half), data.slice(half)];
+
+const HEADERS = ['n', 't = C(n,3)', 'm = C(⌊n/2⌋,3)', 'm / t'];
+
+chunks.forEach((chunk, ci) => {
+  const tbl = document.getElementById(`t${ci+1}`);
+  const thead = tbl.createTHead();
+  const hr = thead.insertRow();
+  HEADERS.forEach((h, hi) => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    if (hi === 0) th.style.textAlign = 'center';
+    hr.appendChild(th);
+  });
+
+  const tbody = tbl.createTBody();
+  chunk.forEach(({ n, t, m, ratio }) => {
+    const tr = tbody.insertRow();
+    if (n % 2 === 0) tr.classList.add('even-n');
+    if (m === 0) tr.classList.add('zero');
+
+    const td1 = tr.insertCell(); td1.className = 'n-col'; td1.textContent = n;
+
+    const td2 = tr.insertCell(); td2.className = 't-col';
+    td2.textContent = t.toLocaleString();
+
+    const td3 = tr.insertCell(); td3.className = 'm-col';
+    td3.textContent = m === 0 ? '—' : m.toLocaleString();
+
+    const td4 = tr.insertCell(); td4.className = 'r-col';
+    if (m === 0) {
+      td4.textContent = '—';
+    } else {
+      const pct = ratio / ASYM;  // fraction of asymptote
+      td4.innerHTML = `
+        <div class="r-wrap">
+          <div class="r-bar-bg"><div class="r-bar" style="width:${Math.min(100,pct*100).toFixed(1)}%"></div></div>
+          <span class="r-val">${ratio.toFixed(4)}</span>
+        </div>`;
+    }
+    tbody.appendChild(tr);
+  });
+});
+</script>
+</body>
+</html>

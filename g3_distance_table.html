@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>G₃(3,9) Distance Table</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --border: #252a38;
+    --accent: #4fc3f7;
+    --accent2: #81c784;
+    --red: #ef5350;
+    --red-bg: rgba(239,83,80,0.10);
+    --text: #c9d1e0;
+    --muted: #5a6380;
+    --gold: #ffd54f;
+    --purple: #ce93d8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 15px;
+    min-height: 100vh;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  header {
+    max-width: 1100px;
+    margin: 0 auto 2.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+
+  header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.4rem;
+  }
+
+  header p {
+    color: var(--muted);
+    font-style: italic;
+    font-size: 1rem;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 0 auto 1.8rem;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+  }
+
+  .stat span { color: var(--accent); font-weight: 600; }
+
+  .formulas {
+    max-width: 1100px;
+    margin: 0 auto 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 6px;
+    padding: 1rem 1.4rem;
+    font-size: 0.9rem;
+    line-height: 1.9;
+    color: #a0aabf;
+  }
+
+  .formulas code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.83rem;
+    color: var(--gold);
+  }
+
+  .table-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  thead th {
+    background: var(--surface2);
+    color: var(--accent);
+    font-weight: 700;
+    padding: 0.75rem 0.9rem;
+    text-align: center;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+  }
+
+  thead th:nth-child(2) { text-align: left; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+
+  tbody tr:hover { background: var(--surface2); }
+
+  tbody tr.mismatch {
+    background: var(--red-bg);
+  }
+  tbody tr.mismatch:hover { background: rgba(239,83,80,0.16); }
+
+  td {
+    padding: 0.45rem 0.9rem;
+    text-align: center;
+    color: var(--text);
+  }
+
+  td:nth-child(2) {
+    text-align: left;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* zero/one coloring in binary string */
+  .z0 { color: var(--gold); font-weight: 700; }
+  .z1 { color: var(--muted); }
+
+  td.src-row { color: var(--accent2); font-weight: 600; }
+
+  .dist-val { color: var(--accent2); font-weight: 700; }
+  .delta-val { color: var(--purple); font-weight: 600; }
+  .inversion { color: #e0e0e0; }
+
+  .bool-true { color: var(--gold); }
+  .bool-false { color: var(--muted); }
+
+  td.mismatch-cell {
+    color: var(--red);
+    font-weight: 700;
+    background: rgba(239,83,80,0.13);
+  }
+
+  .row-num { color: var(--muted); font-size: 0.72rem; }
+
+  /* dist grouping separator */
+  tr.dist-sep td {
+    border-top: 1px solid #2a3048;
+  }
+
+  /* legend */
+  .legend {
+    max-width: 1100px;
+    margin: 1.5rem auto 0;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  .legend span { display: flex; align-items: center; gap: 0.4rem; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  #filter-bar {
+    max-width: 1100px;
+    margin: 0 auto 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  #filter-bar label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  #filter-bar select, #filter-bar input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 0.4rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>G₃(3, 9) — Vertex Distance Table</h1>
+  <p>k = 3, n = 9 &nbsp;·&nbsp; Source A = <code style="font-family:JetBrains Mono;color:#ffd54f">000111111</code>
+    &nbsp;·&nbsp; |V| = C(9,3) = 84 vertices</p>
+</header>
+
+<div class="formulas">
+  Zero positions <code>z₁ &lt; z₂ &lt; z₃</code> (1-based) &nbsp;·&nbsp;
+  <code>dᵢ = zᵢ − i</code> &nbsp;·&nbsp;<br>
+  <code>I(B) = Σ dᵢ = z₁+z₂+z₃ − 6</code> &nbsp;·&nbsp;<br>
+  <code>Δ(B) = |(d₁ mod 2) − (d₂ mod 2) + (d₃ mod 2)|</code> &nbsp;·&nbsp;<br>
+  <code>d(A,B) = (I + Δ) / 2</code>
+  &nbsp;·&nbsp;<br>
+  <span style="color:#ef5350">Red rows</span>: <code>d(A,B) ≠ ⌈I/2⌉</code>
+</div>
+
+<div id="filter-bar">
+  <label>Filter by d(A,B): <select id="dist-filter"><option value="">All</option></select></label>
+  <label>Show mismatches only: <input type="checkbox" id="mismatch-only"></label>
+  <span id="count-badge" class="badge">84 rows</span>
+</div>
+
+<div class="table-wrap">
+  <table id="main-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>B (binary)</th>
+        <th>I(B)</th>
+        <th>I(B) mod 2</th>
+        <th>Δ(B)</th>
+        <th>Δ(B) &gt; I(B) mod 2</th>
+        <th>d(A,B)</th>
+        <th>⌈I/2⌉</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:rgba(239,83,80,0.25);border:1px solid #ef5350"></span> d(A,B) ≠ ⌈I/2⌉</span>
+  <span><span class="dot" style="background:#ffd54f"></span> zeros in binary string</span>
+  <span><span class="dot" style="background:#ce93d8"></span> Δ(B) value</span>
+  <span><span class="dot" style="background:#81c784"></span> d(A,B) value</span>
+</div>
+
+<script>
+const k = 3, n = 9;
+
+// Generate all C(9,3) combinations of zero positions (1-indexed)
+function combinations(arr, r) {
+  const result = [];
+  function helper(start, current) {
+    if (current.length === r) { result.push([...current]); return; }
+    for (let i = start; i <= arr.length - (r - current.length); i++) {
+      helper(i + 1, [...current, arr[i]]);
+    }
+  }
+  helper(0, []);
+  return result;
+}
+
+const positions = Array.from({length: n}, (_, i) => i + 1);
+const zeroCombos = combinations(positions, k);
+
+function computeRow(zeros) {
+  // zeros: [z1, z2, z3] sorted ascending, 1-indexed
+  const d = zeros.map((z, i) => z - (i + 1));
+  const I = d.reduce((s, x) => s + x, 0);
+  // Delta = |(d0 mod 2) - (d1 mod 2) + (d2 mod 2)|
+  const parities = d.map(x => ((x % 2) + 2) % 2); // ensure non-negative
+  const alternating = parities[0] - parities[1] + parities[2];
+  const Delta = Math.abs(alternating);
+  const dist = (I + Delta) / 2;
+  const ceilHalf = Math.ceil(I / 2);
+  const Imod2 = I % 2;
+  const deltaGtImod2 = Delta > Imod2;
+
+  // Build binary string
+  const bits = Array(n).fill('1');
+  zeros.forEach(z => bits[z - 1] = '0');
+  const binary = bits.join('');
+
+  return { zeros, d, I, Imod2, Delta, dist, ceilHalf, binary, deltaGtImod2 };
+}
+
+const rows = zeroCombos.map(computeRow);
+// Sort by dist, then I, then binary
+rows.sort((a, b) => a.dist - b.dist || a.I - b.I || a.binary.localeCompare(b.binary));
+
+// Populate distance filter
+const distFilter = document.getElementById('dist-filter');
+const dists = [...new Set(rows.map(r => r.dist))].sort((a, b) => a - b);
+dists.forEach(d => {
+  const opt = document.createElement('option');
+  opt.value = d;
+  opt.textContent = `d = ${d}`;
+  distFilter.appendChild(opt);
+});
+
+function formatBinary(binary, zeros) {
+  return binary.split('').map((c, i) =>
+    `<span class="${c === '0' ? 'z0' : 'z1'}">${c}</span>`
+  ).join('');
+}
+
+function renderTable(filterDist, mismatchOnly) {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  let rowNum = 0;
+  let prevDist = null;
+
+  const filtered = rows.filter(r => {
+    if (filterDist !== '' && r.dist !== Number(filterDist)) return false;
+    if (mismatchOnly && r.dist === r.ceilHalf) return false;
+    return true;
+  });
+
+  document.getElementById('count-badge').textContent = `${filtered.length} rows`;
+
+  filtered.forEach((r, idx) => {
+    rowNum++;
+    const mismatch = r.dist !== r.ceilHalf;
+    const tr = document.createElement('tr');
+    if (mismatch) tr.classList.add('mismatch');
+    if (prevDist !== null && r.dist !== prevDist) tr.classList.add('dist-sep');
+    prevDist = r.dist;
+
+    const isSource = r.binary === '000111111';
+
+    tr.innerHTML = `
+      <td class="row-num">${rowNum}</td>
+      <td class="${isSource ? 'src-row' : ''}">${formatBinary(r.binary, r.zeros)}</td>
+      <td class="inversion">${r.I}</td>
+      <td>${r.Imod2}</td>
+      <td class="delta-val">${r.Delta}</td>
+      <td class="${r.deltaGtImod2 ? 'bool-true' : 'bool-false'}">${r.deltaGtImod2 ? 'True' : 'False'}</td>
+      <td class="${mismatch ? 'mismatch-cell' : 'dist-val'}">${r.dist}</td>
+      <td class="${mismatch ? 'mismatch-cell' : ''}">${r.ceilHalf}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+renderTable('', false);
+
+distFilter.addEventListener('change', () => {
+  renderTable(distFilter.value, document.getElementById('mismatch-only').checked);
+});
+document.getElementById('mismatch-only').addEventListener('change', () => {
+  renderTable(distFilter.value, document.getElementById('mismatch-only').checked);
+});
+</script>
+</body>
+</html>
