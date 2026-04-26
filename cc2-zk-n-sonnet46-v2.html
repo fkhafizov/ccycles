@@ -1,0 +1,2638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G₂(k,n) — Schreier Graph Visualizer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&display=swap');
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── body: CSS gradient visible through transparent canvas ── */
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      overflow: hidden;
+      background: linear-gradient(145deg, #d0ecd3 0%, #c5e4f8 55%, #ddd6fe 100%);
+    }
+
+    /* ════════════════════════════════════════════
+       SHARED PANEL BASE
+    ════════════════════════════════════════════ */
+    .panel {
+      position: fixed;
+      top: 16px; bottom: 16px;
+      width: 178px;
+      background: rgba(255,255,255,0.91);
+      backdrop-filter: blur(16px);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.75);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.13), 0 1px 0 rgba(255,255,255,0.6) inset;
+      z-index: 100;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 14px;
+      font-size: 0.76rem;
+      color: #334155;
+      scrollbar-width: thin;
+      scrollbar-color: #c7d2de transparent;
+    }
+    .panel::-webkit-scrollbar { width: 4px; }
+    .panel::-webkit-scrollbar-thumb { background: #c7d2de; border-radius: 4px; }
+
+    #left-panel  { left: 16px; }
+    #right-panel { right: 16px; width: 222px; }
+
+    /* ── canvas ── */
+    #canvas-container {
+      position: fixed; inset: 0; z-index: 0;
+    }
+
+    /* ════════════════════════════════════════════
+       TYPOGRAPHY & STRUCTURE
+    ════════════════════════════════════════════ */
+    .panel-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #1e3a2f;
+      margin-bottom: 13px;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-divider {
+      margin: 10px 0 7px;
+      padding-top: 9px;
+      border-top: 1px solid rgba(0,0,0,0.07);
+    }
+
+    .section-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.58rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.1px;
+      color: #94a3b8;
+      margin-bottom: 7px;
+    }
+
+    /* ════════════════════════════════════════════
+       FORM CONTROLS
+    ════════════════════════════════════════════ */
+    .ctrl-label {
+      display: block;
+      font-size: 0.6rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 6px 9px;
+      font-size: 0.86rem;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      color: #1e293b;
+      margin-bottom: 9px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #4ade80;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(74,222,128,0.18);
+    }
+
+    /* slider */
+    .slider-row { margin-bottom: 9px; }
+    .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+    .slider-val {
+      font-size: 0.66rem; font-weight: 600; color: #334155;
+      background: #e8f5e9; padding: 1px 5px; border-radius: 4px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 5px; border-radius: 3px;
+      background: #e2e8f0; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px; height: 13px; border-radius: 50%;
+      background: linear-gradient(135deg, #4ade80, #60a5fa);
+      cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+      transition: transform .15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type="range"]::-moz-range-thumb {
+      width:13px; height:13px; border-radius:50%; border:none;
+      background: linear-gradient(135deg, #4ade80, #60a5fa); cursor:pointer;
+    }
+
+    /* checkbox */
+    .cb-row {
+      display: flex; align-items: center; cursor: pointer;
+      font-size: 0.63rem; color: #334155; margin-bottom: 9px;
+      user-select: none;
+    }
+    .cb-row input[type="checkbox"] { display: none; }
+    .cb-box {
+      width: 15px; height: 15px; min-width: 15px;
+      border: 1.5px solid #4ade80; border-radius: 4px;
+      margin-right: 6px; position: relative;
+      background: #f8fafc; transition: all .18s;
+    }
+    .cb-row input:checked + .cb-box {
+      background: linear-gradient(135deg, #4ade80, #60a5fa);
+      border-color: #4ade80;
+    }
+    .cb-row input:checked + .cb-box::after {
+      content: '✓'; position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      color: #fff; font-size: 10px; font-weight: bold;
+    }
+
+    /* buttons */
+    .btn {
+      width: 100%; padding: 7px 4px;
+      font-size: 0.67rem; font-family: 'DM Sans', sans-serif;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      color: #fff; border: none; border-radius: 9px;
+      cursor: pointer; transition: all .18s; margin-bottom: 6px;
+      background: linear-gradient(135deg, #4ade80, #60a5fa);
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(74,222,128,.4); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-shake { background: linear-gradient(135deg, #fb923c, #f43f5e); }
+    .btn-shake:hover { box-shadow: 0 4px 14px rgba(251,146,60,.4); }
+    .btn-grid  { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+    .btn-grid:hover { box-shadow: 0 4px 14px rgba(167,139,250,.4); }
+    .btn-sort  { background: linear-gradient(135deg, #06b6d4, #0284c7); }
+    .btn-sort:hover { box-shadow: 0 4px 14px rgba(6,182,212,.4); }
+    .btn-sort.active { background: linear-gradient(135deg, #f59e0b, #d97706);
+                       box-shadow: 0 4px 14px rgba(245,158,11,.5); }
+    .btn-dxy { background: linear-gradient(135deg, #10b981, #059669); }
+    .btn-dxy:hover { box-shadow: 0 4px 14px rgba(16,185,129,.4); }
+    .btn-dxy.active { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    /* dxy submenu */
+    #dxy-submenu {
+      display: none; margin-top: 4px;
+      background: #f0fdf4; border-radius: 9px;
+      border: 1px solid #a7f3d0; padding: 8px 8px 6px;
+    }
+    #dxy-submenu.visible { display: block; }
+    .dxy-sub-label {
+      font-size: 0.57rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.9px; color: #065f46; margin-bottom: 4px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .dxy-node-input {
+      width: 100%; padding: 5px 7px; margin-bottom: 5px;
+      font-size: 0.72rem; font-family: 'JetBrains Mono', monospace;
+      border: 1.5px solid #6ee7b7; border-radius: 7px;
+      background: #fff; color: #065f46;
+    }
+    .dxy-node-input:focus { outline: none; border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
+    .dxy-node-badge {
+      font-size: 0.64rem; font-family: 'JetBrains Mono', monospace;
+      background: #d1fae5; color: #065f46; border-radius: 5px;
+      padding: 2px 6px; margin-bottom: 5px; display: block;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .dxy-compute-btn {
+      width: 100%; padding: 6px; font-size: 0.65rem;
+      font-family: 'DM Sans', sans-serif; font-weight: 700;
+      border: none; border-radius: 7px; cursor: pointer;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff; margin-bottom: 5px; transition: opacity .15s;
+    }
+    .dxy-compute-btn:disabled { opacity: 0.4; cursor: default; }
+    .dxy-compute-btn:not(:disabled):hover { opacity: 0.88; }
+    .dxy-exit-btn {
+      width: 100%; padding: 4px; font-size: 0.61rem;
+      font-family: 'DM Sans', sans-serif; font-weight: 700;
+      border: 1px solid #fca5a5; border-radius: 6px;
+      background: #fff; color: #dc2626; cursor: pointer;
+      transition: background .14s;
+    }
+    .dxy-exit-btn:hover { background: #fef2f2; }
+
+    /* right-panel dxy result block */
+    .dxy-result-block {
+      background: #f0fdf4; border-radius: 10px;
+      border: 1.5px solid #6ee7b7; padding: 12px 12px 10px;
+      margin-top: 8px;
+    }
+    .dxy-result-title {
+      font-family: 'DM Sans', sans-serif; font-weight: 700;
+      font-size: 0.78rem; color: #065f46; margin-bottom: 8px;
+    }
+    .dxy-metric {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 6px; font-size: 0.69rem;
+    }
+    .dxy-metric-key { color: #374151; font-family: 'JetBrains Mono', monospace; }
+    .dxy-metric-val {
+      font-weight: 700; font-size: 1.1rem; color: #065f46;
+      font-family: 'DM Sans', sans-serif; letter-spacing: -0.5px;
+    }
+    .dxy-metric-val.warn { color: #d97706; font-size: 0.85rem; }
+    .dxy-pair-label {
+      font-size: 0.6rem; font-family: 'JetBrains Mono', monospace;
+      color: #6b7280; margin-bottom: 10px; line-height: 1.7;
+      background: #fff; border-radius: 6px; padding: 5px 7px;
+    }
+
+    /* pick-mode: canvas-container gets crosshair cursor */
+    body.pick-mode #canvas-container { cursor: crosshair; }
+    body.pick-mode .btn,
+    body.pick-mode input[type="number"],
+    body.pick-mode input[type="range"],
+    body.pick-mode .cb-row,
+    body.pick-mode .radio-row { pointer-events: none; opacity: 0.45; }
+    body.pick-mode #btn-sort-vertices { pointer-events: auto; opacity: 1; }
+
+    /* sort sub-mode panel */
+    #sort-submenu {
+      display: none; margin-top: 4px;
+      background: #f0f9ff; border-radius: 9px;
+      border: 1px solid #bae6fd;
+      padding: 8px 8px 6px;
+    }
+    #sort-submenu.visible { display: block; }
+    .sort-sub-label {
+      font-size: 0.57rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.9px; color: #0369a1; margin-bottom: 5px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .sort-sub-row { display: flex; gap: 5px; margin-bottom: 5px; }
+    .sort-sub-btn {
+      flex: 1; padding: 5px 3px; font-size: 0.62rem;
+      font-family: 'DM Sans', sans-serif; font-weight: 700;
+      border: 1.5px solid #7dd3fc; border-radius: 7px;
+      background: #fff; color: #0369a1; cursor: pointer;
+      transition: all .15s; text-align: center;
+    }
+    .sort-sub-btn:hover { background: #e0f2fe; }
+    .sort-sub-btn.active {
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      color: #fff; border-color: transparent;
+      box-shadow: 0 2px 8px rgba(14,165,233,.4);
+    }
+    .sort-root-badge {
+      font-size: 0.6rem; color: #0369a1;
+      font-family: 'JetBrains Mono', monospace;
+      background: #e0f2fe; border-radius: 5px;
+      padding: 2px 6px; margin-bottom: 5px; display: block;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sort-exit-btn {
+      width: 100%; padding: 4px; font-size: 0.61rem;
+      font-family: 'DM Sans', sans-serif; font-weight: 700;
+      border: 1px solid #fca5a5; border-radius: 6px;
+      background: #fff; color: #dc2626; cursor: pointer;
+      transition: background .14s;
+    }
+    .sort-exit-btn:hover { background: #fef2f2; }
+
+    /* ════════════════════════════════════════════
+       INFO ROWS  (left & right panel)
+    ════════════════════════════════════════════ */
+    .info-row {
+      display: flex; justify-content: space-between;
+      align-items: baseline; margin-bottom: 3px;
+      font-size: 0.63rem; gap: 4px;
+    }
+    .info-key { color: #64748b; flex-shrink: 0; }
+    .info-val { font-weight: 600; color: #1d4ed8; text-align: right; word-break: break-all; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* legend */
+    .leg-item {
+      display: flex; align-items: center; margin-bottom: 3px;
+      font-size: 0.61rem; color: #64748b;
+    }
+    .leg-swatch {
+      width: 22px; height: 3px; border-radius: 2px; margin-right: 7px; flex-shrink: 0;
+    }
+
+    /* degree table */
+    .deg-tbl { width: 100%; border-collapse: collapse; margin-top: 5px; }
+    .deg-tbl th {
+      font-size: 0.57rem; color: #94a3b8; text-transform: uppercase;
+      letter-spacing: .5px; padding: 3px 2px; border-bottom: 1px solid #e2e8f0;
+      text-align: left; font-family: 'DM Sans', sans-serif; font-weight: 700;
+    }
+    .deg-tbl td { padding: 2px 2px; font-size: 0.61rem; border-bottom: 1px solid #f1f5f9; }
+    .deg-tbl tr:hover td { background: #f8fafc; }
+
+    /* ════════════════════════════════════════════
+       RIGHT PANEL — ANALYSIS
+    ════════════════════════════════════════════ */
+    .formula-pill {
+      background: #eff6ff; border-left: 3px solid #60a5fa;
+      padding: 6px 9px; border-radius: 5px;
+      font-size: 0.64rem; margin: 5px 0; color: #1e3a8a;
+      font-family: 'JetBrains Mono', monospace; line-height: 1.6;
+    }
+
+    .hint-box {
+      font-size: 0.61rem; color: #94a3b8;
+      background: #f8fafc; border-radius: 8px;
+      padding: 9px 8px; text-align: center;
+      margin-top: 8px; line-height: 1.6;
+      border: 1px dashed #e2e8f0;
+    }
+
+    .sel-src {
+      font-size: 0.67rem; padding: 5px 8px; border-radius: 7px;
+      background: #fefce8; border-left: 3px solid #eab308;
+      margin-bottom: 5px; word-break: break-all; line-height: 1.5;
+    }
+    .sel-tgt {
+      font-size: 0.67rem; padding: 5px 8px; border-radius: 7px;
+      background: #fff7ed; border-left: 3px solid #f97316;
+      margin-bottom: 5px; word-break: break-all; line-height: 1.5;
+    }
+
+    .canon-badge {
+      display: inline-block; font-size: 0.56rem;
+      background: #dcfce7; color: #166534;
+      padding: 1px 5px; border-radius: 4px; font-weight: 600;
+      margin-left: 3px; vertical-align: middle;
+    }
+
+    .dist-hero {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 2rem; font-weight: 700; color: #1d4ed8;
+      text-align: center; padding: 8px 0 4px; letter-spacing: -1.5px;
+    }
+    .dist-sub { font-size: 0.62rem; color: #94a3b8; text-align:center; margin-bottom: 6px; }
+
+    .formula-detail {
+      background: #eff6ff; border-radius: 7px; padding: 8px 10px;
+      font-size: 0.62rem; font-family: 'JetBrains Mono', monospace;
+      color: #1e3a8a; line-height: 1.8; margin: 6px 0;
+    }
+
+    .path-hdr { font-size: 0.61rem; color: #64748b; margin-top: 9px; margin-bottom: 4px; }
+    .path-box {
+      font-size: 0.6rem; font-family: 'JetBrains Mono', monospace;
+      color: #334155; background: #f1f5f9; border-radius: 7px;
+      padding: 7px 8px; line-height: 2;
+    }
+    .path-node {
+      display: inline-block; background: #dbeafe; color: #1e40af;
+      border-radius: 4px; padding: 1px 4px; font-weight: 600; margin: 1px 0;
+    }
+
+    .disconnected-note {
+      font-size: 0.61rem; color: #dc2626;
+      background: #fef2f2; border-radius: 6px;
+      padding: 6px 8px; margin-top: 6px;
+    }
+
+    .bfs-confirm { color: #16a34a; font-weight: 600; }
+    .bfs-skip    { font-size: 0.58rem; color: #94a3b8; font-style: italic; }
+
+    /* ── color-mode radio group ── */
+    .radio-group { display: flex; flex-direction: column; gap: 4px; }
+    .radio-row {
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; font-size: 0.63rem; color: #334155;
+      padding: 4px 6px; border-radius: 7px;
+      border: 1.5px solid transparent;
+      transition: background .15s, border-color .15s;
+      user-select: none;
+    }
+    .radio-row:hover { background: #f1f5f9; }
+    .radio-row input[type="radio"] { display: none; }
+    .radio-dot {
+      width: 13px; height: 13px; min-width: 13px; border-radius: 50%;
+      border: 2px solid #cbd5e1; background: #f8fafc;
+      position: relative; transition: all .15s;
+    }
+    .radio-row input:checked ~ .radio-dot {
+      border-color: #2563eb; background: #2563eb;
+    }
+    .radio-row input:checked ~ .radio-dot::after {
+      content: ''; position: absolute;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #fff; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+    }
+    .radio-row input:checked ~ .radio-dot { }
+    .radio-row.active { background: #eff6ff; border-color: #bfdbfe; }
+
+    /* ════════════════════════════════════════════
+       3-D HELP BUTTON
+    ════════════════════════════════════════════ */
+    #help-btn {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+
+      /* 3-D illusion: layered box-shadows simulate depth + bevel */
+      padding: 11px 30px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #e8f4ff;
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      outline: none;
+      user-select: none;
+
+      background: linear-gradient(180deg,
+        #5daaff 0%,
+        #2176e8 38%,
+        #1558c4 62%,
+        #0d3d99 100%);
+
+      box-shadow:
+        /* top highlight bevel */
+        0  1px  0   rgba(255,255,255,0.40) inset,
+        /* left highlight bevel */
+        1px 0   0   rgba(255,255,255,0.18) inset,
+        /* bottom dark bevel (creates the "raised" edge) */
+        0 -2px  0   rgba(0,0,0,0.30) inset,
+        /* main drop shadow — the "height" of the button */
+        0  6px  0   #0b2e77,
+        /* soft ambient shadow beneath */
+        0  9px 18px rgba(10, 40, 120, 0.45);
+
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+
+    #help-btn:hover {
+      background: linear-gradient(180deg,
+        #74bbff 0%,
+        #3385f5 38%,
+        #1e67d5 62%,
+        #1249ad 100%);
+      box-shadow:
+        0  1px  0   rgba(255,255,255,0.45) inset,
+        1px 0   0   rgba(255,255,255,0.20) inset,
+        0 -2px  0   rgba(0,0,0,0.28) inset,
+        0  7px  0   #0b2e77,
+        0 11px 22px rgba(10, 40, 120, 0.50);
+      transform: translateX(-50%) translateY(-1px);
+    }
+
+    #help-btn:active {
+      /* push it "down" — squash the shadow */
+      transform: translateX(-50%) translateY(4px);
+      box-shadow:
+        0  1px  0   rgba(255,255,255,0.30) inset,
+        1px 0   0   rgba(255,255,255,0.14) inset,
+        0 -1px  0   rgba(0,0,0,0.22) inset,
+        0  2px  0   #0b2e77,
+        0  4px 10px rgba(10, 40, 120, 0.35);
+    }
+
+    /* ════════════════════════════════════════════
+       HELP MODAL OVERLAY
+    ════════════════════════════════════════════ */
+    #help-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(10, 25, 60, 0.52);
+      backdrop-filter: blur(5px);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    #help-overlay.open { display: flex; }
+
+    #help-modal {
+      background: #fff;
+      border-radius: 18px;
+      padding: 30px 32px 26px;
+      max-width: 560px;
+      width: calc(100vw - 48px);
+      max-height: calc(100vh - 60px);
+      overflow-y: auto;
+      box-shadow: 0 24px 70px rgba(10,30,90,0.30), 0 1px 0 rgba(255,255,255,0.8) inset;
+      position: relative;
+      font-family: 'DM Sans', sans-serif;
+      color: #1e293b;
+      animation: modal-in .18s ease;
+    }
+    @keyframes modal-in {
+      from { opacity:0; transform: scale(0.93) translateY(8px); }
+      to   { opacity:1; transform: scale(1)    translateY(0); }
+    }
+
+    #help-close {
+      position: absolute; top: 14px; right: 16px;
+      width: 30px; height: 30px; border-radius: 50%;
+      border: none; cursor: pointer; font-size: 1rem;
+      background: #f1f5f9; color: #64748b;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, color .15s;
+    }
+    #help-close:hover { background: #e2e8f0; color: #1e293b; }
+
+    #help-modal h2 {
+      font-size: 1.18rem; font-weight: 700; color: #1549c0;
+      margin-bottom: 4px; letter-spacing: -0.3px;
+    }
+    #help-modal .subtitle {
+      font-size: 0.75rem; color: #94a3b8; margin-bottom: 18px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .help-section { margin-bottom: 16px; }
+    .help-section h3 {
+      font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #475569; margin-bottom: 7px;
+      padding-bottom: 4px; border-bottom: 1px solid #e2e8f0;
+    }
+    .help-section p, .help-section li {
+      font-size: 0.82rem; line-height: 1.65; color: #334155;
+    }
+    .help-section ul { padding-left: 16px; }
+    .help-section li { margin-bottom: 4px; }
+
+    .help-key {
+      display: inline-block;
+      background: #eff6ff; color: #1d4ed8;
+      border: 1px solid #bfdbfe; border-radius: 5px;
+      padding: 1px 6px; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem; font-weight: 600;
+    }
+    .help-formula {
+      background: #f8fafc; border-left: 3px solid #60a5fa;
+      border-radius: 5px; padding: 7px 11px; margin: 6px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem; color: #1e3a8a; line-height: 1.7;
+    }
+    .swatch-row { display:flex; align-items:center; gap:7px; margin-bottom:4px; font-size:0.79rem; }
+    .swatch { width:22px; height:10px; border-radius:3px; flex-shrink:0; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ LEFT PANEL ═══ -->
+<div class="panel" id="left-panel">
+  <div class="panel-title">⬡ G₂(k,n)</div>
+
+  <label class="ctrl-label">n  (string length, 2–15)</label>
+  <input type="number" id="inputN" value="5" min="2" max="15">
+
+  <!-- FIX: k = number of ZEROS (paper convention), not ones -->
+  <label class="ctrl-label">k  (zeros, ≥ 1, &lt; n)</label>
+  <input type="number" id="inputK" value="2" min="1" max="9">
+
+  <label class="cb-row">
+    <input type="checkbox" id="wrappedCb">
+    <span class="cb-box"></span>
+    <span>Wrapped  (0, n−1)</span>
+  </label>
+
+  <button class="btn" onclick="rebuildGraph()">▶  Generate</button>
+  <button class="btn btn-grid" onclick="toggleGridLayout()">📐  Grid  (k = 2)</button>
+  <button class="btn btn-sort" id="btn-sort-vertices" onclick="enterPickMode()">🎯  Sort Vertices</button>
+  <button class="btn btn-dxy" id="btn-dxy" onclick="enterDxyMode()">📏  d(X,Y)</button>
+
+  <!-- dxy sub-menu -->
+  <div id="dxy-submenu">
+    <div class="dxy-sub-label">Select nodes on graph or type labels</div>
+    <span class="dxy-sub-label" style="margin-top:4px">X:</span>
+    <input class="dxy-node-input" id="dxy-input-x" placeholder="click node or type label"
+           oninput="dxyInputChanged('x')">
+    <span class="dxy-sub-label">Y:</span>
+    <input class="dxy-node-input" id="dxy-input-y" placeholder="click node or type label"
+           oninput="dxyInputChanged('y')">
+    <button class="dxy-compute-btn" id="dxy-compute-btn" onclick="computeDxy()" disabled>
+      ↳ Compute d(X,Y)
+    </button>
+    <button class="dxy-exit-btn" onclick="exitDxyMode()">✕ Exit</button>
+  </div>
+
+  <!-- sort sub-menu (shown after root picked) -->
+  <div id="sort-submenu">
+    <div class="sort-sub-label">Sort root</div>
+    <span class="sort-root-badge" id="sort-root-label">—</span>
+    <div class="sort-sub-label">Layout</div>
+    <div class="sort-sub-row">
+      <button class="sort-sub-btn active" id="sub-concentric" onclick="applySortLayout('concentric')">⬤ Rings</button>
+      <button class="sort-sub-btn" id="sub-rows" onclick="applySortLayout('rows')">≡ Rows</button>
+    </div>
+    <div class="sort-sub-row" id="rows-dir-row" style="display:none">
+      <button class="sort-sub-btn active" id="sub-topdown" onclick="setSortDir('top')">▼ Top→Down</button>
+      <button class="sort-sub-btn" id="sub-bottomup" onclick="setSortDir('bottom')">▲ Bottom→Up</button>
+    </div>
+    <button class="sort-exit-btn" onclick="exitSortMode()">✕ Exit Sort Mode</button>
+  </div>
+
+  <div class="section-divider"><div class="section-label">Node Color</div></div>
+  <div class="radio-group" id="colorModeGroup">
+    <label class="radio-row active" id="rm-degree">
+      <input type="radio" name="colorMode" value="degree" checked onchange="setColorMode('degree')">
+      <span class="radio-dot"></span>
+      <span>By degree</span>
+    </label>
+    <label class="radio-row" id="rm-bfs-A">
+      <input type="radio" name="colorMode" value="bfs-A" onchange="setColorMode('bfs-A')">
+      <span class="radio-dot"></span>
+      <span>d from A</span>
+    </label>
+    <label class="radio-row" id="rm-bfs-Astar">
+      <input type="radio" name="colorMode" value="bfs-Astar" onchange="setColorMode('bfs-Astar')">
+      <span class="radio-dot"></span>
+      <span>d from A*</span>
+    </label>
+    <label class="radio-row" id="rm-bfs-source">
+      <input type="radio" name="colorMode" value="bfs-source" onchange="setColorMode('bfs-source')">
+      <span class="radio-dot"></span>
+      <span>d from clicked</span>
+    </label>
+  </div>
+
+  <div class="section-divider"><div class="section-label">Physics</div></div>
+
+  <!-- FIX: label says "radius" to match actual usage -->
+  <div class="slider-row">
+    <div class="slider-header">
+      <label class="ctrl-label">Node Radius (px)</label>
+      <span class="slider-val" id="nodeSizeVal">28</span>
+    </div>
+    <input type="range" id="nodeSizeSlider" min="14" max="72" value="28"
+           oninput="updateNodeSize(this.value)">
+  </div>
+
+  <div class="slider-row">
+    <div class="slider-header">
+      <label class="ctrl-label">Repulsion</label>
+      <span class="slider-val" id="repulsionVal">25000</span>
+    </div>
+    <input type="range" id="repulsionSlider" min="1000" max="80000" value="25000"
+           oninput="updateRepulsion(this.value)">
+  </div>
+
+  <div class="slider-row">
+    <div class="slider-header">
+      <label class="ctrl-label">Attraction</label>
+      <span class="slider-val" id="attractionVal">0.006</span>
+    </div>
+    <input type="range" id="attractionSlider" min="1" max="50" value="6"
+           oninput="updateAttraction(this.value)">
+  </div>
+
+  <button class="btn btn-shake" onclick="shakeNodes()">🔀  Shake &amp; Resettle</button>
+
+  <label class="cb-row" style="margin-top:7px" title="Mirror each node's reversal partner while dragging">
+    <input type="checkbox" id="symmetricCb" checked onchange="toggleSymmetric(this.checked)">
+    <span class="cb-box"></span>
+    <span>Keep symmetric</span>
+  </label>
+
+  <button class="btn" id="btn-freeze" onclick="toggleFreeze()" style="background:linear-gradient(135deg,#64748b,#334155);margin-top:2px">
+    ❄  Freeze
+  </button>
+
+  <div class="section-divider"><div class="section-label">Graph Info</div></div>
+  <div class="info-row"><span class="info-key">Zeros k:</span>   <span class="info-val" id="infoK">2</span></div>
+  <div class="info-row"><span class="info-key">Canonical A:</span><span class="info-val mono" id="infoA">00111</span></div>
+  <div class="info-row"><span class="info-key">|V| = C(n,k):</span><span class="info-val" id="infoV">10</span></div>
+  <div class="info-row"><span class="info-key">|E|:</span>        <span class="info-val" id="infoE">0</span></div>
+
+  <div class="section-divider"><div class="section-label">Transpositions</div></div>
+  <div id="legendItems"></div>
+
+  <div class="section-divider"><div class="section-label">Degree Distribution</div></div>
+  <table class="deg-tbl">
+    <thead><tr><th>Deg</th><th>Vertices</th></tr></thead>
+    <tbody id="degTbody"></tbody>
+  </table>
+</div>
+
+<!-- ═══ RIGHT PANEL (populated dynamically) ═══ -->
+<div class="panel" id="right-panel"></div>
+
+<!-- ═══ HELP BUTTON ═══ -->
+<button id="help-btn" onclick="document.getElementById('help-overlay').classList.add('open')">
+  Help
+</button>
+
+<!-- ═══ HELP MODAL ═══ -->
+<div id="help-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div id="help-modal">
+    <button id="help-close" onclick="document.getElementById('help-overlay').classList.remove('open')">✕</button>
+
+    <h2>G₂(k, n) — Schreier Graph Visualizer</h2>
+    <div class="subtitle">consecutive adjacent-transposition Schreier graph</div>
+
+    <!-- ══ WHAT IS G2 ══ -->
+    <div class="help-section">
+      <h3>What is G₂(k, n)?</h3>
+      <p>Vertices are all binary strings of length <em>n</em> with exactly <em>k</em> zeros — equivalently, <em>k</em>-element subsets of {1,…,n}. Two vertices are adjacent when swapping two neighboring positions <em>(i, i+1)</em> changes the string (one is 0, the other 1). The graph has <span class="help-key">|V| = C(n,k)</span> vertices and is the Schreier coset graph of S<sub>n</sub> over S<sub>k</sub> × S<sub>n−k</sub>.</p>
+    </div>
+
+    <!-- ══ DISTANCE FORMULAS ══ -->
+    <div class="help-section">
+      <h3>Distance Formulas</h3>
+      <p>Let z<sub>i</sub> = 1-based position of the <em>i</em>-th zero. A = 0<sup>k</sup>1<sup>n−k</sup> is the canonical vertex; A* = 1<sup>n−k</sup>0<sup>k</sup> is its antipode.</p>
+      <div class="help-formula">d(A, B)      = I(B) = Σᵢ (zᵢ − i)
+d(X, Y)      = Σᵢ |xᵢ − yᵢ|     (zero positions)
+diam(G₂(k,n)) = k(n − k)</div>
+      <p style="margin-top:5px">Selecting source = A in the right panel shows the full I(B) term-by-term breakdown. For an arbitrary source, the general Σ|xᵢ−yᵢ| formula is expanded.</p>
+    </div>
+
+    <!-- ══ CONTROLS ══ -->
+    <div class="help-section">
+      <h3>Controls — Left Panel</h3>
+      <ul>
+        <li><span class="help-key">n</span> — string length (2–15). Larger n may have C(n,k) > 350 vertices, which skips the full BFS-diameter check.</li>
+        <li><span class="help-key">k</span> — number of <strong>zeros</strong> per string (paper convention); |V| = C(n,k).</li>
+        <li><span class="help-key">Wrapped (0, n−1)</span> — adds the generator swapping positions 0 and n−1, shown dashed in the legend.</li>
+        <li><span class="help-key">▶ Generate</span> — rebuild graph with new n, k. Resets freeze and sort mode.</li>
+        <li><span class="help-key">📐 Grid (k=2)</span> — place nodes on a grid with axes z₁, z₂ (zero positions). Only valid when k=2; occupied region is z₁ &lt; z₂.</li>
+        <li><span class="help-key">🎯 Sort Vertices</span> — enter BFS-root pick mode; see Sort Vertices section below.</li>
+        <li><span class="help-key">📏 d(X,Y)</span> — compute distance and path counts between two chosen nodes; see d(X,Y) section below.</li>
+        <li><span class="help-key">Node Color</span> — radio group with four coloring modes; see Node Coloring section below.</li>
+        <li><span class="help-key">Node Radius</span> — visual node size in pixels.</li>
+        <li><span class="help-key">Repulsion / Attraction</span> — tune the force-directed physics.</li>
+        <li><span class="help-key">🔀 Shake &amp; Resettle</span> — randomise positions and restart physics. Enables mirror-symmetry mode.</li>
+        <li><span class="help-key">Keep symmetric</span> — when checked, dragging a node also mirrors its reversal partner B↔reverse(B) across the vertical center line. Shake always enables this.</li>
+        <li><span class="help-key">❄ Freeze</span> — instantly halt all physics. A and A* are labeled with callouts. Press again to resume. Useful for large graphs (e.g. n=10, k=4) that take a long time to settle.</li>
+      </ul>
+    </div>
+
+    <!-- ══ NODE INTERACTION ══ -->
+    <div class="help-section">
+      <h3>Node Interaction (free layout)</h3>
+      <ul>
+        <li><strong>Click a node</strong> → selects it as <em>source</em>. All nodes recolor by BFS distance from source (green=near, red=far, gold=source).</li>
+        <li><strong>Click a second node</strong> → selects it as <em>target</em>. Right panel shows d(src,tgt), the distance formula breakdown, and the shortest path with highlighted edges.</li>
+        <li><strong>Click the source again</strong> → deselects everything.</li>
+        <li><strong>Click empty canvas</strong> (with both selected) → starts a new source pick.</li>
+        <li><strong>Drag a node</strong> → moves it; physics resumes after release. If Keep Symmetric is on, the reversal partner moves simultaneously.</li>
+      </ul>
+    </div>
+
+    <!-- ══ NODE COLORING ══ -->
+    <div class="help-section">
+      <h3>Node Coloring — Four Modes</h3>
+      <p style="margin-bottom:7px">Switch modes with the <strong>Node Color</strong> radio buttons in the left panel. Rings on A and A* are always visible regardless of mode.</p>
+
+      <p style="margin-bottom:4px"><strong>1 — By degree</strong> <em>(default)</em></p>
+      <p>Color = degree (number of incident edges = count of 01/10 bigrams in the string). A and A* always have degree 1.</p>
+      <table style="width:100%;border-collapse:collapse;margin:5px 0 9px;font-size:0.71rem">
+        <tr>
+          <td style="padding:2px 3px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#E91E63;vertical-align:middle;margin-right:3px"></span>1</td>
+          <td style="padding:2px 3px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#F44336;vertical-align:middle;margin-right:3px"></span>2</td>
+          <td style="padding:2px 3px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FF9800;vertical-align:middle;margin-right:3px"></span>3</td>
+          <td style="padding:2px 3px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FFEB3B;vertical-align:middle;margin-right:3px"></span>4</td>
+          <td style="padding:2px 3px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#8BC34A;vertical-align:middle;margin-right:3px"></span>5</td>
+          <td style="padding:2px 3px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4CAF50;vertical-align:middle;margin-right:3px"></span>6</td>
+          <td style="padding:2px 3px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00BCD4;vertical-align:middle;margin-right:3px"></span>7+</td>
+        </tr>
+      </table>
+
+      <p style="margin-bottom:4px"><strong>2 — d from A</strong></p>
+      <p>Color = BFS distance from A, precomputed at build time. Green (d=0, A itself, gold) → red (d=k(n−k), which is always A*). Visualises the I-statistic I(B) = Σ(zᵢ−i) across the whole graph. Click-independent.</p>
+
+      <p style="margin-top:8px;margin-bottom:4px"><strong>3 — d from A*</strong></p>
+      <p>Exact complement of mode 2: color = BFS distance from A*. A* is gold; A is red. Nodes that were green in mode 2 are now red and vice versa.</p>
+
+      <p style="margin-top:8px;margin-bottom:4px"><strong>4 — d from clicked source</strong></p>
+      <p>BFS from whichever node you click. Gradient updates live. Falls back to degree coloring until a source is picked.</p>
+
+      <p style="margin-top:8px;margin-bottom:4px"><strong>Permanent overlays (all modes)</strong></p>
+      <ul>
+        <li><span style="color:#2E7D32;font-weight:700">Green double-ring + large black label</span> — canonical A = 0<sup>k</sup>1<sup>n−k</sup>.</li>
+        <li><span style="color:#7c3aed;font-weight:700">Purple double-ring + large black label</span> — antipodal A* = 1<sup>n−k</sup>0<sup>k</sup>, always at distance k(n−k) from A.</li>
+        <li><span style="color:#B8860B;font-weight:700">Gold ring + fill</span> — selected source.</li>
+        <li><span style="color:#FF6B35;font-weight:700">Orange ring + fill</span> — selected target.</li>
+        <li><strong style="color:#1d4ed8">Blue ring + blue label</strong> — X or Y node selected in d(X,Y) mode.</li>
+        <li><strong>Pale yellow glow ring</strong> — nodes on the highlighted shortest path (mode 4 only).</li>
+      </ul>
+    </div>
+
+    <!-- ══ EDGE COLORING ══ -->
+    <div class="help-section">
+      <h3>Edge Coloring</h3>
+      <ul>
+        <li><strong>Edge color</strong> — encodes which transposition (i, i+1) generated the edge (see Transpositions legend in left panel): red=(0,1), orange=(1,2), yellow=(2,3), green=(3,4), cyan=(4,5), …</li>
+        <li><strong>Yellow glow</strong> behind an edge — it lies on the highlighted shortest path.</li>
+        <li><strong>Curved edges</strong> — any edge that would pass through another node is bent into a Bézier arc. In Sort mode this applies to all edges, not just wrapped ones; same-layer and back-edges alternate curve side to reduce overlap.</li>
+        <li><strong>Dimmed edges</strong> (Sort mode) — non-tree edges are drawn at ~40% opacity so the BFS layer structure stays readable.</li>
+      </ul>
+    </div>
+
+    <!-- ══ FREEZE ══ -->
+    <div class="help-section">
+      <h3>❄ Freeze</h3>
+      <p>Instantly stops all physics. All node velocities are zeroed. While frozen, A and A* get prominent text callouts with leader lines so they are easy to identify. The button turns amber and reads <em>▶ Unfreeze</em>. Press again to resume physics. Useful when generating large graphs (e.g. n=10, k=4 has 210 nodes) that take a long time to settle before you want to use Sort Vertices or d(X,Y).</p>
+    </div>
+
+    <!-- ══ SORT VERTICES ══ -->
+    <div class="help-section">
+      <h3>🎯 Sort Vertices</h3>
+      <p>Click the button to enter <em>pick mode</em>: the canvas dims, the cursor becomes a crosshair, and a banner prompts you to click any node U as the BFS root. Press Esc to cancel.</p>
+      <p style="margin-top:6px">BFS from U partitions all nodes into layers L<sub>d</sub> = {v : d(U,v) = d}. Two sub-modes:</p>
+
+      <p style="margin-top:8px;margin-bottom:3px"><strong>⬤ Concentric Rings</strong></p>
+      <p>U sits at the center. The canvas radius is divided into nL equal bands (nL = number of layers). Layer d occupies the annular band [d·w, (d+1)·w] and nodes are placed at its mid-radius. Solid black boundary circles mark each ring boundary on a white disc background. Labels on the left and right show <em>d=… / c=…</em> (layer index / node count). The ring is rotated so the most-connected node to the previous layer sits at the top.</p>
+
+      <p style="margin-top:8px;margin-bottom:3px"><strong>≡ Layered Rows</strong></p>
+      <p>The canvas is divided into nL equal horizontal bands. Layer d fills band d, with nodes centered in the band. Within each row, nodes are ordered by the barycenter heuristic (average neighbor position in the previous row) to minimise crossings. Dashed separators and <em>d=… / c=…</em> badges mark each row. Use ▼ Top→Down / ▲ Bottom→Up to flip direction.</p>
+
+      <p style="margin-top:8px">Node radius is auto-scaled so nodes fit inside their band when the graph has many layers. Exit via <span class="help-key">✕ Exit Sort Mode</span>, Esc, Shake, Generate, or Grid.</p>
+    </div>
+
+    <!-- ══ d(X,Y) ══ -->
+    <div class="help-section">
+      <h3>📏 d(X,Y) — Distance Calculator</h3>
+      <p>Click the button to open the calculator. Pick nodes X and Y by clicking them on the graph (they highlight with a blue ring and blue label) or by typing their bit-string labels in the input boxes. Once both are set, click <span class="help-key">↳ Compute d(X,Y)</span>.</p>
+
+      <p style="margin-top:8px;margin-bottom:4px">Three values are computed and shown in the right panel:</p>
+      <ul>
+        <li><strong>d(X,Y)</strong> — shortest-path distance, found by BFS from X.</li>
+        <li><strong>N<sub>o</sub>(X,Y)</strong> — number of <em>shortest</em> paths from X to Y. Computed by a BFS layer-counting pass: each node accumulates the sum of path counts from its BFS parents.</li>
+        <li><strong>N<sub>p</sub>(X,Y)</strong> — number of <em>all</em> simple paths from X to Y, found by DFS with a visited-set. Capped at 1,000,000; displayed as "≥ 1,000,000" if the cap is reached.</li>
+      </ul>
+      <p style="margin-top:6px">After computing, click any node to pick a new X and start a fresh query without leaving the mode. Click ✕ Exit to close.</p>
+    </div>
+
+    <!-- ══ DIAMETER ══ -->
+    <div class="help-section">
+      <h3>Diameter Verification</h3>
+      <p>The Distance Formulas panel always shows the closed-form diameter <span class="help-key">k(n−k)</span>. When |V| ≤ 350, a full BFS-from-every-vertex check is run at build time and the result is shown as <em>BFS=24 ✓</em> (match) or <em>BFS=4 ⚠</em> (mismatch, indicating a bug).</p>
+    </div>
+  </div>
+</div>
+
+<div id="canvas-container"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL STATE
+═══════════════════════════════════════════════════════════════ */
+let nodes = [], edges = [];
+let N = 5, K = 2;          // K = number of ZEROS (paper convention)
+let isWrapped   = false;
+let isGridLayout = false;
+let adjacencyList = new Map();
+
+// FIX: explicit physics-active flag → physics stops when settled
+let physicsActive = true;
+const VELOCITY_THRESHOLD = 0.22;
+
+// physics tunables
+let REPULSION  = 25000;
+let ATTRACTION = 0.006;
+const DAMPING      = 0.85;
+const CENTER_PULL  = 0.008;
+let NODE_RADIUS = 28;
+
+// selection / BFS state
+let selectedSource = null;   // node index or null
+let selectedTarget = null;   // node index or null
+let bfsResult      = null;   // { dist: Array, parent: Array }
+let shortestPath   = [];     // node indices on highlighted path
+let pathEdgeKeys   = new Set();   // "minIdx-maxIdx" keys of path edges
+
+// graph-level diameter (computed at build time)
+let graphDiameter  = null;   // { diameter: int, pair: [i,j] } or null
+
+// pre-computed BFS caches from A and A* (set at buildGraph time)
+let bfsFromA     = null;   // { dist, parent }
+let bfsFromAstar = null;   // { dist, parent }
+
+// reversal automorphism: reversalOf[i] = index of the reversed-string partner of node i
+let reversalOf = [];
+
+// when true, physics enforces mirror symmetry about the vertical center line
+// and dragging a node also moves its reversal partner
+let symmetricMode = true;
+
+// active node coloring mode
+// 'degree' | 'bfs-A' | 'bfs-Astar' | 'bfs-source'
+let colorMode = 'degree';
+
+// ── Sort Vertices mode ──
+// sortMode: null | 'pick' | 'concentric' | 'rows'
+let sortMode        = null;
+let sortRoot        = null;      // node index of BFS root
+let sortSubMode     = 'concentric'; // current sub-layout
+let sortRowsDir     = 'top';     // 'top' | 'bottom'
+let bfsLayers       = [];        // array of layers (each = array of node indices)
+let bfsTreeEdgeKeys = new Set(); // "minI-maxI" keys of BFS spanning-tree edges
+
+// ── d(X,Y) mode ──
+// dxyMode: null | 'pickX' | 'pickY' | 'result'
+let dxyMode    = null;
+let dxyX       = null;   // node index for X
+let dxyY       = null;   // node index for Y
+let dxyResult  = null;   // { d, No, Np, NpCapped }
+
+// drag / click disambiguation
+let draggedNode     = null;
+let mouseHasMoved   = false;
+let pressedOnCanvas = false;
+
+/* ═══════════════════════════════════════════════════════════════
+   COLOR PALETTES
+═══════════════════════════════════════════════════════════════ */
+// one color per transposition (i, i+1); index 0 = transposition (0,1)
+const TRANS_COLORS = [
+  '#e53935','#fb8c00','#fdd835','#43a047','#00acc1',
+  '#5c6bc0','#8e24aa','#d81b60','#6d4c41','#00695c'
+];
+
+// one color per degree value; index = degree
+const DEG_COLORS = [
+  '#9E9E9E','#E91E63','#F44336','#FF9800','#FFEB3B',
+  '#8BC34A','#4CAF50','#00BCD4','#2196F3','#3F51B5','#9C27B0','#673AB7'
+];
+
+function getDegColor(d) {
+  return DEG_COLORS[Math.min(d, DEG_COLORS.length - 1)];
+}
+
+/* Smooth HSL→hex for distance-based coloring */
+function hslHex(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+/* Color a node by BFS distance from source (green → red).
+   isSource=true forces gold (used when coloring from A or A* so that
+   the root of the BFS gets the gold marker, not a degree color). */
+function distColor(d, maxD, isSource = false) {
+  if (isSource || d === 0) return '#FFD700';   // source/root: gold
+  if (d < 0)               return '#9E9E9E';   // unreachable: grey
+  const t = maxD > 0 ? Math.min(d / maxD, 1) : 0;
+  return hslHex(Math.round(120 * (1 - t)), 78, 48);
+}
+
+/* ── Color mode selector callback ── */
+function setColorMode(mode) {
+  colorMode = mode;
+  ['degree','bfs-A','bfs-Astar','bfs-source'].forEach(m => {
+    const el = document.getElementById(`rm-${m}`);
+    if (el) el.classList.toggle('active', m === mode);
+  });
+  updateRightPanel();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   d(X,Y) MODE — ENTER / EXIT / INPUT
+═══════════════════════════════════════════════════════════════ */
+function enterDxyMode() {
+  dxyMode = 'pickX'; dxyX = null; dxyY = null; dxyResult = null;
+  document.getElementById('btn-dxy').classList.add('active');
+  document.getElementById('dxy-submenu').classList.add('visible');
+  document.getElementById('dxy-input-x').value = '';
+  document.getElementById('dxy-input-y').value = '';
+  document.getElementById('dxy-compute-btn').disabled = true;
+  updateRightPanel();
+}
+
+function exitDxyMode() {
+  dxyMode = null; dxyX = null; dxyY = null; dxyResult = null;
+  document.getElementById('btn-dxy').classList.remove('active');
+  document.getElementById('dxy-submenu').classList.remove('visible');
+  updateRightPanel();
+}
+
+/** Called when user clicks a node while dxyMode is active */
+function handleDxyPick(idx) {
+  if (dxyMode === 'pickX' || dxyMode === 'result') {
+    dxyX = idx; dxyY = null; dxyResult = null;
+    dxyMode = 'pickY';
+    document.getElementById('dxy-input-x').value = nodes[idx].label;
+    document.getElementById('dxy-input-y').value = '';
+    document.getElementById('dxy-compute-btn').disabled = true;
+  } else if (dxyMode === 'pickY') {
+    if (idx === dxyX) return;   // same node — ignore
+    dxyY = idx;
+    document.getElementById('dxy-input-y').value = nodes[idx].label;
+    document.getElementById('dxy-compute-btn').disabled = false;
+  }
+  updateRightPanel();
+}
+
+/** Validate typed label against current node set */
+function dxyInputChanged(which) {
+  const input = document.getElementById(`dxy-input-${which}`);
+  const label = input.value.trim();
+  const idx   = nodes.findIndex(nd => nd.label === label);
+  if (which === 'x') { dxyX = idx >= 0 ? idx : null; dxyMode = 'pickY'; }
+  else               { dxyY = idx >= 0 ? idx : null; }
+  document.getElementById('dxy-compute-btn').disabled =
+    !(dxyX !== null && dxyY !== null && dxyX !== dxyY);
+  updateRightPanel();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPUTE d(X,Y) — d, N_o (# shortest paths), N_p (# all simple paths)
+═══════════════════════════════════════════════════════════════ */
+
+/** Count of shortest paths from src to every node, via BFS layer counting. */
+function countShortestPaths(srcIdx) {
+  const dist  = new Array(nodes.length).fill(-1);
+  const count = new Array(nodes.length).fill(0);
+  dist[srcIdx]  = 0;
+  count[srcIdx] = 1;
+  const q = [srcIdx]; let qi = 0;
+  while (qi < q.length) {
+    const v = q[qi++];
+    for (const u of adjacencyList.get(v)) {
+      if (dist[u] < 0) {
+        dist[u]  = dist[v] + 1;
+        count[u] = count[v];
+        q.push(u);
+      } else if (dist[u] === dist[v] + 1) {
+        count[u] += count[v];
+      }
+    }
+  }
+  return { dist, count };
+}
+
+const NP_CAP = 1_000_000;
+
+/**
+ * Count ALL simple paths from src to tgt via DFS with backtracking.
+ * Stops early and returns { count: NP_CAP, capped: true } if cap is hit.
+ */
+function countAllSimplePaths(srcIdx, tgtIdx) {
+  let count  = 0;
+  let capped = false;
+  const visited = new Uint8Array(nodes.length);
+
+  function dfs(v) {
+    if (capped) return;
+    if (v === tgtIdx) { count++; if (count >= NP_CAP) capped = true; return; }
+    visited[v] = 1;
+    for (const u of adjacencyList.get(v)) {
+      if (!visited[u]) dfs(u);
+      if (capped) break;
+    }
+    visited[v] = 0;
+  }
+
+  dfs(srcIdx);
+  return { count, capped };
+}
+
+function computeDxy() {
+  if (dxyX === null || dxyY === null || dxyX === dxyY) return;
+
+  const { dist, count } = countShortestPaths(dxyX);
+  const d  = dist[dxyY];
+  const No = d >= 0 ? count[dxyY] : 0;
+
+  let Np = 0, NpCapped = false;
+  if (d >= 0) {
+    const result = countAllSimplePaths(dxyX, dxyY);
+    Np = result.count; NpCapped = result.capped;
+  }
+
+  dxyResult = { d, No, Np, NpCapped };
+  dxyMode   = 'result';
+  updateRightPanel();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SORT VERTICES MODE
+═══════════════════════════════════════════════════════════════ */
+
+function enterPickMode() {
+  sortMode = 'pick';
+  document.body.classList.add('pick-mode');
+  document.getElementById('btn-sort-vertices').classList.add('active');
+  document.getElementById('sort-submenu').classList.remove('visible');
+  updateRightPanel();
+}
+
+function exitSortMode() {
+  sortMode = null; sortRoot = null; bfsLayers = []; bfsTreeEdgeKeys = new Set();
+  document.body.classList.remove('pick-mode');
+  document.getElementById('btn-sort-vertices').classList.remove('active');
+  document.getElementById('sort-submenu').classList.remove('visible');
+  document.getElementById('rows-dir-row').style.display = 'none';
+  // Clear inserted verification block
+  const sub = document.getElementById('sort-submenu');
+  sub.querySelectorAll('[data-ver]').forEach(el => el.remove());
+  physicsActive = true;
+  isGridLayout  = false;
+  updateRightPanel();
+}
+
+/** Called when user clicks a node while in pick mode */
+function handleSortPick(idx) {
+  sortRoot = idx;
+  sortMode = sortSubMode;
+  document.body.classList.remove('pick-mode');
+
+  // Build BFS layers from root
+  const { dist } = bfsFrom(idx);
+  const maxLayer  = Math.max(...dist.filter(d => d >= 0));
+  bfsLayers = [];
+  for (let d = 0; d <= maxLayer; d++) {
+    bfsLayers.push(nodes.map((_,i) => i).filter(i => dist[i] === d));
+  }
+
+  // Auto-scale NODE_RADIUS so nodes fit inside bands/rings
+  const b = canvasBounds();
+  const nL = bfsLayers.length;
+  if (nL > 1) {
+    const maxRingR = Math.min(b.right - b.left, b.bottom - b.top) * 0.45;
+    const bandWRing = maxRingR / nL;
+    const bandHRow  = (b.bottom - b.top) / nL;
+    const maxFit = Math.max(6, Math.floor(Math.min(bandWRing, bandHRow) * 0.42));
+    if (NODE_RADIUS > maxFit) {
+      NODE_RADIUS = maxFit;
+      document.getElementById('nodeSizeSlider').value = maxFit;
+      document.getElementById('nodeSizeVal').textContent = maxFit;
+    }
+  }
+
+  // Build BFS tree edge set
+  bfsTreeEdgeKeys = new Set();
+  edges.forEach(e => {
+    const da = dist[e.from], db = dist[e.to];
+    if (da >= 0 && db >= 0 && Math.abs(da - db) === 1) {
+      bfsTreeEdgeKeys.add(`${Math.min(e.from,e.to)}-${Math.max(e.from,e.to)}`);
+    }
+  });
+
+  // Compute formula distances from root to A and A* for verification display
+  const rootLabel  = nodes[idx].label;
+  const canonIdx   = nodes.findIndex(nd => nd.isCanonical);
+  const antipodIdx = nodes.findIndex(nd => nd.isAntipodal);
+  const bfsDistA   = canonIdx   >= 0 ? dist[canonIdx]   : -1;
+  const bfsDistAs  = antipodIdx >= 0 ? dist[antipodIdx] : -1;
+  const fmlDistA   = canonIdx   >= 0 ? generalDist(rootLabel, nodes[canonIdx].label).dist   : -1;
+  const fmlDistAs  = antipodIdx >= 0 ? generalDist(rootLabel, nodes[antipodIdx].label).dist : -1;
+
+  // Update UI
+  document.getElementById('sort-root-label').textContent = `root: ${rootLabel}`;
+
+  // Verification display in submenu
+  const verRow = (label, bfs, fml) => {
+    const match = bfs === fml;
+    return `<div style="font-size:0.6rem;font-family:'JetBrains Mono',monospace;
+      margin-bottom:3px;color:#334155;">
+      <span style="color:#64748b">${label}:</span>
+      BFS=${bfs >= 0 ? bfs : '?'}
+      <span style="${match ? 'color:#16a34a' : 'color:#dc2626'}">${match ? '✓' : '⚠'}</span>
+      fml=${fml >= 0 ? fml : '?'}
+    </div>`;
+  };
+  let verHtml = `<div data-ver="1" style="margin-top:5px;padding:5px 6px;background:#f8fafc;
+    border-radius:6px;border:1px solid #e2e8f0;">
+    <div style="font-size:0.57rem;font-weight:700;text-transform:uppercase;
+      letter-spacing:0.8px;color:#94a3b8;margin-bottom:4px;font-family:'DM Sans',sans-serif">
+      d(U, ·) verification</div>
+    ${verRow('→ A',  bfsDistA,  fmlDistA)}
+    ${verRow('→ A*', bfsDistAs, fmlDistAs)}
+    <div style="font-size:0.58rem;color:#94a3b8;margin-top:3px">BFS vs formula Σ|xᵢ−yᵢ|</div>
+  </div>`;
+  document.getElementById('sort-root-label').insertAdjacentHTML('afterend', verHtml);
+
+  document.getElementById('sort-submenu').classList.add('visible');
+  ['sub-concentric','sub-rows'].forEach(id =>
+    document.getElementById(id).classList.remove('active'));
+  document.getElementById(sortSubMode === 'concentric' ? 'sub-concentric' : 'sub-rows')
+    .classList.add('active');
+
+  applySortLayout(sortSubMode);
+}
+
+function applySortLayout(subMode) {
+  if (sortRoot === null) return;
+  sortSubMode = subMode; sortMode = subMode;
+  physicsActive = false; isGridLayout = false;
+
+  ['sub-concentric','sub-rows'].forEach(id =>
+    document.getElementById(id).classList.remove('active'));
+  document.getElementById(subMode === 'concentric' ? 'sub-concentric' : 'sub-rows')
+    .classList.add('active');
+
+  document.getElementById('rows-dir-row').style.display =
+    subMode === 'rows' ? 'flex' : 'none';
+
+  if (subMode === 'concentric') _layoutConcentric();
+  else                          _layoutRows();
+}
+
+function setSortDir(dir) {
+  sortRowsDir = dir;
+  ['sub-topdown','sub-bottomup'].forEach(id =>
+    document.getElementById(id).classList.remove('active'));
+  document.getElementById(dir === 'top' ? 'sub-topdown' : 'sub-bottomup')
+    .classList.add('active');
+  _layoutRows();
+}
+
+/* ── Concentric Rings layout ── */
+function _layoutConcentric() {
+  const b     = canvasBounds();
+  const cx    = (b.left + b.right) / 2;
+  const cy    = (b.top  + b.bottom) / 2;
+  const maxR  = Math.min(b.right - b.left, b.bottom - b.top) * 0.45;
+  const nL    = bfsLayers.length;
+  // Each layer d occupies a band [d*bandW, (d+1)*bandW].
+  // Nodes are placed at the mid-radius of their band.
+  const bandW = maxR / nL;
+
+  bfsLayers.forEach((layer, d) => {
+    const rMid  = (d + 0.5) * bandW;   // mid-radius of band d
+    const count = layer.length;
+
+    if (d === 0) {
+      // Root sits at the canvas center (mid of innermost band = center)
+      nodes[layer[0]].x  = cx;
+      nodes[layer[0]].y  = cy;
+      nodes[layer[0]].vx = nodes[layer[0]].vy = 0;
+      return;
+    }
+
+    // Rotate ring so the node with the most connections to the previous
+    // layer starts at angle -π/2 (top), minimising edge crossings.
+    const prevSet   = new Set(bfsLayers[d - 1]);
+    const connCount = layer.map(i =>
+      adjacencyList.get(i).filter(j => prevSet.has(j)).length
+    );
+    const anchorIdx = connCount.indexOf(Math.max(...connCount));
+    const offset    = -Math.PI / 2 - (anchorIdx / count) * 2 * Math.PI;
+
+    layer.forEach((i, pos) => {
+      const angle = offset + (pos / count) * 2 * Math.PI;
+      nodes[i].x  = cx + rMid * Math.cos(angle);
+      nodes[i].y  = cy + rMid * Math.sin(angle);
+      nodes[i].vx = nodes[i].vy = 0;
+    });
+  });
+}
+
+/* ── Layered Rows layout with barycenter heuristic ── */
+function _layoutRows() {
+  const b     = canvasBounds();
+  const nL    = bfsLayers.length;
+  // Divide canvas into (nL) equal bands; nodes sit at each band center.
+  // Separator lines are drawn at band boundaries: y = top + d*bandH (for d>0).
+  const bandH = (b.bottom - b.top) / nL;
+
+  // Precompute barycenters as a Map: nodeIdx → barycenter value
+  const baryMap = new Map();
+
+  bfsLayers.forEach((layer, d) => {
+    if (d > 0) {
+      // Position in previous layer by array index
+      const prevPos = new Map(bfsLayers[d-1].map((ni, pos) => [ni, pos]));
+      const prevLen = bfsLayers[d-1].length;
+      layer.forEach(i => {
+        const nb = adjacencyList.get(i).filter(j => prevPos.has(j));
+        const bc = nb.length
+          ? nb.reduce((s, j) => s + prevPos.get(j) / (prevLen - 1 || 1), 0) / nb.length
+          : 0.5;
+        baryMap.set(i, bc);
+      });
+      // Sort layer in-place by barycenter
+      layer.sort((a, bv) => (baryMap.get(a) ?? 0) - (baryMap.get(bv) ?? 0));
+    }
+
+    const count = layer.length;
+    const rowW  = b.right - b.left;
+    // Band center y
+    const y = sortRowsDir === 'top'
+      ? b.top    + (d + 0.5) * bandH
+      : b.bottom - (d + 0.5) * bandH;
+
+    layer.forEach((i, pos) => {
+      nodes[i].x  = b.left + ((pos + 1) / (count + 1)) * rowW;
+      nodes[i].y  = y;
+      nodes[i].vx = nodes[i].vy = 0;
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DATA CLASSES
+═══════════════════════════════════════════════════════════════ */
+class Node {
+  constructor(label, x, y) {
+    this.label = label;
+    this.x = x; this.y = y;
+    this.vx = 0; this.vy = 0;
+    this.degree = 0;
+    this.isCanonical  = false;   // A  = 0^k 1^{n-k}
+    this.isAntipodal  = false;   // A* = 1^{n-k} 0^k  (farthest from A)
+  }
+  get radius() { return NODE_RADIUS; }
+}
+
+class Edge {
+  // FIX: explicit isWrapped boolean — no longer conflated with transpositionIdx
+  constructor(from, to, transIdx, isWrap) {
+    this.from         = from;
+    this.to           = to;
+    this.transIdx     = transIdx;
+    this.isWrapped    = isWrap;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MATH / FORMULA UTILITIES
+═══════════════════════════════════════════════════════════════ */
+
+/** 1-based positions of zeros in str */
+function zeroPos1(str) {
+  const z = [];
+  for (let i = 0; i < str.length; i++) if (str[i] === '0') z.push(i + 1);
+  return z;
+}
+
+/** Canonical vertex label A = 0^K 1^{N-K} */
+function canonLabel() { return '0'.repeat(K) + '1'.repeat(N - K); }
+
+/** Antipodal vertex label A* = 1^{N-K} 0^K  (farthest from A; d(A,A*) = k(n-k)) */
+function antipodalLabel() { return '1'.repeat(N - K) + '0'.repeat(K); }
+
+/**
+ * I(B) = Σ(z_i − i), the exact distance d(A, B) in G_2.
+ * Uses 1-based zero positions of B.
+ */
+function iStatistic(bLabel) {
+  const z = zeroPos1(bLabel);
+  let IB = 0;
+  const terms = [];
+  for (let i = 0; i < z.length; i++) {
+    const di = z[i] - (i + 1);
+    IB += di;
+    terms.push({ zi: z[i], idx: i + 1, di });
+  }
+  return { IB, terms };
+}
+
+/**
+ * d(X,Y) = Σ |x_i − y_i| — general G_2 distance between any two vertices.
+ */
+function generalDist(xLabel, yLabel) {
+  const xz = zeroPos1(xLabel), yz = zeroPos1(yLabel);
+  let d = 0;
+  const terms = [];
+  for (let i = 0; i < xz.length; i++) {
+    const diff = Math.abs(xz[i] - yz[i]);
+    d += diff;
+    terms.push({ xi: xz[i], yi: yz[i], diff });
+  }
+  return { dist: d, terms };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BFS
+═══════════════════════════════════════════════════════════════ */
+function bfsFrom(srcIdx) {
+  const dist   = new Array(nodes.length).fill(-1);
+  const parent = new Array(nodes.length).fill(-1);
+  dist[srcIdx] = 0;
+  const q = [srcIdx]; let qi = 0;
+  while (qi < q.length) {
+    const v = q[qi++];
+    for (const u of adjacencyList.get(v)) {
+      if (dist[u] < 0) {
+        dist[u] = dist[v] + 1;
+        parent[u] = v;
+        q.push(u);
+      }
+    }
+  }
+  return { dist, parent };
+}
+
+/** Trace shortest path from source back through parent array */
+function tracePath(parent, tgtIdx) {
+  if (bfsResult.dist[tgtIdx] < 0) return [];   // unreachable
+  const path = [];
+  let cur = tgtIdx;
+  while (cur !== -1) { path.push(cur); cur = parent[cur]; }
+  path.reverse();
+  return path;
+}
+
+function buildPathKeys(path) {
+  const s = new Set();
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1];
+    s.add(`${Math.min(a, b)}-${Math.max(a, b)}`);
+  }
+  return s;
+}
+
+/**
+ * Full diameter: BFS from every vertex.
+ * Skipped when |V| > 350 to keep the browser responsive.
+ */
+function computeDiameter() {
+  if (nodes.length > 350) return null;
+  let maxD = 0, pair = [0, 0];
+  for (let i = 0; i < nodes.length; i++) {
+    const { dist } = bfsFrom(i);
+    for (let j = 0; j < nodes.length; j++) {
+      if (dist[j] > maxD) { maxD = dist[j]; pair = [i, j]; }
+    }
+  }
+  return { diameter: maxD, pair };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GRAPH CONSTRUCTION
+═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Generate all binary strings of length N with exactly K zeros,
+ * in lexicographic order.  Index 0 = "0^K 1^{N-K}" = canonical A.
+ */
+function allStrings() {
+  const results = [];
+  function gen(cur, zerosLeft, onesLeft) {
+    if (!zerosLeft && !onesLeft) { results.push(cur); return; }
+    if (zerosLeft) gen(cur + '0', zerosLeft - 1, onesLeft);
+    if (onesLeft)  gen(cur + '1', zerosLeft,     onesLeft - 1);
+  }
+  gen('', K, N - K);
+  return results;
+}
+
+function swapAdj(str, i) {
+  const a = str.split('');
+  [a[i], a[i+1]] = [a[i+1], a[i]];
+  return a.join('');
+}
+
+function swapEnds(str) {
+  const a = str.split('');
+  [a[0], a[a.length-1]] = [a[a.length-1], a[0]];
+  return a.join('');
+}
+
+function buildGraph() {
+  nodes = []; edges = [];
+  adjacencyList = new Map();
+  selectedSource = selectedTarget = null;
+  bfsResult = null;
+  shortestPath = []; pathEdgeKeys = new Set();
+  physicsActive = true;
+  isWrapped = document.getElementById('wrappedCb').checked;
+
+  const strs   = allStrings();
+  const sToIdx = new Map();
+  const bounds = canvasBounds();
+  const cx = (bounds.left + bounds.right) / 2;
+  const cy = (bounds.top  + bounds.bottom) / 2;
+  const canon     = canonLabel();
+  const antipodal = antipodalLabel();
+
+  strs.forEach((s, i) => {
+    const nd = new Node(s, cx, cy);
+    nd.isCanonical  = (s === canon);
+    nd.isAntipodal  = (s === antipodal);
+    nodes.push(nd);
+    sToIdx.set(s, i);
+    adjacencyList.set(i, []);
+  });
+
+  const edgeSet = new Set();
+
+  strs.forEach((s, fi) => {
+    // Standard adjacent transpositions  (i, i+1)
+    for (let i = 0; i < N - 1; i++) {
+      if (s[i] === s[i+1]) continue;          // swap would change nothing meaningful
+      const ns  = swapAdj(s, i);
+      const ti  = sToIdx.get(ns);
+      if (ti === undefined) continue;
+      const key = fi < ti ? `${fi}-${ti}-${i}` : `${ti}-${fi}-${i}`;
+      if (!edgeSet.has(key)) {
+        edgeSet.add(key);
+        edges.push(new Edge(fi, ti, i, false));
+        adjacencyList.get(fi).push(ti);
+        adjacencyList.get(ti).push(fi);
+      }
+    }
+
+    // Wrapped transposition  (0, N-1)
+    if (isWrapped && s[0] !== s[N-1]) {
+      const ns  = swapEnds(s);
+      const ti  = sToIdx.get(ns);
+      if (ti !== undefined) {
+        const key = fi < ti ? `${fi}-${ti}-wrap` : `${ti}-${fi}-wrap`;
+        if (!edgeSet.has(key)) {
+          edgeSet.add(key);
+          // Use color index N-1; isWrapped=true stored explicitly
+          edges.push(new Edge(fi, ti, N - 1, true));
+          adjacencyList.get(fi).push(ti);
+          adjacencyList.get(ti).push(fi);
+        }
+      }
+    }
+  });
+
+  nodes.forEach((nd, i) => { nd.degree = adjacencyList.get(i).length; });
+
+  // Build reversal automorphism map: B ↔ reverse(B)
+  // Reversal is a graph automorphism of G₂(k,n) — it preserves zeros and adjacency.
+  reversalOf = new Array(nodes.length);
+  nodes.forEach((nd, i) => {
+    const rev = nd.label.split('').reverse().join('');
+    const j   = nodes.findIndex(n => n.label === rev);
+    reversalOf[i] = j >= 0 ? j : i;
+  });
+
+  symmetricMode = document.getElementById('symmetricCb')?.checked ?? true;   // read checkbox
+
+  // Pre-compute BFS from A and A* for the static coloring modes
+  const canonIdx    = nodes.findIndex(nd => nd.isCanonical);
+  const antipodIdx  = nodes.findIndex(nd => nd.isAntipodal);
+  bfsFromA     = canonIdx   >= 0 ? bfsFrom(canonIdx)   : null;
+  bfsFromAstar = antipodIdx >= 0 ? bfsFrom(antipodIdx) : null;
+
+  initLayout();
+
+  graphDiameter = computeDiameter();
+
+  updateLeftPanel();
+  updateRightPanel();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════════════ */
+
+/** Initial circular placement — physics does the rest */
+function initLayout() {
+  const b  = canvasBounds();
+  const cx = (b.left + b.right) / 2;
+  const cy = (b.top  + b.bottom) / 2;
+  const r  = Math.min(b.right - b.left, b.bottom - b.top) * 0.40;
+  nodes.forEach((nd, i) => {
+    const angle = (i / nodes.length) * 2 * Math.PI - Math.PI / 2;
+    nd.x  = cx + r * Math.cos(angle);
+    nd.y  = cy + r * Math.sin(angle);
+    nd.vx = (Math.random() - 0.5) * 2;  // small kick to break symmetry
+    nd.vy = (Math.random() - 0.5) * 2;
+  });
+}
+
+/**
+ * Grid layout for k = 2 (two zeros).
+ * Axes:  x = z₁ (1-based first zero position),
+ *        y = z₂ (1-based second zero position, increasing upward).
+ * Only the upper triangle z₁ < z₂ is occupied.
+ */
+function toggleGridLayout() {
+  if (sortMode !== null) exitSortMode();
+  if (K !== 2) {
+    alert('Grid layout is only available when k = 2\n(exactly two zeros per string).');
+    return;
+  }
+  isGridLayout = true;
+  physicsActive = false;         // disable physics in grid mode
+
+  const { left, right, top, bottom } = gridBounds();
+  const cw = (right - left)  / (N - 1);
+  const ch = (bottom - top) / (N - 1);
+
+  nodes.forEach(nd => {
+    const z = zeroPos1(nd.label);   // 1-based zero positions
+    if (z.length !== 2) return;
+    // map z₁ ∈ [1,N] and z₂ ∈ [1,N] to canvas coords
+    nd.x  = left   + (z[0] - 1) * cw;
+    nd.y  = bottom - (z[1] - 1) * ch;
+    nd.vx = nd.vy  = 0;
+  });
+}
+
+/**
+ * Mirror-symmetry projection about the vertical center line.
+ * Called after every physics step when symmetricMode is active.
+ * For each reversal pair (i, j=reversal(i)):
+ *   - Palindromes (i===j): pinned to x = cx.
+ *   - Pairs (i<j): mirror x about cx, share the same y and vy, mirror vx.
+ */
+function applySymmetry(cx) {
+  for (let i = 0; i < nodes.length; i++) {
+    const j = reversalOf[i];
+    if (j === i) {
+      // palindrome node — sits on the axis
+      nodes[i].x  = cx;
+      nodes[i].vx = 0;
+    } else if (i < j) {
+      // enforce x_i = cx + d,  x_j = cx − d
+      const halfX  = (nodes[i].x - nodes[j].x) / 2;
+      const avgY   = (nodes[i].y  + nodes[j].y)  / 2;
+      const halfVx = (nodes[i].vx - nodes[j].vx) / 2;
+      const avgVy  = (nodes[i].vy  + nodes[j].vy)  / 2;
+      nodes[i].x   = cx + halfX;   nodes[j].x   = cx - halfX;
+      nodes[i].y   = avgY;          nodes[j].y   = avgY;
+      nodes[i].vx  = halfVx;        nodes[j].vx  = -halfVx;
+      nodes[i].vy  = avgVy;         nodes[j].vy  = avgVy;
+    }
+  }
+}
+
+function shakeNodes() {
+  if (sortMode !== null) exitSortMode();
+  const b  = canvasBounds();
+  const cx = (b.left + b.right) / 2;
+  const cy = (b.top  + b.bottom) / 2;
+  const rx = (b.right  - b.left) * 0.36;
+  const ry = (b.bottom - b.top)  * 0.36;
+
+  symmetricMode = true;
+
+  // Place each canonical representative (i ≤ reversalOf[i]) randomly,
+  // then mirror its partner so we start in a symmetric configuration.
+  const placed = new Uint8Array(nodes.length);
+  for (let i = 0; i < nodes.length; i++) {
+    if (placed[i]) continue;
+    const j = reversalOf[i];
+    placed[i] = placed[j] = 1;
+
+    const angle = Math.random() * 2 * Math.PI;
+    const r     = 0.3 + 0.7 * Math.random();
+    const y     = cy + Math.sin(angle) * ry * r;
+    const vy    = (Math.random() - 0.5) * 18;
+
+    if (i === j) {
+      // palindrome — on center line
+      nodes[i].x = cx;
+      nodes[i].y = y;
+      nodes[i].vx = 0;
+      nodes[i].vy = vy;
+    } else {
+      const dx = (0.25 + 0.75 * Math.random()) * rx * r;
+      const vx = (0.5 + 0.5 * Math.random()) * 12;
+      nodes[i].x = cx + dx;   nodes[j].x = cx - dx;
+      nodes[i].y = y;          nodes[j].y = y;
+      nodes[i].vx = vx;        nodes[j].vx = -vx;
+      nodes[i].vy = vy;        nodes[j].vy = vy;
+    }
+  }
+
+  isGridLayout  = false;
+  physicsActive = true;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CANVAS / PHYSICS HELPERS
+═══════════════════════════════════════════════════════════════ */
+
+/**
+ * FIX: accounts for both left (178px) and right (222px) panels.
+ * Nodes are confined to the area between the two panels.
+ */
+function canvasBounds() {
+  return {
+    left:   178 + 30,
+    right:  windowWidth  - 222 - 30,
+    top:    30,
+    bottom: windowHeight - 30
+  };
+}
+
+function gridBounds() {
+  const b = canvasBounds();
+  return {
+    left:   b.left  + 52,
+    right:  b.right - 20,
+    top:    b.top   + 22,
+    bottom: b.bottom - 52
+  };
+}
+
+function ptToSegDist(px, py, x1, y1, x2, y2) {
+  const dx = x2-x1, dy = y2-y1;
+  const lsq = dx*dx + dy*dy;
+  if (lsq === 0) return Math.hypot(px-x1, py-y1);
+  const t = Math.max(0, Math.min(1, ((px-x1)*dx + (py-y1)*dy) / lsq));
+  return Math.hypot(px-(x1+t*dx), py-(y1+t*dy));
+}
+
+/**
+ * FIX: physics convergence — stops running once nodes settle.
+ * Woken again by shakeNodes(), rebuildGraph(), slider changes, and dragging.
+ */
+function applyForces() {
+  const b  = canvasBounds();
+  const cx = (b.left + b.right) / 2;
+  const cy = (b.top  + b.bottom) / 2;
+
+  // Coulomb repulsion between every pair of nodes
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[j].x - nodes[i].x;
+      const dy = nodes[j].y - nodes[i].y;
+      const d  = Math.max(Math.sqrt(dx*dx + dy*dy), 1);
+      const f  = REPULSION / (d * d);
+      const fx = (dx/d)*f, fy = (dy/d)*f;
+      nodes[i].vx -= fx; nodes[i].vy -= fy;
+      nodes[j].vx += fx; nodes[j].vy += fy;
+    }
+  }
+
+  // Spring attraction along edges
+  edges.forEach(e => {
+    const a = nodes[e.from], b2 = nodes[e.to];
+    const dx = b2.x - a.x, dy = b2.y - a.y;
+    const d  = Math.sqrt(dx*dx + dy*dy);
+    if (d < 1) return;
+    const f  = d * ATTRACTION;
+    const fx = (dx/d)*f, fy = (dy/d)*f;
+    a.vx += fx; a.vy += fy;
+    b2.vx -= fx; b2.vy -= fy;
+  });
+
+  // Weak center pull + damping + integrate
+  let maxV = 0;
+  nodes.forEach(nd => {
+    nd.vx += (cx - nd.x) * CENTER_PULL;
+    nd.vy += (cy - nd.y) * CENTER_PULL;
+    nd.vx *= DAMPING; nd.vy *= DAMPING;
+    nd.x  += nd.vx;   nd.y  += nd.vy;
+    nd.x   = Math.max(b.left,   Math.min(b.right,  nd.x));
+    nd.y   = Math.max(b.top,    Math.min(b.bottom, nd.y));
+    maxV   = Math.max(maxV, Math.abs(nd.vx) + Math.abs(nd.vy));
+  });
+
+  // Convergence: freeze when all velocities are tiny
+  if (maxV < VELOCITY_THRESHOLD) {
+    physicsActive = false;
+    nodes.forEach(nd => { nd.vx = 0; nd.vy = 0; });
+  }
+
+  // Enforce mirror symmetry if active (must come after bounds clamping)
+  if (symmetricMode) applySymmetry(cx);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   p5.js SETUP & DRAW
+═══════════════════════════════════════════════════════════════ */
+function setup() {
+  const cnv = createCanvas(windowWidth, windowHeight);
+  cnv.parent('canvas-container');
+  // FIX: canvas is transparent → CSS body gradient shows through
+  // (replaces the per-row gradient loop that was O(height) per frame)
+  cnv.style('background', 'transparent');
+  textFont('JetBrains Mono');
+  buildGraph();
+}
+
+function draw() {
+  // FIX: use clear() instead of drawing gradient row-by-row
+  clear();
+
+  const b  = canvasBounds();
+  const cx = (b.left + b.right) / 2;
+  const cy = (b.top  + b.bottom) / 2;
+
+  // Subtle canvas area boundary
+  stroke(150, 150, 150, 32); strokeWeight(1); noFill();
+  rect(b.left, b.top, b.right-b.left, b.bottom-b.top, 12);
+
+  // Guide crosshairs — only in free physics / grid mode, not sort modes
+  if (!isGridLayout && sortMode === null) {
+    stroke(100, 100, 100, 50); strokeWeight(1);
+    drawingContext.setLineDash([7, 7]);
+    line(cx, b.top, cx, b.bottom);
+    line(b.left, cy, b.right, cy);
+    drawingContext.setLineDash([]);
+  }
+
+  // ── Concentric mode: white canvas + solid black boundary circles ──
+  if (sortMode === 'concentric' && bfsLayers.length > 0) {
+    const maxR  = Math.min(b.right - b.left, b.bottom - b.top) * 0.45;
+    const nL    = bfsLayers.length;
+    const bandW = maxR / nL;
+    const rMax  = nL * bandW;
+
+    // White disc background
+    noStroke(); fill(255);
+    ellipse(cx, cy, rMax * 2 + 4, rMax * 2 + 4);
+
+    // Solid black boundary circles
+    stroke(0); strokeWeight(1.4); noFill();
+    for (let d = 0; d < nL; d++) {
+      ellipse(cx, cy, (d + 1) * bandW * 2, (d + 1) * bandW * 2);
+    }
+
+    // Label on left and right sides of each boundary circle — two lines: d= / c=
+    noStroke();
+    textStyle(BOLD); textFont('JetBrains Mono'); textSize(9); textAlign(CENTER, CENTER);
+    for (let d = 0; d < nL; d++) {
+      const rOuter = (d + 1) * bandW;
+      const cnt    = bfsLayers[d].length;
+      const line1  = `d=${d}`;
+      const line2  = `c=${cnt}`;
+      const tw = Math.max(textWidth(line1), textWidth(line2)) + 8;
+      const th = 24;   // two lines × ~10px + padding
+      for (const side of [-1, 1]) {
+        const lx = cx + side * rOuter;
+        const ly = cy;
+        fill(255); noStroke();
+        rect(lx - tw / 2, ly - th / 2, tw, th, 3);
+        fill(0);
+        text(line1, lx, ly - 6);
+        text(line2, lx, ly + 6);
+      }
+    }
+    textStyle(NORMAL);
+    // (edges and nodes are drawn below, on top of the rings)
+  }
+
+  // ── Row separator lines + badges ──
+  if (sortMode === 'rows' && bfsLayers.length > 0) {
+    const nL    = bfsLayers.length;
+    const bandH = (b.bottom - b.top) / nL;
+    const badgeX = b.left - 2;
+
+    drawingContext.setLineDash([4, 7]);
+    for (let d = 0; d < nL; d++) {
+      // Band center = node row position
+      const yCenter = sortRowsDir === 'top'
+        ? b.top    + (d + 0.5) * bandH
+        : b.bottom - (d + 0.5) * bandH;
+      // Separator at band TOP boundary (between row d-1 and d)
+      const ySep = sortRowsDir === 'top'
+        ? b.top    + d * bandH
+        : b.bottom - d * bandH;
+
+      if (d > 0) {
+        stroke(100, 149, 237, 38); strokeWeight(1);
+        line(b.left, ySep, b.right, ySep);
+      }
+
+      // Pill badge at band center — two lines: d= / c=
+      const cnt   = bfsLayers[d].length;
+      const line1 = `d=${d}`;
+      const line2 = `c=${cnt}`;
+      textStyle(BOLD); textFont('JetBrains Mono'); textSize(9); textAlign(CENTER, CENTER);
+      const bw = Math.max(textWidth(line1), textWidth(line2)) + 12, bh = 26;
+      noStroke(); fill(225, 234, 252, 220);
+      rect(badgeX, yCenter - bh / 2, bw, bh, 5);
+      fill(50, 90, 200);
+      text(line1, badgeX + bw / 2, yCenter - 7);
+      text(line2, badgeX + bw / 2, yCenter + 7);
+    }
+    drawingContext.setLineDash([]);
+    textStyle(NORMAL);
+  }
+
+  // Grid overlay
+  if (isGridLayout && K === 2) drawGrid();
+
+  // FIX: only run physics when active (not after convergence) and not frozen
+  if (!isGridLayout && physicsActive && !isFrozen) applyForces();
+
+  // ── Draw edges ──
+  const maxD = graphDiameter ? graphDiameter.diameter : K * (N - K);
+  edges.forEach(e => {
+    const a = nodes[e.from], bN = nodes[e.to];
+    const dx = bN.x - a.x, dy = bN.y - a.y;
+    const d  = Math.sqrt(dx*dx + dy*dy);
+    if (d < 1) return;
+
+    const sx = a.x  + (dx/d)*a.radius,  sy = a.y  + (dy/d)*a.radius;
+    const ex = bN.x - (dx/d)*bN.radius, ey = bN.y - (dy/d)*bN.radius;
+
+    const eKey   = `${Math.min(e.from,e.to)}-${Math.max(e.from,e.to)}`;
+    const onPth  = pathEdgeKeys.has(eKey);
+    const isTree = bfsTreeEdgeKeys.has(eKey);
+    const inSort = (sortMode === 'concentric' || sortMode === 'rows');
+
+    noFill();
+    if (onPth) {
+      stroke(255, 252, 180, 200); strokeWeight(8);
+      drawEdge(e, sx, sy, ex, ey, dx, dy, d);
+    }
+    const ec = TRANS_COLORS[e.transIdx % TRANS_COLORS.length];
+    const col = color(ec);
+    if (inSort && !isTree) {
+      // dim non-tree edges to ~40% opacity
+      stroke(red(col), green(col), blue(col), 100);
+      strokeWeight(1.2);
+    } else {
+      stroke(ec); strokeWeight(onPth ? 3.5 : 2.2);
+    }
+    drawEdge(e, sx, sy, ex, ey, dx, dy, d);
+  });
+
+  // ── Draw nodes ──
+  nodes.forEach((nd, i) => drawNode(nd, i, maxD));
+
+  // ── Frozen: prominent A and A* callouts ──
+  if (isFrozen && sortMode === null) {
+    textFont('JetBrains Mono'); textAlign(LEFT, CENTER);
+    nodes.forEach(nd => {
+      if (!nd.isCanonical && !nd.isAntipodal) return;
+      const col  = nd.isCanonical ? '#2E7D32' : '#7c3aed';
+      const lbl  = nd.isCanonical ? `A = ${nd.label}` : `A* = ${nd.label}`;
+      const tx   = nd.x + nd.radius + 7;
+      const ty   = nd.y;
+      const tw   = 7 * lbl.length + 8;
+      const th   = 16;
+      // leader line
+      stroke(col); strokeWeight(1.5); noFill();
+      line(nd.x + nd.radius, ty, tx - 2, ty);
+      // pill background
+      noStroke(); fill(255, 255, 255, 230);
+      rect(tx, ty - th / 2, tw, th, 4);
+      // text
+      fill(col); noStroke();
+      textStyle(BOLD); textSize(10);
+      text(lbl, tx + 4, ty);
+      textStyle(NORMAL);
+    });
+    // Freeze indicator banner
+    noStroke(); fill(245, 158, 11, 200);
+    rect(b.left + 4, b.top + 4, 90, 20, 5);
+    fill(255); textSize(10); textStyle(BOLD);
+    textAlign(CENTER, CENTER);
+    text('❄ FROZEN', b.left + 49, b.top + 14);
+    textStyle(NORMAL);
+  }
+
+  // ── Pick-mode overlay ──
+  if (sortMode === 'pick') {
+    fill(15, 30, 70, 155);
+    noStroke();
+    rect(b.left, b.top, b.right-b.left, b.bottom-b.top, 12);
+
+    // Banner
+    const bw = 320, bh = 54;
+    const bx = cx - bw/2, by = cy - bh/2;
+    fill(255, 255, 255, 230);
+    stroke(14, 165, 233, 180); strokeWeight(1.5);
+    rect(bx, by, bw, bh, 10);
+
+    noStroke(); fill(2, 132, 199);
+    textFont('JetBrains Mono'); textSize(13); textAlign(CENTER, CENTER); textStyle(BOLD);
+    text('Click a node to use as the BFS root', cx, by + 18);
+    textStyle(NORMAL); textSize(11); fill(100, 116, 139);
+    text('Press Esc to cancel', cx, by + 37);
+  }
+}
+
+/**
+ * Draw one edge.
+ * In sort mode, ALL edges that would pass through another node are curved.
+ * Same-layer / back-edges alternate their curve direction based on edge index
+ * so they don't all pile up on the same side.
+ */
+function drawEdge(e, sx, sy, ex, ey, dx, dy, d) {
+  const inSort = (sortMode === 'concentric' || sortMode === 'rows');
+  const checkCross = e.isWrapped || inSort;
+
+  if (checkCross) {
+    let crosses = false;
+    for (let i = 0; i < nodes.length; i++) {
+      if (i === e.from || i === e.to) continue;
+      if (ptToSegDist(nodes[i].x, nodes[i].y,
+            nodes[e.from].x, nodes[e.from].y,
+            nodes[e.to].x,   nodes[e.to].y) < nodes[i].radius + 6) {
+        crosses = true; break;
+      }
+    }
+
+    if (crosses) {
+      const mx = (sx + ex) / 2, my = (sy + ey) / 2;
+      // Perpendicular direction — alternate sign by edge index for non-tree edges
+      const isTree = bfsTreeEdgeKeys.has(`${Math.min(e.from,e.to)}-${Math.max(e.from,e.to)}`);
+      const side   = (!isTree && (e.from + e.to) % 2 === 0) ? -1 : 1;
+      const px = (-dy / d) * side, py = (dx / d) * side;
+      const cv = Math.max(d * 0.38, NODE_RADIUS * 2.5);
+      beginShape();
+      vertex(sx, sy);
+      quadraticVertex(mx + px * cv, my + py * cv, ex, ey);
+      endShape();
+      return;
+    }
+  }
+  line(sx, sy, ex, ey);
+}
+
+function drawNode(nd, idx, maxD) {
+  const isSrc   = (idx === selectedSource);
+  const isTgt   = (idx === selectedTarget);
+  const onPath  = shortestPath.includes(idx) && !isSrc && !isTgt;
+  const isCan   = nd.isCanonical;
+  const isAnt   = nd.isAntipodal;
+  const isDxyX  = (dxyMode !== null && idx === dxyX);
+  const isDxyY  = (dxyMode !== null && idx === dxyY);
+
+  // ── Resolve fill color based on active colorMode ──
+  let nc;
+  if (isSrc) {
+    nc = color('#FFD700');
+  } else if (isTgt) {
+    nc = color('#FF6B35');
+  } else {
+    switch (colorMode) {
+      case 'bfs-A':
+        nc = color(bfsFromA
+          ? distColor(bfsFromA.dist[idx], maxD, isCan)
+          : getDegColor(nd.degree));
+        break;
+      case 'bfs-Astar':
+        nc = color(bfsFromAstar
+          ? distColor(bfsFromAstar.dist[idx], maxD, isAnt)
+          : getDegColor(nd.degree));
+        break;
+      case 'bfs-source':
+        nc = color(bfsResult
+          ? distColor(bfsResult.dist[idx], maxD, isSrc)
+          : getDegColor(nd.degree));
+        break;
+      default: // 'degree'
+        nc = color(getDegColor(nd.degree));
+    }
+  }
+
+  // Drop shadow
+  noStroke(); fill(0, 0, 0, 20);
+  ellipse(nd.x+3, nd.y+3, nd.radius*2+2);
+
+  noFill();
+  // Canonical A: green double ring
+  if (isCan && !isSrc && !isTgt) {
+    stroke('#2E7D32'); strokeWeight(2.5);
+    ellipse(nd.x, nd.y, nd.radius*2 + 9);
+  }
+  // Antipodal A*: purple double ring
+  if (isAnt && !isSrc && !isTgt) {
+    stroke('#7c3aed'); strokeWeight(2.5);
+    ellipse(nd.x, nd.y, nd.radius*2 + 16);
+  }
+  // dxy X node: blue outer ring (outermost so it's always visible)
+  if (isDxyX) {
+    stroke(29, 78, 216); strokeWeight(3.5);
+    ellipse(nd.x, nd.y, nd.radius*2 + 22);
+    noStroke(); fill(29, 78, 216, 200);
+    textFont('JetBrains Mono'); textSize(8); textStyle(BOLD); textAlign(CENTER, CENTER);
+    text('X', nd.x + nd.radius + 7, nd.y - nd.radius - 2);
+    textStyle(NORMAL);
+    noFill();
+  }
+  // dxy Y node: blue outer ring
+  if (isDxyY) {
+    stroke(29, 78, 216); strokeWeight(3.5);
+    ellipse(nd.x, nd.y, nd.radius*2 + 22);
+    noStroke(); fill(29, 78, 216, 200);
+    textFont('JetBrains Mono'); textSize(8); textStyle(BOLD); textAlign(CENTER, CENTER);
+    text('Y', nd.x + nd.radius + 7, nd.y - nd.radius - 2);
+    textStyle(NORMAL);
+    noFill();
+  }
+  // Source ring: gold
+  if (isSrc) {
+    stroke('#FFD700'); strokeWeight(4);
+    ellipse(nd.x, nd.y, nd.radius*2 + 13);
+  }
+  // Target ring: orange
+  if (isTgt) {
+    stroke('#FF6B35'); strokeWeight(4);
+    ellipse(nd.x, nd.y, nd.radius*2 + 13);
+  }
+  // Path node: soft white ring
+  if (onPath) {
+    stroke(255, 255, 220, 190); strokeWeight(2.5);
+    ellipse(nd.x, nd.y, nd.radius*2 + 7);
+  }
+
+  // Node body
+  fill(nc);
+  stroke(red(nc)*0.6, green(nc)*0.6, blue(nc)*0.6);
+  strokeWeight(2);
+  ellipse(nd.x, nd.y, nd.radius*2);
+
+  // Label
+  noStroke();
+  const fs = map(N, 3, 10, 17, 9);
+  textAlign(CENTER, CENTER); textStyle(BOLD);
+  if (isDxyX || isDxyY) {
+    // dxy X / Y: blue font, slightly larger
+    textSize(Math.max(fs + 2, 12));
+    fill(29, 78, 216);
+  } else if (isCan || isAnt) {
+    // A and A*: larger black font
+    textSize(Math.max(fs + 4, 14));
+    fill(0);
+  } else {
+    textSize(fs);
+    const br = (red(nc)*299 + green(nc)*587 + blue(nc)*114) / 1000;
+    fill(br > 148 ? 25 : 255);
+  }
+  text(nd.label, nd.x, nd.y);
+  textStyle(NORMAL);
+}
+
+function drawGrid() {
+  const { left, right, top, bottom } = gridBounds();
+  const cw = (right - left) / (N - 1);
+  const ch = (bottom - top) / (N - 1);
+
+  // Shade unoccupied region (z₁ ≥ z₂) — lower-right triangle
+  noStroke(); fill(0, 0, 0, 16);
+  triangle(left, bottom, right, bottom, right, top);
+
+  // Grid lines
+  stroke(130, 130, 130, 55); strokeWeight(1);
+  drawingContext.setLineDash([4, 4]);
+  for (let i = 0; i < N; i++) {
+    line(left + i*cw, top, left + i*cw, bottom);
+    line(left, bottom - i*ch, right, bottom - i*ch);
+  }
+  drawingContext.setLineDash([]);
+
+  // Diagonal z₁ = z₂ (boundary of occupied region)
+  stroke(180, 120, 40, 110); strokeWeight(1.5);
+  drawingContext.setLineDash([6, 4]);
+  line(left, bottom, right, top);
+  drawingContext.setLineDash([]);
+
+  // Axes
+  stroke(55, 55, 55, 200); strokeWeight(2);
+  line(left, bottom, right, bottom);
+  line(left, top, left, bottom);
+
+  // Axis labels
+  fill(50); noStroke(); textStyle(BOLD);
+  textSize(11); textAlign(CENTER, CENTER);
+  text('z₁  (1st zero, 1-based)', (left+right)/2, bottom + 34);
+  push();
+  translate(left - 34, (top+bottom)/2); rotate(-HALF_PI);
+  text('z₂  (2nd zero, 1-based)', 0, 0);
+  pop();
+
+  // Tick labels 1 … N
+  textSize(10); textStyle(NORMAL);
+  for (let i = 0; i < N; i++) {
+    const x = left + i*cw, y = bottom - i*ch;
+    stroke(55,55,55,160); strokeWeight(1.5);
+    line(x, bottom-4, x, bottom+4);
+    line(left-4, y, left+4, y);
+    noStroke(); fill(50);
+    textAlign(CENTER, CENTER); text(i+1, x, bottom+15);
+    textAlign(RIGHT,  CENTER); text(i+1, left-9, y);
+  }
+  textStyle(NORMAL);
+}
+
+function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MOUSE / CLICK HANDLING
+═══════════════════════════════════════════════════════════════ */
+
+function mousePressed() {
+  // Don't process clicks that land on a UI panel
+  for (const id of ['left-panel', 'right-panel']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (mouseX >= r.left && mouseX <= r.right &&
+        mouseY >= r.top  && mouseY <= r.bottom) {
+      pressedOnCanvas = false; return;
+    }
+  }
+  pressedOnCanvas = true;
+  mouseHasMoved   = false;
+  draggedNode     = null;
+  for (let i = 0; i < nodes.length; i++) {
+    if (Math.hypot(mouseX - nodes[i].x, mouseY - nodes[i].y) < nodes[i].radius) {
+      draggedNode = nodes[i]; break;
+    }
+  }
+}
+
+function mouseDragged() {
+  if (!pressedOnCanvas || !draggedNode) return;
+  if (Math.hypot(mouseX - pmouseX, mouseY - pmouseY) > 2) mouseHasMoved = true;
+
+  if (symmetricMode) {
+    const b  = canvasBounds();
+    const cx = (b.left + b.right) / 2;
+    const i  = nodes.indexOf(draggedNode);
+    const j  = reversalOf[i];
+    if (j === i) {
+      // palindrome — slide along the axis
+      draggedNode.x = cx;
+      draggedNode.y = mouseY;
+    } else {
+      // move dragged node normally, mirror its partner
+      draggedNode.x = mouseX;
+      draggedNode.y = mouseY;
+      nodes[j].x   = 2 * cx - mouseX;
+      nodes[j].y   = mouseY;
+      nodes[j].vx  = 0;  nodes[j].vy = 0;
+    }
+  } else {
+    draggedNode.x = mouseX;
+    draggedNode.y = mouseY;
+  }
+
+  draggedNode.vx = 0; draggedNode.vy = 0;
+  if (isGridLayout) isGridLayout = false;
+  physicsActive = true;
+}
+
+function toggleSymmetric(checked) {
+  symmetricMode = checked;
+  if (checked) physicsActive = true;
+}
+
+let isFrozen = false;
+
+function toggleFreeze() {
+  isFrozen = !isFrozen;
+  if (isFrozen) {
+    physicsActive = false;
+    nodes.forEach(nd => { nd.vx = 0; nd.vy = 0; });
+    document.getElementById('btn-freeze').textContent = '▶  Unfreeze';
+    document.getElementById('btn-freeze').style.background =
+      'linear-gradient(135deg,#f59e0b,#d97706)';
+  } else {
+    physicsActive = true;
+    document.getElementById('btn-freeze').textContent = '❄  Freeze';
+    document.getElementById('btn-freeze').style.background =
+      'linear-gradient(135deg,#64748b,#334155)';
+  }
+}
+
+function mouseReleased() {
+  if (pressedOnCanvas && !mouseHasMoved) {
+    // In dxy mode: clicking a node sets X then Y
+    if (dxyMode !== null) {
+      let hitIdx = null;
+      for (let i = 0; i < nodes.length; i++) {
+        if (Math.hypot(mouseX - nodes[i].x, mouseY - nodes[i].y) < nodes[i].radius) {
+          hitIdx = i; break;
+        }
+      }
+      if (hitIdx !== null) handleDxyPick(hitIdx);
+      draggedNode = null; mouseHasMoved = false; pressedOnCanvas = false;
+      return;
+    }
+    // In sort pick mode: clicking a node selects it as sort root
+    if (sortMode === 'pick') {
+      let hitIdx = null;
+      for (let i = 0; i < nodes.length; i++) {
+        if (Math.hypot(mouseX - nodes[i].x, mouseY - nodes[i].y) < nodes[i].radius) {
+          hitIdx = i; break;
+        }
+      }
+      if (hitIdx !== null) handleSortPick(hitIdx);
+      // else: click on empty canvas while in pick mode — ignore (don't exit)
+      draggedNode = null; mouseHasMoved = false; pressedOnCanvas = false;
+      return;
+    }
+    // Normal mode
+    if (draggedNode) {
+      handleNodeClick(nodes.indexOf(draggedNode));
+    } else {
+      handleNodeClick(null);
+    }
+  }
+  draggedNode = null; mouseHasMoved = false; pressedOnCanvas = false;
+}
+
+/**
+ * Click state machine:
+ *   nothing selected   → click node C  → C becomes source
+ *   source S selected  → click S again → deselect all
+ *   source S selected  → click node T  → T becomes target, show path
+ *   source+target set  → click node C  → C becomes new source
+ */
+function handleNodeClick(clickedIdx) {
+  if (clickedIdx === null) {
+    selectedSource = selectedTarget = null;
+    bfsResult = null; shortestPath = []; pathEdgeKeys = new Set();
+  } else if (selectedSource === null) {
+    selectedSource = clickedIdx;
+    bfsResult      = bfsFrom(selectedSource);
+    selectedTarget = null; shortestPath = []; pathEdgeKeys = new Set();
+  } else if (selectedTarget === null) {
+    if (clickedIdx === selectedSource) {
+      // Re-click source → deselect
+      selectedSource = null; bfsResult = null;
+    } else {
+      selectedTarget = clickedIdx;
+      shortestPath   = tracePath(bfsResult.parent, selectedTarget);
+      pathEdgeKeys   = buildPathKeys(shortestPath);
+    }
+  } else {
+    // Both selected: new click starts fresh selection
+    selectedSource  = clickedIdx;
+    selectedTarget  = null;
+    bfsResult       = bfsFrom(selectedSource);
+    shortestPath    = []; pathEdgeKeys = new Set();
+  }
+  updateRightPanel();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI UPDATE — LEFT PANEL
+═══════════════════════════════════════════════════════════════ */
+function updateLeftPanel() {
+  document.getElementById('infoK').textContent = K;
+  document.getElementById('infoA').textContent = canonLabel();
+  document.getElementById('infoV').textContent = nodes.length;
+  document.getElementById('infoE').textContent = edges.length;
+
+  // Legend
+  let lh = '';
+  for (let i = 0; i < N - 1; i++) {
+    lh += `<div class="leg-item">
+      <div class="leg-swatch" style="background:${TRANS_COLORS[i % TRANS_COLORS.length]}"></div>
+      <span>(${i}, ${i+1})</span>
+    </div>`;
+  }
+  if (isWrapped) {
+    lh += `<div class="leg-item">
+      <div class="leg-swatch" style="background:${TRANS_COLORS[(N-1) % TRANS_COLORS.length]}; border:1px dashed #888"></div>
+      <span>(0, ${N-1}) wrap</span>
+    </div>`;
+  }
+  document.getElementById('legendItems').innerHTML = lh;
+
+  // Degree table
+  const dc = new Map();
+  nodes.forEach((_, i) => {
+    const d = adjacencyList.get(i).length;
+    dc.set(d, (dc.get(d) || 0) + 1);
+  });
+  const tbody = document.getElementById('degTbody');
+  tbody.innerHTML = '';
+  [...dc.keys()].sort((a,b)=>a-b).forEach(deg => {
+    const cnt = dc.get(deg);
+    const c   = getDegColor(deg);
+    const tr  = document.createElement('tr');
+    tr.innerHTML = `<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;
+      background:${c};margin-right:5px;vertical-align:middle"></span>${deg}</td>
+      <td>${cnt} v.</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI UPDATE — RIGHT PANEL (analysis + distance)
+═══════════════════════════════════════════════════════════════ */
+function updateRightPanel() {
+  const formulaDiam = K * (N - K);
+  const bfsDiam     = graphDiameter ? graphDiameter.diameter : null;
+  const canon       = canonLabel();
+
+  // Diameter verification badge
+  let diamBfsBadge;
+  if (bfsDiam !== null) {
+    const match = bfsDiam === formulaDiam;
+    diamBfsBadge = `<div class="info-row">
+      <span class="info-key">BFS verified:</span>
+      <span class="info-val bfs-confirm">${bfsDiam} ${match ? '✓' : '⚠'}</span>
+    </div>`;
+  } else {
+    diamBfsBadge = `<div class="info-row">
+      <span class="info-key">BFS:</span>
+      <span class="bfs-skip">|V|>350, skipped</span>
+    </div>`;
+  }
+
+  let html = `
+    <div class="panel-title">📐 Analysis</div>
+
+    <div class="info-row"><span class="info-key">Graph:</span>
+      <span class="info-val">G₂(${K}, ${N})</span></div>
+    <div class="info-row"><span class="info-key">|V| = C(n,k):</span>
+      <span class="info-val">${nodes.length}</span></div>
+    <div class="info-row"><span class="info-key">|E|:</span>
+      <span class="info-val">${edges.length}</span></div>
+    <div class="info-row"><span class="info-key">A&nbsp;=</span>
+      <span class="info-val mono" style="color:#2E7D32">${canon}</span></div>
+    <div class="info-row"><span class="info-key">A*&nbsp;=</span>
+      <span class="info-val mono" style="color:#7c3aed">${antipodalLabel()}</span></div>
+
+    <div class="section-divider"><div class="section-label">Distance Formulas</div></div>
+    <div class="formula-pill">d(A,B) = I(B) = Σ<sub>i</sub>(z<sub>i</sub>−i)</div>
+    <div class="formula-pill">d(X,Y) = Σ<sub>i</sub>|x<sub>i</sub>−y<sub>i</sub>|</div>
+    <div class="formula-pill">diam = k(n−k) = <b style="color:#1d4ed8;font-size:1.05em">${formulaDiam}</b>${
+      bfsDiam === null
+        ? ` <span style="color:#94a3b8;font-size:0.85em">(formula)</span>`
+        : bfsDiam === formulaDiam
+          ? ` <span style="color:#16a34a;font-size:0.85em">BFS=${bfsDiam} ✓</span>`
+          : ` <span style="color:#dc2626;font-size:0.85em">BFS=${bfsDiam} ⚠</span>`
+    }</div>
+
+    <div class="section-divider"><div class="section-label">Node Selection</div></div>
+  `;
+
+  /* ── No selection ── */
+  if (selectedSource === null) {
+    const clickHint = colorMode === 'bfs-source'
+      ? `<b>Click a node</b> to select source.<br><span style="color:#64748b">Nodes color by BFS distance.</span><br><br><b>Click a second node</b><br>to compute d &amp; path.`
+      : `<b>Click a node</b> to select source &amp; target<br>and compute distance &amp; path.<br><span style="color:#94a3b8;font-size:0.9em">(Node colors are fixed<br>in this color mode.)</span>`;
+    html += `<div class="hint-box">
+      ${clickHint}<br><br>
+      <span style="color:#2E7D32">▷ Green ring = A</span><br>
+      <span style="color:#7c3aed">▷ Purple ring = A*</span>
+    </div>`;
+
+  /* ── Source selected ── */
+  } else {
+    const sLabel = nodes[selectedSource].label;
+    const isSCan = nodes[selectedSource].isCanonical;
+    const isSAnt = nodes[selectedSource].isAntipodal;
+    html += `<div class="sel-src">
+      <b>Src:</b> <span class="mono">${sLabel}</span>
+      ${isSCan ? '<span class="canon-badge">A</span>' : ''}
+      ${isSAnt ? '<span class="canon-badge" style="background:#ede9fe;color:#6d28d9">A*</span>' : ''}
+    </div>`;
+
+    if (selectedTarget === null) {
+      html += `<div class="hint-box">Nodes colored by<br>BFS distance from source.<br><br><b>Click any other node</b><br>to compute d(src, tgt).</div>`;
+
+    /* ── Source + target selected ── */
+    } else {
+      const tLabel = nodes[selectedTarget].label;
+      const isTCan = nodes[selectedTarget].isCanonical;
+      const isTAnt = nodes[selectedTarget].isAntipodal;
+      const bfsDist = bfsResult.dist[selectedTarget];
+
+      html += `<div class="sel-tgt">
+        <b>Tgt:</b> <span class="mono">${tLabel}</span>
+        ${isTCan ? '<span class="canon-badge">A</span>' : ''}
+        ${isTAnt ? '<span class="canon-badge" style="background:#ede9fe;color:#6d28d9">A*</span>' : ''}
+      </div>`;
+
+      if (bfsDist < 0) {
+        html += `<div class="disconnected-note">⚠ Nodes are disconnected<br>(no path exists).</div>`;
+      } else {
+        html += `<div class="dist-hero">d = ${bfsDist}</div>
+          <div class="dist-sub">(BFS shortest path)</div>`;
+
+        // Formula breakdown
+        if (isSCan) {
+          // Source is canonical A: show I(B) = Σ(z_i − i)
+          const { IB, terms } = iStatistic(tLabel);
+          const termsHtml = terms.map(t =>
+            `(${t.zi}−${t.idx}) = ${t.di}`
+          ).join('<br>');
+          html += `<div class="formula-detail">
+            I(B) = Σ<sub>i</sub>(z<sub>i</sub>−i)<br>
+            ${termsHtml}<br>
+            ─────────────<br>
+            = <b>${IB}</b>
+          </div>`;
+        } else {
+          // General: Σ|x_i − y_i|
+          const { dist: fd, terms } = generalDist(sLabel, tLabel);
+          const termsHtml = terms.map(t =>
+            `|${t.xi}−${t.yi}| = ${t.diff}`
+          ).join('<br>');
+          html += `<div class="formula-detail">
+            Σ<sub>i</sub>|x<sub>i</sub>−y<sub>i</sub>|<br>
+            ${termsHtml}<br>
+            ─────────────<br>
+            = <b>${fd}</b>
+          </div>`;
+        }
+
+        // Shortest path
+        if (shortestPath.length > 0) {
+          const pNodes = shortestPath.map(i =>
+            `<span class="path-node">${nodes[i].label}</span>`
+          );
+          html += `<div class="path-hdr">Shortest path  (length ${shortestPath.length - 1}):</div>
+            <div class="path-box">${pNodes.join(' →<br>')}</div>`;
+        }
+        html += `<div class="hint-box" style="margin-top:9px">
+          Click any node to<br>start a new selection.</div>`;
+      }
+    }
+  }
+
+  // ── d(X,Y) result block ──
+  if (dxyMode !== null) {
+    const xLabel = dxyX !== null ? nodes[dxyX].label : '—';
+    const yLabel = dxyY !== null ? nodes[dxyY].label : '—';
+    html += `<div class="section-divider"><div class="section-label">d(X,Y) Calculator</div></div>`;
+
+    if (dxyResult) {
+      const { d, No, Np, NpCapped } = dxyResult;
+      const disconnected = d < 0;
+      html += `<div class="dxy-result-block">
+        <div class="dxy-result-title">Results</div>
+        <div class="dxy-pair-label">
+          X = <b>${xLabel}</b><br>
+          Y = <b>${yLabel}</b>
+        </div>
+        ${disconnected
+          ? `<div class="disconnected-note">⚠ X and Y are disconnected.</div>`
+          : `<div class="dxy-metric">
+              <span class="dxy-metric-key">d(X,Y)</span>
+              <span class="dxy-metric-val">${d}</span>
+            </div>
+            <div class="dxy-metric">
+              <span class="dxy-metric-key">N<sub>o</sub>(X,Y)</span>
+              <span class="dxy-metric-val">${No.toLocaleString()}</span>
+            </div>
+            <div class="dxy-metric">
+              <span class="dxy-metric-key">N<sub>p</sub>(X,Y)</span>
+              <span class="dxy-metric-val ${NpCapped ? 'warn' : ''}">${NpCapped ? '≥ 1,000,000' : Np.toLocaleString()}</span>
+            </div>`
+        }
+        <div style="font-size:0.57rem;color:#6b7280;margin-top:6px;line-height:1.6">
+          d = shortest distance<br>
+          N<sub>o</sub> = # shortest paths<br>
+          N<sub>p</sub> = # all simple paths${NpCapped ? ' (capped at 1M)' : ''}
+        </div>
+      </div>
+      <div class="hint-box" style="margin-top:7px">Click a node to pick new X</div>`;
+    } else if (dxyMode === 'pickY') {
+      html += `<div class="dxy-pair-label">X = <b>${xLabel}</b><br>Y = —</div>
+        <div class="hint-box">Click a node to pick Y,<br>or type its label above.<br><br>Then press <b>↳ Compute</b>.</div>`;
+    } else {
+      html += `<div class="hint-box">Click a node on the graph<br>to pick <b>X</b>,<br>or type its label above.</div>`;
+    }
+  }
+
+  document.getElementById('right-panel').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTROL CALLBACKS
+═══════════════════════════════════════════════════════════════ */
+function rebuildGraph() {
+  const newN = parseInt(document.getElementById('inputN').value);
+  const newK = parseInt(document.getElementById('inputK').value);
+  if (isNaN(newN) || newN < 2)  { alert('n must be ≥ 2'); return; }
+  if (newN > 15)                 { alert('n cannot exceed 15'); return; }
+  if (isNaN(newK) || newK < 1)  { alert('k must be ≥ 1'); return; }
+  if (newK >= newN)              { alert('k must be < n'); return; }
+  // Exit sort mode before rebuilding
+  if (sortMode !== null) {
+    sortMode = null; sortRoot = null; bfsLayers = []; bfsTreeEdgeKeys = new Set();
+    document.body.classList.remove('pick-mode');
+    document.getElementById('btn-sort-vertices').classList.remove('active');
+    document.getElementById('sort-submenu').classList.remove('visible');
+  }
+  N = newN; K = newK;
+  isGridLayout = false;
+  isFrozen = false;
+  document.getElementById('btn-freeze').textContent = '❄  Freeze';
+  document.getElementById('btn-freeze').style.background = 'linear-gradient(135deg,#64748b,#334155)';
+  buildGraph();
+}
+
+// Escape key cancels pick mode (or exits sort mode)
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sortMode !== null) exitSortMode();
+});
+
+function updateNodeSize(v) {
+  NODE_RADIUS = parseInt(v);
+  document.getElementById('nodeSizeVal').textContent = v;
+}
+
+function updateRepulsion(v) {
+  REPULSION = parseInt(v);
+  document.getElementById('repulsionVal').textContent = v;
+  physicsActive = true;          // wake physics when user adjusts
+}
+
+function updateAttraction(v) {
+  ATTRACTION = parseInt(v) / 1000;
+  document.getElementById('attractionVal').textContent = ATTRACTION.toFixed(3);
+  physicsActive = true;
+}
+</script>
+</body>
+</html>
