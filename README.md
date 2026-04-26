@@ -1,11 +1,14 @@
 # ccycles 2026.04.25
 
-* https://github.com/fkhafizov/ccycles/index.html
-  * https://github.com/fkhafizov/ccycles/cc3-moves.html
-  * https://github.com/fkhafizov/ccycles/cc3-zk-n-sonnet46-v5.html
-  * https://github.com/fkhafizov/ccycles/g3_k3_n_mismatch_nodes_v2.html
-  * https://github.com/fkhafizov/ccycles/g3_distance_table.html
-  * https://github.com/fkhafizov/ccycles/cc2-zk-n-sonnet46-v2.html
+
+* https://fkhafizov.github.io/ccycles/
+* https://fkhafizov.github.io/ccycles/index.html
+  * https://fkhafizov.github.io/ccycles/cc3-moves.html
+  * https://fkhafizov.github.io/ccycles/cc3-zk-n-sonnet46-v5.html
+  * https://fkhafizov.github.io/ccycles/g3_k3_n_mismatch_nodes_v2.html
+  * https://fkhafizov.github.io/ccycles/g3_distance_table.html
+  * https://fkhafizov.github.io/ccycles/cc2-zk-n-sonnet46-v2.html
+
 ---------------------------------------------------
 
 
