@@ -8,6 +8,8 @@
 * /Users/paulpaul/iCloudDocs/code/cc3-zk-n/
   * cc3-zk-n-sonnet46-v5.html
   * cc3-moves.html
+  * g3_k3_n_mismatch_nodes_v2.html
+  * g3_distance_table.html
 
 
 
