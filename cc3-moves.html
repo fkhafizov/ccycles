@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC3 Moves — Consecutive 3-Cycle Visualizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #e8f5e9;
+    --bg2:        #c8e6c9;
+    --bg3:        #a5d6a7;
+    --panel:      rgba(255,255,255,0.72);
+    --panel2:     rgba(255,255,255,0.9);
+    --green-deep: #1b5e20;
+    --green-mid:  #2e7d32;
+    --green-soft: #43a047;
+    --green-pale: #f1f8f1;
+    --cell0-bg:   #ffffff;
+    --cell0-txt:  #1b5e20;
+    --cell0-bdr:  #81c784;
+    --cell1-bg:   #1b5e20;
+    --cell1-txt:  #ffffff;
+    --active-bg:  #e65100;
+    --active-txt: #ffffff;
+    --active-bdr: #bf360c;
+    --target-bg:  #0d47a1;
+    --target-txt: #e3f2fd;
+    --shadow:     rgba(27,94,32,0.18);
+    --text:       #1a3320;
+    --text2:      #4a7c54;
+    --text3:      #6a8f6e;
+    --radius:     10px;
+    --radius-lg:  16px;
+    --ff-display: 'Crimson Pro', Georgia, serif;
+    --ff-mono:    'JetBrains Mono', 'Courier New', monospace;
+    --ff-ui:      'DM Sans', 'Segoe UI', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(167,215,167,0.55) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 90%, rgba(129,199,132,0.35) 0%, transparent 55%);
+    min-height: 100vh;
+    color: var(--text);
+    font-family: var(--ff-ui);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    gap: 20px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    max-width: 700px;
+  }
+  header h1 {
+    font-family: var(--ff-display);
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--green-deep);
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+  }
+  header h1 span {
+    color: var(--green-soft);
+    font-style: italic;
+  }
+  header .subtitle {
+    font-family: var(--ff-display);
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--text2);
+    margin-top: 6px;
+  }
+  header .subtitle code {
+    font-family: var(--ff-mono);
+    font-style: normal;
+    font-size: 0.95rem;
+    background: rgba(46,125,50,0.12);
+    padding: 1px 6px;
+    border-radius: 5px;
+    color: var(--green-mid);
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--panel);
+    border: 1.5px solid rgba(165,214,167,0.6);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 20px var(--shadow);
+    padding: 20px 28px;
+    width: 100%;
+    max-width: 960px;
+  }
+  .panel-title {
+    font-family: var(--ff-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  /* ── PARAMETERS ── */
+  .params-row {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .param-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 180px;
+  }
+  .param-group label {
+    font-family: var(--ff-mono);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--green-deep);
+    white-space: nowrap;
+  }
+  .param-group label .katex-like {
+    font-style: italic;
+  }
+  .spin-wrap {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid var(--cell0-bdr);
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+  }
+  .spin-btn {
+    background: var(--green-pale);
+    border: none;
+    color: var(--green-mid);
+    width: 32px;
+    height: 36px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    line-height: 1;
+  }
+  .spin-btn:hover { background: var(--bg3); }
+  .spin-btn:active { background: var(--bg2); }
+  .spin-val {
+    width: 42px;
+    text-align: center;
+    font-family: var(--ff-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--green-deep);
+    border: none;
+    outline: none;
+    background: transparent;
+  }
+  .param-constraint {
+    font-size: 0.82rem;
+    color: var(--text3);
+    font-style: italic;
+  }
+
+  /* ── STRING DISPLAY ── */
+  #string-display-area {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .string-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .row-label {
+    font-family: var(--ff-mono);
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-style: italic;
+    margin-right: 8px;
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* ── CELLS ── */
+  .cell {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--ff-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    border-radius: 9px;
+    border: 2px solid transparent;
+    position: relative;
+    transition: background 0.3s, color 0.3s, border-color 0.3s, transform 0.25s;
+    user-select: none;
+  }
+  .cell.small {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    border-width: 1.5px;
+  }
+  .cell.c0 {
+    background: var(--cell0-bg);
+    color: var(--cell0-txt);
+    border-color: var(--cell0-bdr);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  }
+  .cell.c1 {
+    background: var(--cell1-bg);
+    color: var(--cell1-txt);
+    border-color: #145a14;
+    box-shadow: 0 2px 8px rgba(27,94,32,0.35);
+  }
+  .cell.active {
+    background: var(--active-bg) !important;
+    color: var(--active-txt) !important;
+    border-color: var(--active-bdr) !important;
+    box-shadow: 0 0 0 3px rgba(230,81,0,0.28) !important;
+    transform: scale(1.12);
+    z-index: 2;
+  }
+  .cell.just-changed {
+    animation: flashChange 0.5s ease-out;
+  }
+  @keyframes flashChange {
+    0%   { transform: scale(1.22); box-shadow: 0 0 0 6px rgba(46,125,50,0.35); }
+    100% { transform: scale(1); box-shadow: none; }
+  }
+  .cell.target-match {
+    box-shadow: 0 0 0 2.5px rgba(13,71,161,0.45) !important;
+  }
+
+  /* position labels under cells */
+  .cell-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .cell-pos {
+    font-family: var(--ff-mono);
+    font-size: 0.62rem;
+    color: var(--text3);
+  }
+  .cell-pos.pos-active { color: var(--active-bg); font-weight: 700; }
+
+  .bracket-label {
+    position: absolute;
+    top: 44px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: var(--ff-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--active-bg);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .bracket-label.visible { opacity: 1; }
+  .bracket-bar {
+    position: absolute;
+    top: 60px;
+    left: 4px; right: 4px;
+    height: 2px;
+    background: var(--active-bg);
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .bracket-bar.visible { opacity: 1; }
+
+  /* ── STEP INFO ── */
+  #step-info-panel {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-height: 90px;
+  }
+  .step-badge {
+    font-family: var(--ff-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    background: var(--bg2);
+    color: var(--green-mid);
+    border: 1px solid var(--bg3);
+  }
+  .move-description {
+    font-family: var(--ff-display);
+    font-size: 1.25rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .move-description .mono {
+    font-family: var(--ff-mono);
+    font-size: 1rem;
+    background: rgba(46,125,50,0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: var(--green-mid);
+  }
+  .move-description .orange {
+    color: var(--active-bg);
+    font-weight: 600;
+  }
+  .transformation-arrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--ff-mono);
+    font-size: 1.1rem;
+    color: var(--text2);
+  }
+  .transformation-arrow .arr {
+    font-size: 1.5rem;
+    color: var(--active-bg);
+  }
+  .triple-val {
+    display: inline-flex;
+    gap: 3px;
+  }
+  .done-msg {
+    font-family: var(--ff-display);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--green-deep);
+    font-style: italic;
+  }
+  .done-msg span { color: var(--green-soft); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    width: 100%;
+    max-width: 400px;
+  }
+  .progress-track {
+    width: 100%;
+    height: 8px;
+    background: var(--bg2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-mid), var(--green-soft));
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .progress-text {
+    font-size: 0.8rem;
+    color: var(--text3);
+    margin-top: 4px;
+    text-align: center;
+    font-family: var(--ff-mono);
+  }
+
+  /* ── TARGET ROW ── */
+  .target-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .target-label {
+    font-family: var(--ff-display);
+    font-style: italic;
+    color: var(--text3);
+    font-size: 0.95rem;
+  }
+
+  /* ── BUTTONS ── */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 960px;
+  }
+  .btn {
+    font-family: var(--ff-ui);
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 12px 26px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.18s;
+    flex: 1;
+    min-width: 120px;
+    max-width: 180px;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px var(--shadow); }
+  .btn:active { transform: translateY(0); box-shadow: none; }
+  .btn:disabled { opacity: 0.38; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-help {
+    background: var(--panel2);
+    border-color: var(--cell0-bdr);
+    color: var(--green-mid);
+  }
+  .btn-help:hover { background: white; border-color: var(--green-soft); }
+  .btn-start {
+    background: var(--green-deep);
+    color: white;
+    border-color: var(--green-deep);
+  }
+  .btn-start:hover { background: #15471a; border-color: #15471a; }
+  .btn-back {
+    background: var(--panel2);
+    border-color: var(--cell0-bdr);
+    color: var(--green-mid);
+  }
+  .btn-back:hover { background: white; border-color: var(--green-soft); }
+  .btn-next {
+    background: var(--active-bg);
+    color: white;
+    border-color: var(--active-bdr);
+  }
+  .btn-next:hover { background: #bf360c; border-color: #bf360c; }
+  .btn-run {
+    background: #1565c0;
+    color: white;
+    border-color: #0d47a1;
+  }
+  .btn-run:hover  { background: #0d47a1; border-color: #0d47a1; }
+  .btn-run.running { background: #6a1b9a; border-color: #4a148c; }
+  .btn-run.running:hover { background: #4a148c; }
+  .btn-reset {
+    background: var(--panel2);
+    border-color: var(--cell0-bdr);
+    color: var(--text2);
+  }
+  .btn-reset:hover { border-color: var(--text2); }
+
+  /* ── HELP MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,30,12,0.55);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: white;
+    border-radius: 20px;
+    padding: 32px 36px;
+    max-width: 660px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: var(--text3);
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .modal-close:hover { background: var(--bg); }
+  .modal-box h2 {
+    font-family: var(--ff-display);
+    font-size: 1.9rem;
+    color: var(--green-deep);
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-right: 40px;
+    line-height: 1.2;
+  }
+  .modal-box h3 {
+    font-family: var(--ff-display);
+    font-size: 1.25rem;
+    color: var(--green-mid);
+    font-weight: 600;
+    margin-top: 22px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--bg2);
+    padding-bottom: 4px;
+  }
+  .modal-box p {
+    font-size: 0.97rem;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .modal-box code {
+    font-family: var(--ff-mono);
+    font-size: 0.88rem;
+    background: var(--green-pale);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--green-mid);
+  }
+  .formula-block {
+    background: var(--green-pale);
+    border-left: 3px solid var(--green-mid);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-family: var(--ff-mono);
+    font-size: 0.9rem;
+    color: var(--green-deep);
+    line-height: 1.6;
+  }
+  .legend-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+  }
+  .legend-cell {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    border: 1.5px solid #ccc;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--ff-mono);
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .lc0 { background: white; color: var(--green-mid); border-color: var(--bg3); }
+  .lc1 { background: var(--green-deep); color: white; border-color: #145a14; }
+  .lca { background: var(--active-bg); color: white; border-color: var(--active-bdr); }
+
+  /* ── TWO-COLUMN LAYOUT ── */
+  #content-wrap {
+    display: flex;
+    gap: 14px;
+    width: 100%;
+    max-width: 960px;
+    align-items: flex-start;
+  }
+  #gen-list-panel {
+    width: 148px;
+    flex-shrink: 0;
+    padding: 16px 14px;
+    max-height: 520px;
+    overflow-y: auto;
+    position: sticky;
+    top: 16px;
+  }
+  #right-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* ── GENERATOR LIST ── */
+  #gen-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 2px;
+  }
+  .gen-empty {
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+  }
+  .gen-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1.5px solid transparent;
+    transition: all 0.2s;
+    cursor: default;
+    --item-color: #888;
+  }
+  .gen-item.done {
+    background: var(--green-pale);
+    border-color: var(--cell0-bdr);
+    opacity: 0.72;
+  }
+  .gen-item.current {
+    background: color-mix(in srgb, var(--item-color) 12%, transparent);
+    border-color: color-mix(in srgb, var(--item-color) 55%, transparent);
+    opacity: 1;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--item-color) 20%, transparent);
+  }
+  .gen-step-num {
+    font-family: var(--ff-mono);
+    font-size: 0.65rem;
+    color: var(--text3);
+    min-width: 18px;
+    line-height: 1;
+  }
+  .gen-item.current .gen-step-num { color: var(--item-color); }
+  .gen-sym {
+    font-family: var(--ff-mono);
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--item-color);
+    line-height: 1.2;
+    flex: 1;
+  }
+  .gen-item.current .gen-sym { color: var(--item-color); }
+  .gen-pos {
+    font-family: var(--ff-mono);
+    font-size: 0.62rem;
+    color: var(--text3);
+    line-height: 1;
+  }
+  .gen-item.current .gen-pos { color: color-mix(in srgb, var(--item-color) 70%, transparent); }
+  .gen-item.done .gen-sym { opacity: 0.8; }
+
+  /* ── MISC ── */
+  .divider {
+    width: 100%;
+    max-width: 780px;
+    border: none;
+    border-top: 1px dashed var(--bg3);
+    opacity: 0.7;
+  }
+
+  /* responsive tweaks */
+  @media (max-width: 620px) {
+    #content-wrap { flex-direction: column; }
+    #gen-list-panel { width: 100%; max-height: 160px; position: static; }
+  }
+  @media (max-width: 520px) {
+    .cell { width: 40px; height: 40px; font-size: 1.2rem; }
+    .panel { padding: 16px 14px; }
+    .modal-box { padding: 24px 18px; }
+  }
+  @media (max-width: 380px) {
+    .cell { width: 34px; height: 34px; font-size: 1rem; border-radius: 7px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Consecutive <span>3-Cycle</span> Moves</h1>
+  <p class="subtitle">
+    Sorting <code>A = 0<sup>k</sup>1<sup>n−k</sup></code>
+    to <code>A* = 1<sup>n−k</sup>0<sup>k</sup></code>
+    via generators of the CC3 Schreier graph
+  </p>
+</header>
+
+<!-- Parameters -->
+<div class="panel">
+  <div class="panel-title">Parameters</div>
+  <div class="params-row">
+    <div class="param-group">
+      <label><span class="katex-like">n</span> (length)</label>
+      <div class="spin-wrap">
+        <button class="spin-btn" id="n-dec">−</button>
+        <input class="spin-val" id="n-val" type="number" value="6" min="3" max="14" readonly>
+        <button class="spin-btn" id="n-inc">+</button>
+      </div>
+      <span class="param-constraint">3 ≤ n ≤ 14</span>
+    </div>
+    <div class="param-group">
+      <label><span class="katex-like">k</span> (zeros)</label>
+      <div class="spin-wrap">
+        <button class="spin-btn" id="k-dec">−</button>
+        <input class="spin-val" id="k-val" type="number" value="3" min="1" max="13" readonly>
+        <button class="spin-btn" id="k-inc">+</button>
+      </div>
+      <span class="param-constraint">1 ≤ k ≤ n−1</span>
+    </div>
+  </div>
+</div>
+
+<!-- Two-column layout: generator list + panels -->
+<div id="content-wrap">
+
+  <!-- LEFT: generator log -->
+  <div id="gen-list-panel" class="panel">
+    <div class="panel-title">Generators</div>
+    <div id="gen-list">
+      <div class="gen-empty">Start to see moves</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: transformation + step info -->
+  <div id="right-col">
+
+    <!-- Main display -->
+    <div class="panel" id="main-panel">
+      <div class="panel-title">Transformation</div>
+      <div id="string-display-area">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Step info -->
+    <div class="panel" id="step-panel">
+      <div class="panel-title">Current Move</div>
+      <div id="step-info-panel">
+        <div class="move-description" id="move-desc">Press <strong>START</strong> to compute the shortest path and begin.</div>
+      </div>
+    </div>
+
+  </div><!-- /right-col -->
+</div><!-- /content-wrap -->
+
+<!-- Buttons -->
+<div class="btn-row">
+  <button class="btn btn-help"  id="btn-help">Help</button>
+  <button class="btn btn-start" id="btn-start">▶ Start</button>
+  <button class="btn btn-back"  id="btn-back"    disabled>← Back</button>
+  <button class="btn btn-next"  id="btn-next"    disabled>→ Next Step</button>
+  <button class="btn btn-run"   id="btn-run"     disabled>⏩ Run All</button>
+  <button class="btn btn-reset" id="btn-reset">↺ Reset</button>
+</div>
+
+<!-- Help modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close">×</button>
+    <h2>Consecutive 3-Cycle Moves</h2>
+
+    <h3>The Problem</h3>
+    <p>
+      Starting from the binary string <em>A</em> with <em>k</em> zeros followed by
+      <em>n−k</em> ones, find the shortest sequence of consecutive 3-cycle generators
+      that reaches the fully sorted string <em>A*</em> (ones first):
+    </p>
+    <div class="formula-block">
+A  = 0<sup>k</sup> 1<sup>n−k</sup> = 00…0 11…1<br>
+A* = 1<sup>n−k</sup> 0<sup>k</sup> = 11…1 00…0
+    </div>
+    <p>
+      The path is computed by breadth-first search (BFS) over the CC3 Schreier
+      coset graph, guaranteeing minimum length.
+    </p>
+
+    <h3>Generators</h3>
+    <p>
+      A consecutive 3-cycle σ<sub>i</sub> acts on positions <em>i</em>, <em>i+1</em>,
+      <em>i+2</em> only. Two orientations serve as generators:
+    </p>
+    <div class="formula-block">
+σ<sub>i</sub>   (right-rotate): (a, b, c) ↦ (c, a, b)<br>
+σ<sub>i</sub>⁻¹ (left-rotate):  (a, b, c) ↦ (b, c, a)
+    </div>
+    <p>
+      Applying σ<sub>i</sub> three times returns to the original string.
+      The generators for i = 0, 1, …, n−3 connect all C(n, k) binary strings
+      of the same weight into a single graph.
+    </p>
+
+    <h3>Decomposition &amp; Arrow Colors</h3>
+    <p>
+      Every 3-cycle decomposes into two adjacent transpositions.
+      On a binary string, a transposition τ<sub>j,j+1</sub> is <em>effective</em>
+      only when bits j and j+1 differ. The number of effective swaps
+      determines the arrow and generator color:
+    </p>
+    <div class="formula-block">
+Right-rotate = τ<sub>i,i+1</sub> ∘ τ<sub>i+1,i+2</sub><br>
+Left-rotate  = τ<sub>i+1,i+2</sub> ∘ τ<sub>i,i+1</sub>
+    </div>
+    <div class="legend-row" style="margin-top:10px;">
+      <div class="legend-item">
+        <div class="legend-cell" style="background:#fdecea;border-color:#e53935;color:#e53935;font-size:1rem;">2</div>
+        <span><strong style="color:#e53935">Red</strong> — both transpositions effective (e.g. (0,0,1)→(1,0,0))</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-cell" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;font-size:1rem;">1</div>
+        <span><strong style="color:#1565c0">Blue</strong> — only one transposition effective (e.g. (0,1,0)→(0,0,1))</span>
+      </div>
+    </div>
+
+    <h3>Reading the Display</h3>
+    <p>
+      The <strong>curved arrows</strong> below the cells preview the next move —
+      each arrow shows where one bit will travel. Arrowheads sit at the midpoint
+      of each curve. The <strong>orange cells</strong> mark the triple operated on
+      by the most recent generator. The <strong>Generators column</strong> on the
+      left logs every applied move with its color and position triple.
+    </p>
+
+    <h3>Cell Legend</h3>
+    <div class="legend-row">
+      <div class="legend-item">
+        <div class="legend-cell lc0">0</div>
+        <span>Bit value 0</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-cell lc1">1</div>
+        <span>Bit value 1</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-cell lca">●</div>
+        <span>Active triple</span>
+      </div>
+    </div>
+
+    <h3>Controls</h3>
+    <p><strong>Start</strong> — run BFS and show the initial state.</p>
+    <p><strong>Next Step</strong> — apply the next generator; curved arrows preview the one after.</p>
+    <p><strong>Back</strong> — undo the last generator.</p>
+    <p><strong>Reset</strong> — return to <em>A</em> and clear the log.</p>
+    <p><strong>n / k</strong> — adjust string length and zero count; resets automatically.</p>
+    <p style="margin-top:10px;font-size:0.85rem;color:var(--text3)">
+      Keyboard: <code>→</code> or <code>Space</code> = Next Step &ensp;·&ensp; <code>←</code> = Back &ensp;·&ensp; <code>Esc</code> = close Help
+    </p>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+//  CORE MATH
+// ─────────────────────────────────────────
+
+function applyRight(s, i) {
+  // σ_i: right-rotate positions i,i+1,i+2: (a,b,c) → (c,a,b)
+  const a = s.split('');
+  const tmp = a[i+2];
+  a[i+2] = a[i+1];
+  a[i+1] = a[i];
+  a[i] = tmp;
+  return a.join('');
+}
+
+function applyLeft(s, i) {
+  // σ_i^{-1}: left-rotate positions i,i+1,i+2: (a,b,c) → (b,c,a)
+  const a = s.split('');
+  const tmp = a[i];
+  a[i] = a[i+1];
+  a[i+1] = a[i+2];
+  a[i+2] = tmp;
+  return a.join('');
+}
+
+function bfsPath(start, target, n) {
+  if (start === target) return [{ s: start, pos: -1, type: '' }];
+
+  const visited = new Map();
+  visited.set(start, null);
+  const queue = [start];
+
+  outer: while (queue.length > 0) {
+    const curr = queue.shift();
+    for (let i = 0; i <= n - 3; i++) {
+      for (const [type, fn] of [['right', applyRight], ['left', applyLeft]]) {
+        const next = fn(curr, i);
+        if (!visited.has(next)) {
+          visited.set(next, { prev: curr, pos: i, type });
+          if (next === target) break outer;
+          queue.push(next);
+        }
+      }
+    }
+  }
+
+  // Reconstruct
+  const steps = [];
+  let cur = target;
+  while (visited.get(cur) !== null) {
+    const info = visited.get(cur);
+    steps.unshift({ s: cur, pos: info.pos, type: info.type });
+    cur = info.prev;
+  }
+  steps.unshift({ s: start, pos: -1, type: '' });
+  return steps;
+}
+
+// Count how many of the two constituent adjacent transpositions
+// are "effective" (swap distinct bits) on the given triple.
+//
+// Right-rotate decomposes as: first τ_{i+1,i+2}, then τ_{i,i+1}
+// Left-rotate  decomposes as: first τ_{i,i+1},   then τ_{i+1,i+2}
+function countEffectiveSwaps(s, pos, type) {
+  let a = s[pos], b = s[pos+1], c = s[pos+2];
+  let count = 0;
+  if (type === 'right') {
+    if (b !== c) { const t = b; b = c; c = t; count++; }   // τ_{i+1,i+2}
+    if (a !== b) { count++; }                               // τ_{i,i+1}
+  } else {
+    if (a !== b) { const t = a; a = b; b = t; count++; }   // τ_{i,i+1}
+    if (b !== c) { count++; }                               // τ_{i+1,i+2}
+  }
+  return count;
+}
+
+function moveColor(swaps) {
+  return swaps === 2 ? '#e53935' : '#1565c0';
+}
+
+
+
+let N = 6, K = 3;
+let path = [];
+let step = 0;
+let started = false;
+let animating = false;
+
+function makeStart() { return '0'.repeat(K) + '1'.repeat(N - K); }
+function makeTarget() { return '1'.repeat(N - K) + '0'.repeat(K); }
+
+// ─────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────
+
+function makeCellEl(val, idx, activeStart, small) {
+  const col = document.createElement('div');
+  col.className = 'cell-col';
+
+  const cell = document.createElement('div');
+  const isActive = (activeStart >= 0) &&
+                   (idx >= activeStart && idx <= activeStart + 2);
+  cell.className = `cell ${val === '1' ? 'c1' : 'c0'}${isActive ? ' active' : ''}${small ? ' small' : ''}`;
+  cell.id = small ? '' : `cell-${idx}`;
+  cell.textContent = val;
+
+  if (!small) {
+    const pos = document.createElement('div');
+    pos.className = `cell-pos${isActive ? ' pos-active' : ''}`;
+    pos.textContent = idx;
+    col.appendChild(cell);
+    col.appendChild(pos);
+  } else {
+    col.appendChild(cell);
+  }
+  return col;
+}
+
+function renderStringRow(s, activeStart, rowId, labelText) {
+  const wrap = document.createElement('div');
+  wrap.className = 'string-row';
+  wrap.id = rowId;
+
+  if (labelText) {
+    const lbl = document.createElement('span');
+    lbl.className = 'row-label';
+    lbl.innerHTML = labelText;
+    wrap.appendChild(lbl);
+  }
+
+  // Group: all cells, with bracket overlay on active triple
+  const inner = document.createElement('div');
+  inner.style.position = 'relative';
+  inner.style.display = 'flex';
+  inner.style.gap = '4px';
+  inner.style.paddingTop = '72px'; // space for arrows + bracket above cells
+
+  // bracket elements (shown when activeStart >= 0)
+  const bracketLabel = document.createElement('div');
+  bracketLabel.className = 'bracket-label';
+  bracketLabel.id = rowId + '-bracket-label';
+  inner.appendChild(bracketLabel);
+
+  const bracketBar = document.createElement('div');
+  bracketBar.className = 'bracket-bar';
+  bracketBar.id = rowId + '-bracket-bar';
+  inner.appendChild(bracketBar);
+
+  for (let i = 0; i < s.length; i++) {
+    inner.appendChild(makeCellEl(s[i], i, activeStart, false));
+  }
+
+  wrap.appendChild(inner);
+  return wrap;
+}
+
+function getArea() { return document.getElementById('string-display-area'); }
+
+function renderInitial() {
+  const area = getArea();
+  area.innerHTML = '';
+
+  const start = makeStart();
+  const target = makeTarget();
+
+  // Current string row
+  const curRow = renderStringRow(start, -1, 'current-row', 'A');
+  area.appendChild(curRow);
+
+  // Target row
+  const sep = document.createElement('div');
+  sep.style.cssText = 'width:100%;border-top:1px dashed #a5d6a7;margin:6px 0;opacity:.6;';
+  area.appendChild(sep);
+
+  const tlabel = document.createElement('div');
+  tlabel.className = 'target-label';
+  tlabel.textContent = 'Target A*:';
+  tlabel.style.cssText = 'text-align:center;margin-bottom:4px;';
+  area.appendChild(tlabel);
+
+  const tRow = renderStringRow(target, -1, 'target-row', '');
+  tRow.querySelector('.string-row, div')?.classList?.add?.('target-row');
+  // dim target
+  tRow.style.opacity = '0.6';
+  area.appendChild(tRow);
+
+  setMoveDesc('<span class="move-description">Press <strong>START</strong> to find the shortest 3-cycle path via BFS.</span>');
+  updateProgress(0, 0);
+}
+
+function renderStep(stepIdx, doAnimate) {
+  if (!path.length) return;
+
+  const info = path[stepIdx];
+  const s = info.s;
+  const activePos = (stepIdx > 0) ? path[stepIdx].pos : -1;
+
+  // Update current row
+  updateCurrentRow(s, activePos, doAnimate);
+
+  // Step info
+  if (stepIdx === 0) {
+    setMoveDesc('<span class="move-description">Starting string <strong>A = 0<sup>k</sup>1<sup>n−k</sup></strong>. Press <strong>NEXT STEP</strong> to begin.</span>');
+  } else if (stepIdx === path.length - 1) {
+    let red = 0, blue = 0;
+    for (let i = 1; i < path.length; i++) {
+      countEffectiveSwaps(path[i-1].s, path[i].pos, path[i].type) === 2 ? red++ : blue++;
+    }
+    const total = path.length - 1;
+    const plural = total === 1 ? '' : 's';
+    const redPart  = red  > 0 ? `<span style="color:#e53935;font-weight:700">${red} red</span>`   : '';
+    const bluePart = blue > 0 ? `<span style="color:#1565c0;font-weight:700">${blue} blue</span>` : '';
+    const breakdown = [redPart, bluePart].filter(Boolean).join(' <span style="color:var(--text3)">+</span> ');
+    setMoveDesc(`<div class="done-msg">✓ Reached <span>A* = 1<sup>n−k</sup>0<sup>k</sup></span> in ${total} move${plural}! &ensp;${breakdown}</div>`);
+  } else {
+    const { pos, type } = info;
+    const prevStr = path[stepIdx - 1].s;
+    const triple_before = prevStr.slice(pos, pos + 3);
+    const triple_after = s.slice(pos, pos + 3);
+    const sym = type === 'right' ? 'σ' : 'σ⁻¹';
+    const rotLabel = type === 'right'
+      ? '(a,b,c) → (c,a,b) &ensp;[right-rotate]'
+      : '(a,b,c) → (b,c,a) &ensp;[left-rotate]';
+    setMoveDesc(`
+      <div class="step-badge">Step ${stepIdx} of ${path.length - 1}</div>
+      <div class="move-description">
+        Applied <span class="mono">${sym}<sub>${pos}</sub></span>
+        at positions <span class="orange">${pos}, ${pos+1}, ${pos+2}</span>
+        <br><small>${rotLabel}</small>
+      </div>
+      <div class="transformation-arrow">
+        <div class="triple-val">${tripleHtml(triple_before, false)}</div>
+        <span class="arr">⟶</span>
+        <div class="triple-val">${tripleHtml(triple_after, true)}</div>
+      </div>
+    `);
+  }
+
+  updateProgress(stepIdx, path.length - 1);
+  updateBracket(activePos, 'current-row', stepIdx > 0 && stepIdx < path.length - 1 ? info : null);
+  updateGenList();
+}
+
+function tripleHtml(triple, highlight) {
+  return triple.split('').map(b =>
+    `<div class="cell small ${b==='1'?'c1':'c0'}${highlight?' just-changed':''}">${b}</div>`
+  ).join('');
+}
+
+function updateCurrentRow(s, activePos, doAnimate) {
+  const row = document.getElementById('current-row');
+  if (!row) return;
+
+  const inner = row.lastElementChild; // the inner cells div (last child, after optional label)
+  // Children: bracketLabel, bracketBar, then cell-cols
+  const cellCols = Array.from(inner.children).slice(2);
+
+  for (let i = 0; i < s.length; i++) {
+    const col = cellCols[i];
+    if (!col) continue;
+    const cell = col.querySelector('.cell');
+    const posEl = col.querySelector('.cell-pos');
+
+    const val = s[i];
+    const isActive = (activePos >= 0) && (i >= activePos && i <= activePos + 2);
+
+    // Update class
+    cell.className = `cell ${val === '1' ? 'c1' : 'c0'}${isActive ? ' active' : ''}`;
+    if (doAnimate && isActive) {
+      cell.classList.add('just-changed');
+      setTimeout(() => cell.classList.remove('just-changed'), 600);
+    }
+    if (posEl) {
+      posEl.className = `cell-pos${isActive ? ' pos-active' : ''}`;
+    }
+    cell.textContent = val;
+  }
+}
+
+function updateBracket(activePos, rowId, info) {
+  const lbl = document.getElementById(rowId + '-bracket-label');
+  const bar = document.getElementById(rowId + '-bracket-bar');
+  if (!lbl || !bar) return;
+
+  if (activePos < 0 || !info) {
+    lbl.classList.remove('visible');
+    bar.classList.remove('visible');
+    return;
+  }
+
+  const sym = info.type === 'right' ? 'σ' : 'σ⁻¹';
+  const arrow = info.type === 'right' ? '↻' : '↺';
+  lbl.innerHTML = `${arrow} ${sym}<sub>${activePos}</sub>`;
+  lbl.classList.add('visible');
+  bar.classList.add('visible');
+
+  // Position bar over the active triple
+  const inner = document.getElementById('current-row')?.lastElementChild;
+  if (!inner) return;
+  const cols = Array.from(inner.children).slice(2);
+  if (cols.length <= activePos + 2) return;
+  const c1 = cols[activePos], c3 = cols[activePos + 2];
+  const parentRect = inner.getBoundingClientRect();
+  const r1 = c1.getBoundingClientRect();
+  const r3 = c3.getBoundingClientRect();
+  bar.style.left = (r1.left - parentRect.left) + 'px';
+  bar.style.right = (parentRect.right - r3.right) + 'px';
+  bar.style.width = '';
+}
+
+function setMoveDesc(html) {
+  document.getElementById('step-info-panel').innerHTML = html;
+}
+
+function updateProgress(cur, total) {
+  let pct = total > 0 ? (cur / total) * 100 : 0;
+  const existing = document.getElementById('progress-fill');
+  const existingTxt = document.getElementById('progress-text');
+  if (existing) {
+    existing.style.width = pct + '%';
+    if (existingTxt) existingTxt.textContent = total > 0 ? `Step ${cur} / ${total}` : 'Not started';
+  } else {
+    const wrap = document.createElement('div');
+    wrap.className = 'progress-wrap';
+    const track = document.createElement('div');
+    track.className = 'progress-track';
+    const fill = document.createElement('div');
+    fill.className = 'progress-fill';
+    fill.id = 'progress-fill';
+    fill.style.width = pct + '%';
+    track.appendChild(fill);
+    const txt = document.createElement('div');
+    txt.className = 'progress-text';
+    txt.id = 'progress-text';
+    txt.textContent = total > 0 ? `Step ${cur} / ${total}` : 'Not started';
+    wrap.appendChild(track);
+    wrap.appendChild(txt);
+    document.getElementById('step-info-panel').appendChild(wrap);
+  }
+}
+
+// ─────────────────────────────────────────
+//  GENERATOR LIST (left column)
+// ─────────────────────────────────────────
+
+function updateGenList() {
+  const list = document.getElementById('gen-list');
+  if (!list) return;
+
+  if (!started || !path.length) {
+    list.innerHTML = '<div class="gen-empty">Start to see moves</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+
+  // Show every completed/current step (steps 1…step, where each has a generator)
+  for (let i = 1; i <= step; i++) {
+    const info    = path[i];
+    const prevStr = path[i - 1].s;
+    const swaps   = countEffectiveSwaps(prevStr, info.pos, info.type);
+    const isCurrent = (i === step);
+    const sym = info.type === 'right' ? 'σ' : 'σ⁻¹';
+    const sub = info.pos;
+    const col = moveColor(swaps);
+
+    const item = document.createElement('div');
+    item.className = `gen-item ${isCurrent ? 'current' : 'done'}`;
+    item.style.setProperty('--item-color', col);
+
+    item.innerHTML =
+      `<span class="gen-step-num">${i}</span>` +
+      `<span class="gen-sym">${sym}<sub>${sub}</sub></span>` +
+      `<span class="gen-pos">(${sub},${sub+1},${sub+2})</span>`;
+
+    list.appendChild(item);
+  }
+
+  if (step === 0) {
+    list.innerHTML = '<div class="gen-empty">Press Next Step</div>';
+  }
+
+  // Auto-scroll to bottom so newest entry is visible
+  list.scrollTop = list.scrollHeight;
+}
+
+
+
+function handleStart() {
+  if (animating) return;
+  const start = makeStart();
+  const target = makeTarget();
+
+  if (start === target) {
+    setMoveDesc('<div class="done-msg">⚠ Start already equals target (try k ≠ 0 and k ≠ n).</div>');
+    return;
+  }
+
+  setMoveDesc('<span class="move-description" style="color:var(--text3)">Computing shortest path via BFS…</span>');
+
+  // Slight delay to let UI update, then run BFS
+  setTimeout(() => {
+    path = bfsPath(start, target, N);
+    step = 0;
+    started = true;
+    renderStep(0, false);
+    document.getElementById('btn-next').disabled = false;
+    document.getElementById('btn-back').disabled = true;
+    document.getElementById('btn-run').disabled  = false;
+    document.getElementById('btn-start').disabled = true;
+    syncBracket();
+    setTimeout(drawNextStepArrows, 60);
+  }, 30);
+}
+
+function handleBack() {
+  if (!started || animating || step <= 0) return;
+  if (runTimer !== null) { clearInterval(runTimer); runTimer = null;
+    document.getElementById('btn-run').textContent = '⏩ Run All';
+    document.getElementById('btn-run').classList.remove('running'); }
+
+  animating = true;
+  step--;
+  renderStep(step, false);
+  setTimeout(() => {
+    syncBracket();
+    animating = false;
+    document.getElementById('btn-back').disabled = (step <= 0);
+    document.getElementById('btn-next').disabled = false;
+    document.getElementById('btn-run').disabled  = false;
+  }, 150);
+}
+
+let runTimer = null;
+
+function handleRunAll() {
+  const btn = document.getElementById('btn-run');
+
+  // If already running, stop
+  if (runTimer !== null) {
+    clearInterval(runTimer);
+    runTimer = null;
+    btn.textContent = '⏩ Run All';
+    btn.classList.remove('running');
+    setRunAllButtonsState();
+    return;
+  }
+
+  if (!started || step >= path.length - 1) return;
+
+  // Start auto-play
+  btn.textContent = '⏹ Stop';
+  btn.classList.add('running');
+  document.getElementById('btn-next').disabled = true;
+  document.getElementById('btn-back').disabled = true;
+
+  runTimer = setInterval(() => {
+    if (step >= path.length - 1) {
+      clearInterval(runTimer);
+      runTimer = null;
+      btn.textContent = '⏩ Run All';
+      btn.classList.remove('running');
+      setRunAllButtonsState();
+      return;
+    }
+    step++;
+    renderStep(step, true);
+    setTimeout(() => {
+      syncBracket();
+      animating = false;
+    }, 150);
+  }, 700);
+}
+
+function setRunAllButtonsState() {
+  const done = step >= path.length - 1;
+  document.getElementById('btn-next').disabled = done || !started;
+  document.getElementById('btn-back').disabled = step <= 0 || !started;
+  document.getElementById('btn-run').disabled  = done || !started;
+}
+
+function handleNextStep() {
+  if (!started || animating) return;
+  if (step >= path.length - 1) return;
+  if (runTimer !== null) { clearInterval(runTimer); runTimer = null;
+    document.getElementById('btn-run').textContent = '⏩ Run All';
+    document.getElementById('btn-run').classList.remove('running'); }
+
+  animating = true;
+  step++;
+  renderStep(step, true);
+
+  setTimeout(() => {
+    syncBracket();
+    animating = false;
+    document.getElementById('btn-back').disabled = false;
+    const done = step >= path.length - 1;
+    document.getElementById('btn-next').disabled = done;
+    document.getElementById('btn-run').disabled  = done;
+  }, 150);
+}
+
+function syncBracket() {
+  if (!started || !path.length) return;
+  const info = (step > 0 && step < path.length) ? path[step] : null;
+  const activePos = info ? info.pos : -1;
+  updateBracket(activePos, 'current-row', info && step < path.length - 1 ? info : null);
+  drawNextStepArrows();
+}
+
+// ─────────────────────────────────────────
+//  CURVED ARROWS (preview next move)
+// ─────────────────────────────────────────
+
+function drawNextStepArrows() {
+  const old = document.getElementById('arrows-svg');
+  if (old) old.remove();
+
+  if (!started || !path.length || step >= path.length - 1) return;
+
+  const nextInfo = path[step + 1];
+  const pos  = nextInfo.pos;
+  const type = nextInfo.type;
+
+  const row = document.getElementById('current-row');
+  if (!row) return;
+  const inner = row.lastElementChild;
+  const cellCols = Array.from(inner.children).slice(2);
+
+  const cellEls = [
+    cellCols[pos]?.querySelector('.cell'),
+    cellCols[pos + 1]?.querySelector('.cell'),
+    cellCols[pos + 2]?.querySelector('.cell')
+  ];
+  if (cellEls.some(c => !c)) return;
+
+  const innerRect = inner.getBoundingClientRect();
+  function pt(el) {
+    const r = el.getBoundingClientRect();
+    return {
+      cx:  r.left - innerRect.left + r.width / 2,
+      top: r.top  - innerRect.top          // top edge of cell in inner-div coords
+    };
+  }
+  const [p0, p1, p2] = cellEls.map(pt);
+
+  const swaps = countEffectiveSwaps(path[step].s, pos, type);
+  const COLOR = moveColor(swaps);
+
+  // ── SVG ──
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'arrows-svg';
+  svg.style.cssText =
+    'position:absolute;top:0;left:0;width:100%;height:100%;' +
+    'pointer-events:none;overflow:visible;z-index:20;';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+  // Single arrowhead marker — placed at midpoint via marker-mid
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'arr-mid');
+  marker.setAttribute('markerWidth',  '9');
+  marker.setAttribute('markerHeight', '7');
+  marker.setAttribute('refX', '4.5');
+  marker.setAttribute('refY', '3.5');
+  marker.setAttribute('orient', 'auto');
+  const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  poly.setAttribute('points', '0 0, 9 3.5, 0 7');
+  poly.setAttribute('fill', COLOR);
+  marker.appendChild(poly);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  const SW      = 2.2;
+  const GAP     = 6;
+  const SHALLOW = 26;   // height of short adjacent arcs above cells
+  const DEEP    = 62;   // height of the long crossing arc above cells
+
+  function addArc(d) {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', d);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', COLOR);
+    p.setAttribute('stroke-width', SW);
+    p.setAttribute('stroke-linecap', 'round');
+    p.setAttribute('marker-mid', 'url(#arr-mid)');
+    svg.appendChild(p);
+  }
+
+  // ── Short arc: quadratic bezier arcing ABOVE cells ──
+  function shortArc(src, dst) {
+    const x0 = src.cx, y0 = src.top - 3;           // just above src cell
+    const x1 = dst.cx, y1 = dst.top - GAP;         // just above dst cell
+    const cpx = (x0 + x1) / 2;
+    const cpy = Math.min(y0, y1) - SHALLOW;         // apex goes UP (smaller y)
+
+    // De Casteljau split at t=0.5
+    const q0x = (x0 + cpx) / 2,  q0y = (y0 + cpy) / 2;
+    const q1x = (cpx + x1) / 2,  q1y = (cpy + y1) / 2;
+    const mx  = (q0x + q1x) / 2, my  = (q0y + q1y) / 2;
+
+    addArc(`M ${x0} ${y0} Q ${q0x} ${q0y} ${mx} ${my} Q ${q1x} ${q1y} ${x1} ${y1}`);
+  }
+
+  // ── Long arc: cubic bezier arcing high ABOVE all three cells ──
+  function longArc(src, dst) {
+    const x0 = src.cx, y0 = src.top - 3;
+    const x1 = dst.cx, y1 = dst.top - GAP;
+    const cy = Math.min(y0, y1) - DEEP;            // control points go UP far
+
+    // De Casteljau split at t=0.5 for cubic P0=(x0,y0) P1=(x0,cy) P2=(x1,cy) P3=(x1,y1)
+    const q0x = x0,           q0y = (y0 + cy) / 2;
+    const q1x = (x0 + x1)/2,  q1y = cy;
+    const q2x = x1,           q2y = (cy + y1) / 2;
+    const r0x = (q0x+q1x)/2,  r0y = (q0y+q1y)/2;
+    const r1x = (q1x+q2x)/2,  r1y = (q1y+q2y)/2;
+    const mx  = (r0x+r1x)/2,  my  = (r0y+r1y)/2;
+
+    addArc(`M ${x0} ${y0} C ${q0x} ${q0y} ${r0x} ${r0y} ${mx} ${my} ` +
+           `C ${r1x} ${r1y} ${q2x} ${q2y} ${x1} ${y1}`);
+  }
+
+  if (type === 'right') {
+    // σ_i: (a,b,c) → (c,a,b)
+    shortArc(p0, p1);   // a at i   → i+1
+    shortArc(p1, p2);   // b at i+1 → i+2
+    longArc (p2, p0);   // c at i+2 → i  (long crossing arc)
+  } else {
+    // σ_i⁻¹: (a,b,c) → (b,c,a)
+    shortArc(p1, p0);   // b at i+1 → i
+    shortArc(p2, p1);   // c at i+2 → i+1
+    longArc (p0, p2);   // a at i   → i+2  (long crossing arc)
+  }
+
+  inner.appendChild(svg);
+}
+
+
+
+function handleReset() {
+  if (runTimer !== null) { clearInterval(runTimer); runTimer = null; }
+  path = [];
+  step = 0;
+  started = false;
+  animating = false;
+  const old = document.getElementById('arrows-svg');
+  if (old) old.remove();
+  renderInitial();
+  updateGenList();
+  document.getElementById('btn-next').disabled  = true;
+  document.getElementById('btn-back').disabled  = true;
+  document.getElementById('btn-run').disabled   = true;
+  document.getElementById('btn-run').textContent = '⏩ Run All';
+  document.getElementById('btn-run').classList.remove('running');
+  document.getElementById('btn-start').disabled = false;
+}
+
+// ─────────────────────────────────────────
+//  PARAM CONTROLS
+// ─────────────────────────────────────────
+
+function setN(v) {
+  N = Math.max(3, Math.min(14, v));
+  K = Math.max(1, Math.min(N - 1, K));
+  document.getElementById('n-val').value = N;
+  document.getElementById('k-val').value = K;
+  handleReset();
+}
+function setK(v) {
+  K = Math.max(1, Math.min(N - 1, v));
+  document.getElementById('k-val').value = K;
+  handleReset();
+}
+
+document.getElementById('n-dec').addEventListener('click', () => setN(N - 1));
+document.getElementById('n-inc').addEventListener('click', () => setN(N + 1));
+document.getElementById('k-dec').addEventListener('click', () => setK(K - 1));
+document.getElementById('k-inc').addEventListener('click', () => setK(K + 1));
+
+document.getElementById('btn-help').addEventListener('click', () =>
+  document.getElementById('modal').classList.add('open'));
+document.getElementById('modal-close').addEventListener('click', () =>
+  document.getElementById('modal').classList.remove('open'));
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal'))
+    document.getElementById('modal').classList.remove('open');
+});
+
+document.getElementById('btn-back').addEventListener('click', handleBack);
+document.getElementById('btn-run').addEventListener('click', handleRunAll);
+document.getElementById('btn-start').addEventListener('click', handleStart);
+document.getElementById('btn-next').addEventListener('click', handleNextStep);
+document.getElementById('btn-reset').addEventListener('click', handleReset);
+
+// keyboard shortcut: space / right arrow = next step
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    handleNextStep();
+  }
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    handleBack();
+  }
+  if (e.key === 'Escape') document.getElementById('modal').classList.remove('open');
+});
+
+// ─────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────
+renderInitial();
+</script>
+</body>
+</html>
