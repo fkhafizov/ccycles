@@ -7,6 +7,7 @@
   * https://fkhafizov.github.io/ccycles/cc3-zk-n-sonnet46-v5.html
   * https://fkhafizov.github.io/ccycles/g3_k3_n_mismatch_nodes_v2.html
   * https://fkhafizov.github.io/ccycles/g3_distance_table.html
+  * https://fkhafizov.github.io/ccycles/g3_k5_n_mismatch_nodes.html
   * https://fkhafizov.github.io/ccycles/cc2-zk-n-sonnet46-v2.html
 
 ---------------------------------------------------
