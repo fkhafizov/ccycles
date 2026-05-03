@@ -9,6 +9,9 @@
   * https://fkhafizov.github.io/ccycles/g3_distance_table.html
   * https://fkhafizov.github.io/ccycles/g3_k5_n_mismatch_nodes.html
   * https://fkhafizov.github.io/ccycles/cc2-zk-n-sonnet46-v2.html
+  * https://fkhafizov.github.io/ccycles/cc3-zk-n-sonnet46-v8.html <-- easy holo
+  * https://fkhafizov.github.io/ccycles/cc3-zk-n-v9-sonnet46-dXY-heatmap.html <-- easy holo, heat map d(x,y)
+  * 
 
 ---------------------------------------------------
 
