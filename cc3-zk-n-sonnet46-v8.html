@@ -1,0 +1,2198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G₃(k,n) — Schreier Graph Visualizer v8</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&display=swap');
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      overflow: hidden;
+      background: linear-gradient(145deg, #d0ecd3 0%, #c5e4f8 55%, #ddd6fe 100%);
+    }
+
+    /* ══ PANELS ══ */
+    .panel {
+      position: fixed; top:16px; bottom:16px; width:178px;
+      background: rgba(255,255,255,0.91); backdrop-filter: blur(16px);
+      border-radius:16px; border:1px solid rgba(255,255,255,0.75);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.13), 0 1px 0 rgba(255,255,255,0.6) inset;
+      z-index:100; overflow-y:auto; overflow-x:hidden; padding:14px;
+      font-size:0.76rem; color:#334155;
+      scrollbar-width:thin; scrollbar-color:#c7d2de transparent;
+    }
+    .panel::-webkit-scrollbar { width:4px; }
+    .panel::-webkit-scrollbar-thumb { background:#c7d2de; border-radius:4px; }
+    #left-panel  { left:16px; }
+    #right-panel { right:16px; width:222px; font-size: var(--analysis-fs, 0.76rem); }
+    #canvas-container { position:fixed; inset:0; z-index:0; }
+
+    /* ══ TYPOGRAPHY ══ */
+    .panel-title { font-family:'DM Sans',sans-serif; font-size:0.92rem; font-weight:700;
+      color:#1e3a2f; margin-bottom:13px; letter-spacing:-0.3px; display:flex; align-items:center; gap:6px; }
+    .section-divider { margin:10px 0 7px; padding-top:9px; border-top:1px solid rgba(0,0,0,0.07); }
+    .section-label { font-family:'DM Sans',sans-serif; font-size:0.58rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:1.1px; color:#94a3b8; margin-bottom:7px; }
+
+    /* ══ CONTROLS ══ */
+    .ctrl-label { display:block; font-size:0.6rem; color:#64748b; text-transform:uppercase;
+      letter-spacing:0.5px; margin-bottom:3px; }
+    input[type="number"] { width:100%; padding:6px 9px; font-size:0.86rem;
+      font-family:'JetBrains Mono',monospace; border:1.5px solid #e2e8f0; border-radius:8px;
+      background:#f8fafc; color:#1e293b; margin-bottom:9px; transition:border-color .2s,box-shadow .2s; }
+    input[type="number"]:focus { outline:none; border-color:#4ade80; background:#fff;
+      box-shadow:0 0 0 3px rgba(74,222,128,0.18); }
+
+    .slider-row { margin-bottom:9px; }
+    .slider-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; }
+    .slider-val { font-size:0.66rem; font-weight:600; color:#334155;
+      background:#e8f5e9; padding:1px 5px; border-radius:4px; }
+    input[type="range"] { -webkit-appearance:none; appearance:none; width:100%; height:5px;
+      border-radius:3px; background:#e2e8f0; outline:none; cursor:pointer; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px;
+      border-radius:50%; background:linear-gradient(135deg,#4ade80,#60a5fa); cursor:pointer;
+      box-shadow:0 1px 4px rgba(0,0,0,.2); transition:transform .15s; }
+    input[type="range"]::-webkit-slider-thumb:hover { transform:scale(1.15); }
+    input[type="range"]::-moz-range-thumb { width:13px; height:13px; border-radius:50%; border:none;
+      background:linear-gradient(135deg,#4ade80,#60a5fa); cursor:pointer; }
+
+    .cb-row { display:flex; align-items:center; cursor:pointer; font-size:0.63rem; color:#334155;
+      margin-bottom:9px; user-select:none; }
+    .cb-row input[type="checkbox"] { display:none; }
+    .cb-box { width:15px; height:15px; min-width:15px; border:1.5px solid #4ade80; border-radius:4px;
+      margin-right:6px; position:relative; background:#f8fafc; transition:all .18s; }
+    .cb-row input:checked + .cb-box { background:linear-gradient(135deg,#4ade80,#60a5fa); border-color:#4ade80; }
+    .cb-row input:checked + .cb-box::after { content:'✓'; position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%); color:#fff; font-size:10px; font-weight:bold; }
+
+    /* ══ BUTTONS ══ */
+    .btn { width:100%; padding:7px 4px; font-size:0.67rem; font-family:'DM Sans',sans-serif;
+      font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#fff; border:none;
+      border-radius:9px; cursor:pointer; transition:all .18s; margin-bottom:6px;
+      background:linear-gradient(135deg,#4ade80,#60a5fa); }
+    .btn:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(74,222,128,.4); }
+    .btn:active { transform:translateY(0); }
+    .btn-reset { background:linear-gradient(135deg,#475569,#1e293b); margin-bottom:10px; letter-spacing:0.8px; }
+    .btn-reset:hover { box-shadow:0 4px 14px rgba(71,85,105,.5); }
+    .btn-shake { background:linear-gradient(135deg,#fb923c,#f43f5e); }
+    .btn-shake:hover { box-shadow:0 4px 14px rgba(251,146,60,.4); }
+    .btn-sort  { background:linear-gradient(135deg,#06b6d4,#0284c7); }
+    .btn-sort:hover { box-shadow:0 4px 14px rgba(6,182,212,.4); }
+    .btn-sort.active { background:linear-gradient(135deg,#f59e0b,#d97706); box-shadow:0 4px 14px rgba(245,158,11,.5); }
+    .btn-dxy   { background:linear-gradient(135deg,#10b981,#059669); }
+    .btn-dxy:hover { box-shadow:0 4px 14px rgba(16,185,129,.4); }
+    .btn-dxy.active { background:linear-gradient(135deg,#f59e0b,#d97706); }
+    .btn-holo  { background:linear-gradient(135deg,#a855f7,#7c3aed); }
+    .btn-holo:hover { box-shadow:0 4px 14px rgba(168,85,247,.45); }
+    .btn-holo.active { background:linear-gradient(135deg,#f59e0b,#d97706); box-shadow:0 4px 14px rgba(245,158,11,.5); }
+
+    /* ══ RADIO GROUP ══ */
+    .radio-group { display:flex; flex-direction:column; gap:4px; }
+    .radio-row { display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.63rem;
+      color:#334155; padding:4px 6px; border-radius:7px; border:1.5px solid transparent;
+      transition:background .15s,border-color .15s; user-select:none; }
+    .radio-row:hover { background:#f1f5f9; }
+    .radio-row input[type="radio"] { display:none; }
+    .radio-dot { width:13px; height:13px; min-width:13px; border-radius:50%; border:2px solid #cbd5e1;
+      background:#f8fafc; position:relative; transition:all .15s; }
+    .radio-row input:checked ~ .radio-dot { border-color:#2563eb; background:#2563eb; }
+    .radio-row input:checked ~ .radio-dot::after { content:''; position:absolute; width:5px; height:5px;
+      border-radius:50%; background:#fff; top:50%; left:50%; transform:translate(-50%,-50%); }
+    .radio-row.active { background:#eff6ff; border-color:#bfdbfe; }
+
+    /* ══ INFO / LEGEND ══ */
+    .info-row { display:flex; justify-content:space-between; align-items:baseline;
+      margin-bottom:3px; font-size:0.63rem; gap:4px; }
+    .info-key { color:#64748b; flex-shrink:0; }
+    .info-val { font-weight:600; color:#1d4ed8; text-align:right; word-break:break-all; }
+    .mono { font-family:'JetBrains Mono',monospace; }
+    .leg-item { display:flex; align-items:center; margin-bottom:3px; font-size:0.6rem; color:#64748b; }
+    .leg-swatch { width:22px; height:3px; border-radius:2px; margin-right:7px; flex-shrink:0; }
+    .leg-swatch-dash { width:22px; height:0; border-top:2px dashed; margin-right:7px; flex-shrink:0; }
+
+    /* ══ DEGREE TABLE ══ */
+    .deg-tbl { width:100%; border-collapse:collapse; margin-top:5px; }
+    .deg-tbl th { font-size:0.57rem; color:#94a3b8; text-transform:uppercase;
+      letter-spacing:.5px; padding:3px 2px; border-bottom:1px solid #e2e8f0;
+      text-align:left; font-family:'DM Sans',sans-serif; font-weight:700; }
+    .deg-tbl td { padding:2px 2px; font-size:0.61rem; border-bottom:1px solid #f1f5f9; }
+    .deg-tbl tr:hover td { background:#f8fafc; }
+
+    /* ══ RIGHT PANEL ══ */
+    .formula-pill { background:#eff6ff; border-left:3px solid #60a5fa; padding:6px 9px;
+      border-radius:5px; font-size:0.64rem; margin:5px 0; color:#1e3a8a;
+      font-family:'JetBrains Mono',monospace; line-height:1.6; }
+    .formula-pill.green { background:#f0fdf4; border-left-color:#4ade80; color:#14532d; }
+    .formula-pill.red   { background:#fef2f2; border-left-color:#f87171; color:#991b1b; }
+    .hint-box { font-size:0.61rem; color:#94a3b8; background:#f8fafc; border-radius:8px;
+      padding:9px 8px; text-align:center; margin-top:8px; line-height:1.6; border:1px dashed #e2e8f0; }
+    .sel-src { font-size:0.67rem; padding:5px 8px; border-radius:7px; background:#fefce8;
+      border-left:3px solid #eab308; margin-bottom:5px; word-break:break-all; line-height:1.5; }
+    .sel-tgt { font-size:0.67rem; padding:5px 8px; border-radius:7px; background:#fff7ed;
+      border-left:3px solid #f97316; margin-bottom:5px; word-break:break-all; line-height:1.5; }
+    .canon-badge { display:inline-block; font-size:0.56rem; background:#dcfce7; color:#166534;
+      padding:1px 5px; border-radius:4px; font-weight:600; margin-left:3px; vertical-align:middle; }
+    .dist-hero { font-family:'DM Sans',sans-serif; font-size:2rem; font-weight:700;
+      color:#1d4ed8; text-align:center; padding:8px 0 4px; letter-spacing:-1.5px; }
+    .dist-sub { font-size:0.62rem; color:#94a3b8; text-align:center; margin-bottom:6px; }
+    .formula-detail { background:#eff6ff; border-radius:7px; padding:8px 10px;
+      font-size:0.62rem; font-family:'JetBrains Mono',monospace;
+      color:#1e3a8a; line-height:1.8; margin:6px 0; }
+    .path-hdr { font-size:0.61rem; color:#64748b; margin-top:9px; margin-bottom:4px; }
+    .path-box { font-size:0.6rem; font-family:'JetBrains Mono',monospace; color:#334155;
+      background:#f1f5f9; border-radius:7px; padding:7px 8px; line-height:2; }
+    .path-node { display:inline-block; background:#dbeafe; color:#1e40af; border-radius:4px;
+      padding:1px 4px; font-weight:600; margin:1px 0; }
+    .disconnected-note { font-size:0.61rem; color:#dc2626; background:#fef2f2;
+      border-radius:6px; padding:6px 8px; margin-top:6px; }
+    .bfs-confirm { color:#16a34a; font-weight:600; }
+    .bfs-skip { font-size:0.58rem; color:#94a3b8; font-style:italic; }
+
+    /* ══ SORT SUBMENU ══ */
+    #sort-submenu { display:none; margin-top:4px; background:#f0f9ff; border-radius:9px;
+      border:1px solid #bae6fd; padding:8px 8px 6px; }
+    #sort-submenu.visible { display:block; }
+    .sort-sub-label { font-size:0.57rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.9px; color:#0369a1; margin-bottom:5px; font-family:'DM Sans',sans-serif; }
+    .sort-sub-row { display:flex; gap:5px; margin-bottom:5px; }
+    .sort-sub-btn { flex:1; padding:5px 3px; font-size:0.62rem; font-family:'DM Sans',sans-serif;
+      font-weight:700; border:1.5px solid #7dd3fc; border-radius:7px; background:#fff;
+      color:#0369a1; cursor:pointer; transition:all .15s; text-align:center; }
+    .sort-sub-btn:hover { background:#e0f2fe; }
+    .sort-sub-btn.active { background:linear-gradient(135deg,#0ea5e9,#2563eb); color:#fff;
+      border-color:transparent; box-shadow:0 2px 8px rgba(14,165,233,.4); }
+    .sort-root-badge { font-size:0.6rem; color:#0369a1; font-family:'JetBrains Mono',monospace;
+      background:#e0f2fe; border-radius:5px; padding:2px 6px; margin-bottom:5px; display:block;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sort-exit-btn { width:100%; padding:4px; font-size:0.61rem; font-family:'DM Sans',sans-serif;
+      font-weight:700; border:1px solid #fca5a5; border-radius:6px; background:#fff;
+      color:#dc2626; cursor:pointer; transition:background .14s; }
+    .sort-exit-btn:hover { background:#fef2f2; }
+
+    /* ══ d(X,Y) SUBMENU ══ */
+    #dxy-submenu { display:none; margin-top:4px; background:#f0fdf4; border-radius:9px;
+      border:1px solid #a7f3d0; padding:8px 8px 6px; }
+    #dxy-submenu.visible { display:block; }
+    .dxy-sub-label { font-size:0.57rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.9px; color:#065f46; margin-bottom:4px; font-family:'DM Sans',sans-serif; }
+    .dxy-node-input { width:100%; padding:5px 7px; margin-bottom:5px; font-size:0.72rem;
+      font-family:'JetBrains Mono',monospace; border:1.5px solid #6ee7b7; border-radius:7px;
+      background:#fff; color:#065f46; }
+    .dxy-node-input:focus { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.18); }
+    .dxy-compute-btn { width:100%; padding:6px; font-size:0.65rem; font-family:'DM Sans',sans-serif;
+      font-weight:700; border:none; border-radius:7px; cursor:pointer;
+      background:linear-gradient(135deg,#10b981,#059669); color:#fff; margin-bottom:5px; transition:opacity .15s; }
+    .dxy-compute-btn:disabled { opacity:0.4; cursor:default; }
+    .dxy-compute-btn:not(:disabled):hover { opacity:0.88; }
+    .dxy-exit-btn { width:100%; padding:4px; font-size:0.61rem; font-family:'DM Sans',sans-serif;
+      font-weight:700; border:1px solid #fca5a5; border-radius:6px; background:#fff;
+      color:#dc2626; cursor:pointer; transition:background .14s; }
+    .dxy-exit-btn:hover { background:#fef2f2; }
+    .dxy-result-block { background:#f0fdf4; border-radius:10px; border:1.5px solid #6ee7b7;
+      padding:12px 12px 10px; margin-top:8px; }
+    .dxy-result-title { font-family:'DM Sans',sans-serif; font-weight:700; font-size:0.78rem;
+      color:#065f46; margin-bottom:8px; }
+    .dxy-metric { display:flex; justify-content:space-between; align-items:baseline;
+      margin-bottom:6px; font-size:0.69rem; }
+    .dxy-metric-key { color:#374151; font-family:'JetBrains Mono',monospace; }
+    .dxy-metric-val { font-weight:700; font-size:1.1rem; color:#065f46;
+      font-family:'DM Sans',sans-serif; letter-spacing:-0.5px; }
+    .dxy-metric-val.warn { color:#d97706; font-size:0.85rem; }
+    .dxy-pair-label { font-size:0.6rem; font-family:'JetBrains Mono',monospace; color:#6b7280;
+      margin-bottom:10px; line-height:1.7; background:#fff; border-radius:6px; padding:5px 7px; }
+
+    /* ══ 3-D HELP BUTTON ══ */
+    #help-btn {
+      position:fixed; bottom:26px; left:50%; transform:translateX(-50%); z-index:200;
+      padding:11px 30px; font-family:'DM Sans',sans-serif; font-size:0.82rem; font-weight:700;
+      letter-spacing:1.2px; text-transform:uppercase; color:#e8f4ff; cursor:pointer;
+      border:none; border-radius:10px; outline:none; user-select:none;
+      background:linear-gradient(180deg,#5daaff 0%,#2176e8 38%,#1558c4 62%,#0d3d99 100%);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.40) inset, 1px 0 0 rgba(255,255,255,0.18) inset,
+        0 -2px 0 rgba(0,0,0,0.30) inset, 0 6px 0 #0b2e77, 0 9px 18px rgba(10,40,120,0.45);
+      transition:transform .12s ease,box-shadow .12s ease;
+    }
+    #help-btn:hover { background:linear-gradient(180deg,#74bbff 0%,#3385f5 38%,#1e67d5 62%,#1249ad 100%);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.45) inset, 1px 0 0 rgba(255,255,255,0.20) inset,
+        0 -2px 0 rgba(0,0,0,0.28) inset, 0 7px 0 #0b2e77, 0 11px 22px rgba(10,40,120,0.50);
+      transform:translateX(-50%) translateY(-1px); }
+    #help-btn:active { transform:translateX(-50%) translateY(4px);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.30) inset, 1px 0 0 rgba(255,255,255,0.14) inset,
+        0 -1px 0 rgba(0,0,0,0.22) inset, 0 2px 0 #0b2e77, 0 4px 10px rgba(10,40,120,0.35); }
+
+    /* ══ HELP MODAL ══ */
+    #help-overlay { display:none; position:fixed; inset:0; background:rgba(10,25,60,0.52);
+      backdrop-filter:blur(5px); z-index:300; align-items:center; justify-content:center; }
+    #help-overlay.open { display:flex; }
+    #help-modal { background:#fff; border-radius:18px; padding:30px 32px 26px; max-width:560px;
+      width:calc(100vw - 48px); max-height:calc(100vh - 60px); overflow-y:auto;
+      box-shadow:0 24px 70px rgba(10,30,90,0.30),0 1px 0 rgba(255,255,255,0.8) inset;
+      position:relative; font-family:'DM Sans',sans-serif; color:#1e293b;
+      animation:modal-in .18s ease; }
+    @keyframes modal-in { from{opacity:0;transform:scale(0.93) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    #help-close { position:absolute; top:14px; right:16px; width:30px; height:30px; border-radius:50%;
+      border:none; cursor:pointer; font-size:1rem; background:#f1f5f9; color:#64748b;
+      display:flex; align-items:center; justify-content:center; transition:background .15s,color .15s; }
+    #help-close:hover { background:#e2e8f0; color:#1e293b; }
+    #help-modal h2 { font-size:1.18rem; font-weight:700; color:#1549c0; margin-bottom:4px; letter-spacing:-0.3px; }
+    #help-modal .subtitle { font-size:0.75rem; color:#94a3b8; margin-bottom:18px; font-family:'JetBrains Mono',monospace; }
+    .help-section { margin-bottom:16px; }
+    .help-section h3 { font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;
+      color:#475569; margin-bottom:7px; padding-bottom:4px; border-bottom:1px solid #e2e8f0; }
+    .help-section p,.help-section li { font-size:0.82rem; line-height:1.65; color:#334155; }
+    .help-section ul { padding-left:16px; }
+    .help-section li { margin-bottom:4px; }
+    .help-key { display:inline-block; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;
+      border-radius:5px; padding:1px 6px; font-family:'JetBrains Mono',monospace;
+      font-size:0.74rem; font-weight:600; }
+    .help-formula { background:#f8fafc; border-left:3px solid #60a5fa; border-radius:5px;
+      padding:7px 11px; margin:6px 0; font-family:'JetBrains Mono',monospace;
+      font-size:0.74rem; color:#1e3a8a; line-height:1.7; }
+
+    /* pick-mode cursor */
+    body.pick-mode #canvas-container { cursor:crosshair; }
+    body.pick-mode .btn, body.pick-mode input[type="number"],
+    body.pick-mode input[type="range"], body.pick-mode .cb-row,
+    body.pick-mode .radio-row { pointer-events:none; opacity:0.45; }
+    body.pick-mode #btn-sort-vertices { pointer-events:auto; opacity:1; }
+    /* stretch / pin mode */
+    body.stretch-mode #canvas-container { cursor:cell; }
+    .btn-clear-pins { background:linear-gradient(135deg,#f43f5e,#be123c); margin-top:4px; }
+    .btn-clear-pins:hover { box-shadow:0 4px 14px rgba(244,63,94,.4); }
+    /* generator label pill on edge */
+    .gen-lbl-pill { font-family:'JetBrains Mono',monospace; font-size:9px; }
+  </style>
+</head>
+<body>
+
+<!-- ══ LEFT PANEL ══ -->
+<div class="panel" id="left-panel">
+  <div class="panel-title">⬡ G₃(k,n)</div>
+  <button class="btn btn-reset" id="btn-reset" onclick="resetAll()" title="Reset to defaults (n=5, k=2)">↺  Reset</button>
+
+  <label class="ctrl-label">n  (string length, 3–15)</label>
+  <input type="number" id="inputN" value="5" min="3" max="15">
+  <label class="ctrl-label">k  (zeros, ≥ 1, &lt; n)</label>
+  <input type="number" id="inputK" value="2" min="1" max="14">
+
+  <label class="cb-row">
+    <input type="checkbox" id="wrappedCb">
+    <span class="cb-box"></span>
+    <span>Wrapped (n−2, n−1, 0)</span>
+  </label>
+
+  <button class="btn" onclick="rebuildGraph()">▶  Generate</button>
+  <button class="btn btn-shake" onclick="shakeNodes()">🔀  Shake &amp; Resettle</button>
+  <label class="cb-row" style="margin-top:4px">
+    <input type="checkbox" id="symmetricCb" checked onchange="toggleSymmetric(this.checked)">
+    <span class="cb-box"></span><span>Keep symmetric</span>
+  </label>
+  <label class="cb-row" id="stretchCbRow">
+    <input type="checkbox" id="stretchCb" onchange="toggleStretchMode(this.checked)">
+    <span class="cb-box"></span><span>📌 Stretch (pin nodes)</span>
+  </label>
+  <button class="btn btn-clear-pins" id="btn-clear-pins" onclick="clearAllPins()" style="display:none">
+    ✕  Clear all pins
+  </button>
+  <button class="btn" id="btn-freeze" onclick="toggleFreeze()" style="background:linear-gradient(135deg,#64748b,#334155)">
+    ❄  Freeze
+  </button>
+  <button class="btn" id="btn-export" onclick="exportPNG()" style="background:linear-gradient(135deg,#0ea5e9,#0369a1)">
+    📷  Export PNG
+  </button>
+  <button class="btn btn-holo" id="btn-holography" onclick="activateHolographyMode()">◻  Holography</button>
+  <label class="cb-row" style="margin-top:4px;margin-bottom:2px">
+    <input type="checkbox" id="showHolographyCb" onchange="showHolography=this.checked">
+    <span class="cb-box"></span>
+    <span>Show all holography</span>
+  </label>
+
+  <button class="btn btn-sort" id="btn-sort-vertices" onclick="enterPickMode()">🎯  Sort Vertices</button>
+
+  <div id="sort-submenu">
+    <div class="sort-sub-label">Sort root</div>
+    <span class="sort-root-badge" id="sort-root-label">—</span>
+    <div class="sort-sub-label">Layout</div>
+    <div class="sort-sub-row">
+      <button class="sort-sub-btn active" id="sub-concentric" onclick="applySortLayout('concentric')">⬤ Rings</button>
+      <button class="sort-sub-btn" id="sub-rows" onclick="applySortLayout('rows')">≡ Rows</button>
+    </div>
+    <div class="sort-sub-row" id="rows-dir-row" style="display:none">
+      <button class="sort-sub-btn active" id="sub-topdown" onclick="setSortDir('top')">▼ Top→Down</button>
+      <button class="sort-sub-btn" id="sub-bottomup" onclick="setSortDir('bottom')">▲ Bottom→Up</button>
+    </div>
+    <button class="sort-exit-btn" onclick="exitSortMode()">✕ Exit Sort Mode</button>
+  </div>
+
+  <button class="btn btn-dxy" id="btn-dxy" onclick="enterDxyMode()">📏  d(X,Y)</button>
+  <div id="dxy-submenu">
+    <div class="dxy-sub-label">Select nodes or type labels</div>
+    <span class="dxy-sub-label" style="margin-top:4px">X:</span>
+    <input class="dxy-node-input" id="dxy-input-x" placeholder="click node or type label" oninput="dxyInputChanged('x')">
+    <span class="dxy-sub-label">Y:</span>
+    <input class="dxy-node-input" id="dxy-input-y" placeholder="click node or type label" oninput="dxyInputChanged('y')">
+    <button class="dxy-compute-btn" id="dxy-compute-btn" onclick="computeDxy()" disabled>↳ Compute d(X,Y)</button>
+    <button class="dxy-exit-btn" onclick="exitDxyMode()">✕ Exit</button>
+  </div>
+
+  <div class="section-divider"><div class="section-label">Node Color</div></div>
+  <div class="radio-group" id="colorModeGroup">
+    <label class="radio-row active" id="rm-degree">
+      <input type="radio" name="colorMode" value="degree" checked onchange="setColorMode('degree')">
+      <span class="radio-dot"></span><span>By degree</span>
+    </label>
+    <label class="radio-row" id="rm-bfs-A">
+      <input type="radio" name="colorMode" value="bfs-A" onchange="setColorMode('bfs-A')">
+      <span class="radio-dot"></span><span>d from A</span>
+    </label>
+    <label class="radio-row" id="rm-bfs-Astar">
+      <input type="radio" name="colorMode" value="bfs-Astar" onchange="setColorMode('bfs-Astar')">
+      <span class="radio-dot"></span><span>d from A*</span>
+    </label>
+    <label class="radio-row" id="rm-bfs-source">
+      <input type="radio" name="colorMode" value="bfs-source" onchange="setColorMode('bfs-source')">
+      <span class="radio-dot"></span><span>d from clicked</span>
+    </label>
+  </div>
+
+  <div class="section-divider"><div class="section-label">Graph Info</div></div>
+  <div class="info-row"><span class="info-key">Zeros k:</span><span class="info-val" id="infoK">2</span></div>
+  <div class="info-row"><span class="info-key">Canonical A:</span><span class="info-val mono" id="infoA">00111</span></div>
+  <div class="info-row"><span class="info-key">A* (antipodal):</span><span class="info-val mono" id="infoAstar">—</span></div>
+  <div class="info-row"><span class="info-key">|V| = C(n,k):</span><span class="info-val" id="infoV">10</span></div>
+  <div class="info-row"><span class="info-key">|E|:</span><span class="info-val" id="infoE">0</span></div>
+
+  <div class="section-divider"><div class="section-label">Generators</div></div>
+  <label class="cb-row" style="margin-bottom:6px">
+    <input type="checkbox" id="showGeneratorCb" onchange="showGenerator=this.checked">
+    <span class="cb-box"></span>
+    <span>Show generator labels</span>
+  </label>
+  <label class="cb-row" style="margin-bottom:2px">
+    <input type="checkbox" id="showIBFormulaCb" onchange="showIBFormula=this.checked">
+    <span class="cb-box"></span>
+    <span>Show I(B) formula</span>
+  </label>
+  <div id="legendItems"></div>
+
+  <div class="section-divider"><div class="section-label">Degree Distribution</div></div>
+  <table class="deg-tbl">
+    <thead><tr><th>Deg</th><th>Vertices</th></tr></thead>
+    <tbody id="degTbody"></tbody>
+  </table>
+</div>
+
+<!-- ══ RIGHT PANEL ══ -->
+<div class="panel" id="right-panel"></div>
+
+<!-- ══ HELP BUTTON ══ -->
+<button id="help-btn" onclick="document.getElementById('help-overlay').classList.add('open')">Help</button>
+
+<!-- ══ HELP MODAL ══ -->
+<div id="help-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div id="help-modal">
+    <button id="help-close" onclick="document.getElementById('help-overlay').classList.remove('open')">✕</button>
+    <h2>G₃(k, n) — Schreier Graph Visualizer</h2>
+    <div class="subtitle">consecutive 3-cycle Schreier graph · v8</div>
+
+    <div class="help-section">
+      <h3>What is G₃(k, n)?</h3>
+      <p>Vertices are all binary strings of length <em>n</em> with exactly <em>k</em> zeros. Two vertices are adjacent when a consecutive 3-cycle on positions (i, i+1, i+2) — either <strong>forward</strong> (right rotation: new[i]=s[i+2], new[i+1]=s[i], new[i+2]=s[i+1], i.e. (a,b,c)→(c,a,b)) or <strong>reverse</strong> (left rotation: new[i]=s[i+1], new[i+1]=s[i+2], new[i+2]=s[i], i.e. (a,b,c)→(b,c,a)) — changes the string. An edge exists only when the triple is not all-0 or all-1. The graph has <span class="help-key">|V| = C(n,k)</span> vertices and 2(n−2) generator types. G₃ is denser than G₂ and has diameter roughly half that of G₂.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Distance Formulas</h3>
+      <p>Let A = 0<sup>k</sup>1<sup>n−k</sup> (canonical vertex), B with 1-based zero positions z₁&lt;…&lt;zₖ. Define dᵢ = zᵢ−i, I(B) = Σdᵢ, Δ(B) = |Σ(−1)<sup>i+1</sup>(dᵢ mod 2)|.</p>
+      <div class="help-formula">d(A, B) = (I(B) + Δ(B)) / 2       [exact]
+I(B) = Σᵢ (zᵢ − i)
+Δ(B) = |Σᵢ (−1)ⁱ⁺¹ (dᵢ mod 2)|
+
+diam = ⌈k(n−k)/2⌉
+
+Bounds for arbitrary d(X,Y):
+  ⌈½Σ|xᵢ−yᵢ|⌉  ≤  d(X,Y)  ≤  Σ⌈|xᵢ−yᵢ|/2⌉
+
+k=1:  d(A,B) = ⌈(z₁−1)/2⌉
+k=2:  d(A,B) = ⌈((z₁−1)+(z₂−2))/2⌉</div>
+      <p style="margin-top:5px">No closed-form exact formula is known for d(X,Y) between arbitrary vertices. The app uses BFS for exact distances and displays the two-sided bounds.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Controls — Left Panel</h3>
+      <ul>
+        <li><span class="help-key">n</span> — string length (3–15). <span class="help-key">k</span> — zeros per string; |V| = C(n,k).</li>
+        <li><span class="help-key">Wrapped (n−2,n−1,0)</span> — adds the 3-cycle wrapping the last two positions with position 0.</li>
+        <li><span class="help-key">▶ Generate</span> — rebuild graph; resets all pins, stretch offsets, and sort mode.</li>
+        <li><span class="help-key">🎯 Sort Vertices</span> — enter BFS-root pick mode (see below).</li>
+        <li><span class="help-key">📏 d(X,Y)</span> — open distance calculator (see below).</li>
+        <li><span class="help-key">Node Color</span> — four coloring modes (see below).</li>
+        <li><span class="help-key">Show generator labels</span> — draw a small ▶N / ◀N pill at the midpoint of each edge showing the position index and direction.</li>
+        <li><span class="help-key">Show all holography</span> — when checked, every node shows its lattice-path diagram at all times; when unchecked, the diagram appears only on hover (see Holography).</li>
+        <li><span class="help-key">Show I(B) formula</span> — adds a per-term I(B)=Σ(zᵢ−i) expansion inside each holography tooltip.</li>
+        <li><span class="help-key">Node Radius</span>, <span class="help-key">Repulsion</span>, <span class="help-key">Attraction</span> — physics tuning.</li>
+        <li><span class="help-key">Analysis font (px)</span> — scales all text in the right panel (8–18 px).</li>
+        <li><span class="help-key">Edge label font (px)</span> — scales the generator label pills on edges (7–16 px).</li>
+        <li><span class="help-key">🔀 Shake &amp; Resettle</span> — randomise positions, re-enable mirror symmetry.</li>
+        <li><span class="help-key">Keep symmetric</span> — mirrors each node with its string-reversal partner across the vertical centre line during physics and drag. This is a layout heuristic (not the true graph automorphism geometry): reversal pairs are forced to the same y-coordinate at ±x from the centre, which visually exposes the bilateral structure of G₃.</li>
+        <li><span class="help-key">📌 Stretch (pin nodes)</span> — enter stretch mode: drag nodes to pin them; drag edge handles to bend edges (see Stretch Mode).</li>
+        <li><span class="help-key">📷 Export PNG</span> — saves the current canvas as a PNG file named G3_k{k}_n{n}.png. Tip: freeze the layout first for a clean snapshot.</li>
+        <li><span class="help-key">❄ Freeze</span> — instantly halt physics; A and A* get text callouts.</li>
+      </ul>
+    </div>
+
+    <div class="help-section">
+      <h3>Node Coloring — Four Modes</h3>
+      <p><strong>1 — By degree:</strong> color = number of incident edges.</p>
+      <p><strong>2 — d from A:</strong> BFS distance from A. Green (d=0, A itself shown gold) → red (d=diam=A*).</p>
+      <p><strong>3 — d from A*:</strong> same gradient rooted at A* (complement of mode 2).</p>
+      <p><strong>4 — d from clicked:</strong> live BFS from any node you click.</p>
+      <p style="margin-top:6px">
+        <span style="color:#2E7D32;font-weight:700">Green ring</span> = A &nbsp;
+        <span style="color:#7c3aed;font-weight:700">Purple ring</span> = A* &nbsp;
+        <span style="color:#B8860B;font-weight:700">Gold fill</span> = source &nbsp;
+        <span style="color:#FF6B35;font-weight:700">Orange fill</span> = target &nbsp;
+        <span style="color:#1d4ed8;font-weight:700">Blue ring</span> = d(X,Y) nodes
+      </p>
+      <p style="margin-top:6px"><strong style="color:#ef4444">Red square nodes</strong> — see U′ Approximation below.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Edge Coloring &amp; Labels</h3>
+      <p><strong>Color</strong> = 3-cycle position index i (10-color palette). <strong>Solid stroke</strong> = forward rotation (right rotation: (a,b,c)→(c,a,b)). <strong>Dashed stroke</strong> = reverse rotation (left rotation: (a,b,c)→(b,c,a)). Multiple edges between the same pair of nodes are fanned out with perpendicular offsets so they don't overlap.</p>
+      <p style="margin-top:5px">When <em>Show generator labels</em> is on, each edge shows a small pill at its visual midpoint: <span class="help-key">▶2</span> = forward 3-cycle at position 2, <span class="help-key">◀2</span> = reverse, <span class="help-key">▶3w</span> = wrapped generator.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>📌 Stretch Mode — Pinning Nodes &amp; Bending Edges</h3>
+      <p>Check <em>Stretch (pin nodes)</em> to enter stretch mode (cursor changes to a cell crosshair).</p>
+      <ul>
+        <li><strong>Drag a node</strong> → it is pinned in place (red dashed ring + "P" dot). Pinned nodes are immune to physics forces; unpinned nodes settle around them.</li>
+        <li><strong>Click a pinned node</strong> (without dragging) → unpins it.</li>
+        <li><strong>Drag an edge handle</strong> (orange dot at the edge midpoint, offset perpendicularly from any generator label) → bends that edge into a Bézier arc. The handle position sets the control-point offset.</li>
+        <li><strong>Click an edge handle</strong> (without dragging) → resets the edge to its automatic shape.</li>
+        <li><span class="help-key">✕ Clear all pins</span> button appears when any node is pinned; click to release all at once.</li>
+      </ul>
+      <p style="margin-top:5px">With <em>Keep symmetric</em> on, pinning a node simultaneously pins its reversal partner at the mirror position.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>❄ Freeze</h3>
+      <p>Instantly stops physics and zeros all velocities. A and A* receive leader-line callouts so they are easy to identify. Press <em>▶ Unfreeze</em> to resume. Useful before Sort Vertices or d(X,Y) on large graphs.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>🎯 Sort Vertices</h3>
+      <p>Click the button, then click any node U as the BFS root. Nodes partition into layers L<sub>d</sub> = {v : d(U,v) = d}.</p>
+      <ul>
+        <li><strong>⬤ Rings</strong> — U at center, each layer on a concentric annular band. White disc background with black boundary circles labeled d= / c= (layer index / count) on left and right.</li>
+        <li><strong>≡ Rows</strong> — layers as horizontal bands; nodes ordered within each row by the barycenter heuristic to reduce crossings. ▼ / ▲ toggles direction. d= / c= badges on the left margin.</li>
+      </ul>
+      <p style="margin-top:5px">Node radius auto-scales so nodes fit inside their band. A small verification block shows BFS vs formula d(U,A) and d(U,A*). Holography tooltips remain active in both sub-modes.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>📏 d(X,Y) Calculator</h3>
+      <p>Click the button, then click two nodes on the graph (they highlight with a blue ring) or type their binary labels. Press <em>↳ Compute</em>.</p>
+      <ul>
+        <li><strong>d(X,Y)</strong> — exact BFS distance.</li>
+        <li><strong>N<sub>o</sub>(X,Y)</strong> — number of shortest paths (BFS layer-counting).</li>
+        <li><strong>N<sub>p</sub>(X,Y)</strong> — number of all simple paths (DFS backtracking, capped at 1,000,000).</li>
+      </ul>
+      <p style="margin-top:5px">The bounds ⌈½Σ|xᵢ−yᵢ|⌉ ≤ d ≤ Σ⌈|xᵢ−yᵢ|/2⌉ are also displayed. After computing, click any node to start a new query.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>◻ Holography — Lattice Path Diagrams</h3>
+      <p>For each binary string B = b₁b₂…bₙ with k zeros, a <strong>k × (n−k) rectangle</strong> encodes the string as a lattice path:</p>
+      <ul>
+        <li>Start at the lower-left corner.</li>
+        <li><strong>0</strong> → step right. <strong>1</strong> → step up. End at the upper-right corner.</li>
+        <li>Cells below the red path are shaded pink. Their count is <strong>I(B) = Σ(zᵢ−i)</strong> — the area statistic.</li>
+      </ul>
+      <p style="margin-top:5px">The label below reads <strong>U=N</strong> (Area U = I(B)). With <em>Show I(B) formula</em> on, the per-term breakdown (z₁−1)=d₁ … is shown above it.</p>
+      <p style="margin-top:5px"><em>Hover any node</em> to see its diagram (works in free layout, Rings, and Rows modes). Check <em>Show all holography</em> to display all diagrams simultaneously.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>◻ U′ Approximation — Red Squares</h3>
+      <p>For each node X, define U = I(B) (the lattice-path area) and U′ = ⌈U/2⌉. The exact formula gives d(A,X) = (I(B)+Δ(B))/2, so U′ = ⌈I/2⌉ is the "naïve" approximation that ignores the parity correction Δ.</p>
+      <p style="margin-top:5px">When <strong>U′ ≠ d(A,X)</strong>, the node is drawn as a <strong style="color:#ef4444">red square</strong> instead of a colored circle. This happens precisely when Δ(B) &gt; I(B) mod 2 — i.e., when the alternating parity sum contributes a non-trivial correction. For k=1 the approximation is always exact (no squares). For k≥2 squares appear at nodes where the correction term is non-zero.</p>
+      <p style="margin-top:5px">The number of mismatch vertices for k = 3 and k = 4 is given by the closed-form formula:</p>
+      <div class="help-formula">m(n,k) = C(⌊n/2⌋, 4) + (k−3)·C(⌈n/2⌉, 4)
+
+k=3:  m(n,3) = C(⌊n/2⌋, 4)
+k=4:  m(n,4) = C(⌊n/2⌋, 4) + C(⌈n/2⌉, 4)</div>
+      <p style="margin-top:5px">The right panel displays both the BFS-counted value m(n) and the formula value, highlighted <span style="color:#dc2626;font-weight:700">red</span> if they disagree.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Formula &amp; Diameter Verification</h3>
+      <p>At build time the app checks d(A,B) = (I(B)+Δ(B))/2 for every vertex B and displays a <span style="color:#16a34a;font-weight:700">green ✓</span> or <span style="color:#dc2626;font-weight:700">red ⚠</span> pill in the right panel. When |V| ≤ 1000 the diameter ⌈k(n−k)/2⌉ is also BFS-verified.</p>
+    </div>
+    <div class="help-section">
+      <h3>Keyboard Shortcuts</h3>
+      <ul>
+        <li><span class="help-key">Esc</span> — exit Sort Vertices pick mode or d(X,Y) calculator.</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<div id="canvas-container"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   GLOBALS
+═══════════════════════════════════════════════════════════ */
+let nodes = [], edges = [];
+let N = 5, K = 2;
+let isWrapped = false;
+let adjacencyList = new Map();
+let physicsActive = true;
+let isFrozen = false;
+const VELOCITY_THRESHOLD = 0.22;
+let REPULSION = 25000, ATTRACTION = 0.006;
+const DAMPING = 0.85, CENTER_PULL = 0.008;
+let NODE_RADIUS = 28;
+
+let bfsFromA = null, bfsFromAstar = null;
+let graphDiameter = null;
+let formulaVerified = null; // null=unknown, true=verified, false=mismatch
+let uPrimeMismatch  = [];   // uPrimeMismatch[i]=true when ceil(I(B)/2) ≠ d(A,B)
+let reversalOf = [];
+let symmetricMode = true;
+
+let colorMode = 'degree';
+let showGenerator = false;   // show generator label on each edge
+let pairEdgeMap = new Map(); // "min-max" → [edgeIdx, ...] for multi-edge separation
+let stretchMode = false;     // when on, dragged nodes become pinned (immune to physics)
+let showHolography = false;  // when true: show lattice path for ALL nodes; when false: hover only
+let showIBFormula  = false;  // show I(B) term-by-term expansion below the lattice diagram
+let hoveredNodeIdx = -1;     // index of node currently under mouse (-1 = none)
+let pinnedCount = 0;         // tracks how many nodes are pinned (for Clear button)
+let draggedEdge = null;      // { edgeIdx, dx, dy, d } when dragging an edge in stretch mode
+let edgeMidpoints = [];      // [{x,y}] updated each frame for edge hit-testing
+let selectedSource = null, selectedTarget = null;
+let bfsResult = null, shortestPath = [], pathEdgeKeys = new Set();
+
+// Sort mode
+let sortMode = null, sortRoot = null, sortSubMode = 'concentric';
+let sortRowsDir = 'top', bfsLayers = [], bfsTreeEdgeKeys = new Set();
+
+// d(X,Y) mode
+let dxyMode = null, dxyX = null, dxyY = null, dxyResult = null;
+
+// drag/click
+let draggedNode = null, mouseHasMoved = false, pressedOnCanvas = false;
+
+/* ═══════════════════════════════════════════════════════════
+   COLOR PALETTES
+═══════════════════════════════════════════════════════════ */
+const TRANS_COLORS = [
+  '#e53935','#fb8c00','#fdd835','#43a047','#00acc1',
+  '#5c6bc0','#8e24aa','#d81b60','#6d4c41','#00695c'
+];
+const DEG_COLORS = [
+  '#9E9E9E','#E91E63','#F44336','#FF9800','#FFEB3B',
+  '#8BC34A','#4CAF50','#00BCD4','#2196F3','#3F51B5','#9C27B0','#673AB7'
+];
+function getDegColor(d) { return DEG_COLORS[Math.min(d, DEG_COLORS.length-1)]; }
+
+function hslHex(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1-l);
+  const f = n => {
+    const k = (n + h/30) % 12;
+    const c = l - a * Math.max(Math.min(k-3, 9-k, 1), -1);
+    return Math.round(255*c).toString(16).padStart(2,'0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function distColor(d, maxD, isSource=false) {
+  if (isSource || d===0) return '#FFD700';
+  if (d < 0) return '#9E9E9E';
+  const t = maxD > 0 ? Math.min(d/maxD, 1) : 0;
+  return hslHex(Math.round(120*(1-t)), 78, 48);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DATA CLASSES
+═══════════════════════════════════════════════════════════ */
+class Node {
+  constructor(label, x, y) {
+    this.label = label; this.x = x; this.y = y;
+    this.vx = 0; this.vy = 0; this.degree = 0;
+    this.isCanonical = false; this.isAntipodal = false;
+    this.pinned = false;   // pinned nodes are immune to physics
+  }
+  get radius() { return NODE_RADIUS; }
+}
+
+class Edge {
+  constructor(from, to, posIdx, isForward, isWrap) {
+    this.from = from; this.to = to;
+    this.posIdx = posIdx;
+    this.isForward = isForward;
+    this.isWrapped = isWrap;
+    this.cpOffset = null;  // user-dragged perpendicular offset (null = auto)
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MATH UTILITIES
+═══════════════════════════════════════════════════════════ */
+function zeroPos1(str) {
+  const z = [];
+  for (let i = 0; i < str.length; i++) if (str[i]==='0') z.push(i+1);
+  return z;
+}
+function canonLabel()    { return '0'.repeat(K) + '1'.repeat(N-K); }
+function antipodalLabel(idx) { return idx !== null ? nodes[idx].label : '?'; }
+
+/** Compute I(B), Δ(B), and d(A,B) = (I+Δ)/2 */
+function canonDist(label) {
+  const z = zeroPos1(label);
+  let IB = 0, altSum = 0;
+  const terms = [];
+  for (let i = 0; i < z.length; i++) {
+    const di = z[i] - (i+1);
+    IB += di;
+    const diMod2 = ((di % 2) + 2) % 2;  // non-negative mod
+    const sign = (i % 2 === 0) ? 1 : -1; // (-1)^{i+1}, 1-indexed i
+    altSum += sign * diMod2;
+    terms.push({ zi: z[i], idx: i+1, di, diMod2, sign });
+  }
+  const Delta = Math.abs(altSum);
+  return { dist: (IB + Delta) / 2, IB, Delta, terms };
+}
+
+/** Formula diameter ⌈k(n-k)/2⌉ */
+function formulaDiam() { return Math.ceil(K * (N - K) / 2); }
+
+/** Two-sided bounds for d(X,Y) */
+function distBounds(xLabel, yLabel) {
+  const xz = zeroPos1(xLabel), yz = zeroPos1(yLabel);
+  let sumAbs = 0, upper = 0;
+  const terms = [];
+  for (let i = 0; i < xz.length; i++) {
+    const diff = Math.abs(xz[i] - yz[i]);
+    sumAbs += diff;
+    upper += Math.ceil(diff / 2);
+    terms.push({ xi: xz[i], yi: yz[i], diff });
+  }
+  return { lower: Math.ceil(sumAbs / 2), upper, terms };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   3-CYCLE OPERATIONS
+═══════════════════════════════════════════════════════════ */
+function forward3cycle(str, i) {
+  const a = str.split('');
+  const s0=a[i], s1=a[i+1], s2=a[i+2];
+  a[i]=s2; a[i+1]=s0; a[i+2]=s1;   // right rotation: (a,b,c)→(c,a,b)
+  return a.join('');
+}
+function reverse3cycle(str, i) {
+  const a = str.split('');
+  const s0=a[i], s1=a[i+1], s2=a[i+2];
+  a[i]=s1; a[i+1]=s2; a[i+2]=s0;   // left rotation: (a,b,c)→(b,c,a)
+  return a.join('');
+}
+function forwardWrap(str) {
+  const a = str.split('');
+  const s0=a[N-2], s1=a[N-1], s2=a[0];
+  a[N-2]=s2; a[N-1]=s0; a[0]=s1;   // right rotation
+  return a.join('');
+}
+function reverseWrap(str) {
+  const a = str.split('');
+  const s0=a[N-2], s1=a[N-1], s2=a[0];
+  a[N-2]=s1; a[N-1]=s2; a[0]=s0;   // left rotation
+  return a.join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BFS
+═══════════════════════════════════════════════════════════ */
+function bfsFrom(srcIdx) {
+  const dist = new Array(nodes.length).fill(-1);
+  const parent = new Array(nodes.length).fill(-1);
+  dist[srcIdx] = 0;
+  const q = [srcIdx]; let qi = 0;
+  while (qi < q.length) {
+    const v = q[qi++];
+    for (const u of adjacencyList.get(v)) {
+      if (dist[u] < 0) { dist[u]=dist[v]+1; parent[u]=v; q.push(u); }
+    }
+  }
+  return { dist, parent };
+}
+
+function tracePath(dist, parent, tgtIdx) {
+  if (!dist || dist[tgtIdx] < 0) return [];
+  const path = []; let cur = tgtIdx;
+  while (cur !== -1) { path.push(cur); cur = parent[cur]; }
+  path.reverse(); return path;
+}
+
+function buildPathKeys(path) {
+  const s = new Set();
+  for (let i = 0; i < path.length-1; i++) {
+    const a=path[i], b=path[i+1];
+    s.add(`${Math.min(a,b)}-${Math.max(a,b)}`);
+  }
+  return s;
+}
+
+function computeDiameterFull() {
+  if (nodes.length > 1000) return null;
+  let maxD = 0, pair = [0,0];
+  for (let i = 0; i < nodes.length; i++) {
+    const { dist } = bfsFrom(i);
+    for (let j = 0; j < nodes.length; j++) {
+      if (dist[j] > maxD) { maxD=dist[j]; pair=[i,j]; }
+    }
+  }
+  return { diameter: maxD, pair };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STRING GENERATION
+═══════════════════════════════════════════════════════════ */
+function allStrings() {
+  const results = [];
+  function gen(cur, zerosLeft, onesLeft) {
+    if (!zerosLeft && !onesLeft) { results.push(cur); return; }
+    if (zerosLeft) gen(cur+'0', zerosLeft-1, onesLeft);
+    if (onesLeft)  gen(cur+'1', zerosLeft,   onesLeft-1);
+  }
+  gen('', K, N-K);
+  return results;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BUILD GRAPH
+═══════════════════════════════════════════════════════════ */
+function buildGraph() {
+  nodes = []; edges = [];
+  adjacencyList = new Map();
+  selectedSource = selectedTarget = null;
+  bfsResult = null; shortestPath = []; pathEdgeKeys = new Set();
+  physicsActive = true;
+  isWrapped = document.getElementById('wrappedCb').checked;
+
+  const strs = allStrings();
+  const sToIdx = new Map();
+  const b = canvasBounds();
+  const cx = (b.left+b.right)/2, cy = (b.top+b.bottom)/2;
+  const canon = canonLabel();
+
+  strs.forEach((s, i) => {
+    const nd = new Node(s, cx, cy);
+    nd.isCanonical = (s === canon);
+    nodes.push(nd);
+    sToIdx.set(s, i);
+    adjacencyList.set(i, []);
+  });
+
+  const edgeSet = new Set();
+
+  function addEdge(fi, ti, posIdx, isFwd, isWrap) {
+    if (ti === undefined || ti < 0) return;
+    const key = fi < ti
+      ? `${fi}-${ti}-${posIdx}-${isFwd?'f':'r'}`
+      : `${ti}-${fi}-${posIdx}-${isFwd?'f':'r'}`;
+    if (!edgeSet.has(key)) {
+      edgeSet.add(key);
+      edges.push(new Edge(fi, ti, posIdx, isFwd, isWrap));
+      adjacencyList.get(fi).push(ti);
+      adjacencyList.get(ti).push(fi);
+    }
+  }
+
+  strs.forEach((s, fi) => {
+    // Standard positions i in [0, n-3]
+    for (let i = 0; i <= N-3; i++) {
+      if (s[i]===s[i+1] && s[i+1]===s[i+2]) continue; // trivial triple
+      const fwd = forward3cycle(s, i);
+      const rev = reverse3cycle(s, i);
+      addEdge(fi, sToIdx.get(fwd), i, true,  false);
+      addEdge(fi, sToIdx.get(rev), i, false, false);
+    }
+    // Wrapped
+    if (isWrapped && !(s[N-2]===s[N-1] && s[N-1]===s[0])) {
+      addEdge(fi, sToIdx.get(forwardWrap(s)),  N-2, true,  true);
+      addEdge(fi, sToIdx.get(reverseWrap(s)),  N-2, false, true);
+    }
+  });
+
+  nodes.forEach((nd, i) => { nd.degree = adjacencyList.get(i).length; });
+
+  // Build pairEdgeMap: for each node-pair, list all edge indices (multi-edges get curved apart)
+  pairEdgeMap = new Map();
+  edges.forEach((e, idx) => {
+    const key = `${Math.min(e.from,e.to)}-${Math.max(e.from,e.to)}`;
+    if (!pairEdgeMap.has(key)) pairEdgeMap.set(key, []);
+    pairEdgeMap.get(key).push(idx);
+  });
+
+  // Reversal automorphism
+  reversalOf = new Array(nodes.length);
+  nodes.forEach((nd, i) => {
+    const rev = nd.label.split('').reverse().join('');
+    const j = nodes.findIndex(n => n.label === rev);
+    reversalOf[i] = j >= 0 ? j : i;
+  });
+
+  // Pre-allocate edgeMidpoints to exactly edges.length so stale entries from
+  // previous (larger) graphs never linger in the hit-test array.
+  edgeMidpoints = new Array(edges.length).fill(null).map(() => ({x:0,y:0}));
+
+  symmetricMode = document.getElementById('symmetricCb')?.checked ?? true;
+
+  // BFS from A — always computed
+  const canonIdx = nodes.findIndex(nd => nd.isCanonical);
+  bfsFromA = canonIdx >= 0 ? bfsFrom(canonIdx) : null;
+
+  // Find A* = vertex at max distance from A
+  let antipodIdx = -1;
+  if (bfsFromA) {
+    let maxDist = -1;
+    let maxLabel = '';
+    bfsFromA.dist.forEach((d, i) => {
+      if (d > maxDist || (d===maxDist && nodes[i].label > maxLabel)) {
+        maxDist = d; antipodIdx = i; maxLabel = nodes[i].label;
+      }
+    });
+  }
+  if (antipodIdx >= 0) nodes[antipodIdx].isAntipodal = true;
+  bfsFromAstar = antipodIdx >= 0 ? bfsFrom(antipodIdx) : null;
+
+  // Formula verification: check d(A,B) = (I(B)+Δ(B))/2 for all B
+  formulaVerified = true;
+  uPrimeMismatch = new Array(nodes.length).fill(false);
+  if (bfsFromA) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (bfsFromA.dist[i] < 0) { formulaVerified = false; break; }
+      const { dist: fd, IB } = canonDist(nodes[i].label);
+      if (fd !== bfsFromA.dist[i]) { formulaVerified = false; }
+      // U = I(B), U' = ceil(I(B)/2)
+      const uPrime = Math.ceil(IB / 2);
+      if (uPrime !== bfsFromA.dist[i]) uPrimeMismatch[i] = true;
+    }
+  } else { formulaVerified = null; }
+
+  // Full diameter BFS
+  graphDiameter = computeDiameterFull();
+
+  initLayout();
+  updateLeftPanel();
+  updateRightPanel();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT — PHYSICS
+═══════════════════════════════════════════════════════════ */
+function canvasBounds() {
+  return { left:178+30, right:windowWidth-222-30, top:30, bottom:windowHeight-30 };
+}
+
+function initLayout() {
+  const b = canvasBounds();
+  const cx=(b.left+b.right)/2, cy=(b.top+b.bottom)/2;
+  const r = Math.min(b.right-b.left, b.bottom-b.top) * 0.40;
+  nodes.forEach((nd, i) => {
+    const angle = (i/nodes.length)*2*Math.PI - Math.PI/2;
+    nd.x = cx + r*Math.cos(angle);
+    nd.y = cy + r*Math.sin(angle);
+    nd.vx = (Math.random()-.5)*2;
+    nd.vy = (Math.random()-.5)*2;
+  });
+}
+
+function applySymmetry(cx) {
+  for (let i = 0; i < nodes.length; i++) {
+    const j = reversalOf[i];
+    if (j === i) { nodes[i].x = cx; nodes[i].vx = 0; }
+    else if (i < j) {
+      const hx=(nodes[i].x-nodes[j].x)/2, ay=(nodes[i].y+nodes[j].y)/2;
+      const hvx=(nodes[i].vx-nodes[j].vx)/2, avy=(nodes[i].vy+nodes[j].vy)/2;
+      nodes[i].x=cx+hx; nodes[j].x=cx-hx;
+      nodes[i].y=ay;    nodes[j].y=ay;
+      nodes[i].vx=hvx;  nodes[j].vx=-hvx;
+      nodes[i].vy=avy;  nodes[j].vy=avy;
+    }
+  }
+}
+
+function applyForces() {
+  const b = canvasBounds();
+  const cx=(b.left+b.right)/2, cy=(b.top+b.bottom)/2;
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i+1; j < nodes.length; j++) {
+      // Skip pair only if BOTH are pinned; otherwise apply force to whichever is free
+      if (nodes[i].pinned && nodes[j].pinned) continue;
+      const dx=nodes[j].x-nodes[i].x, dy=nodes[j].y-nodes[i].y;
+      const d=Math.max(Math.sqrt(dx*dx+dy*dy),1), f=REPULSION/(d*d);
+      const fx=(dx/d)*f, fy=(dy/d)*f;
+      if (!nodes[i].pinned) { nodes[i].vx-=fx; nodes[i].vy-=fy; }
+      if (!nodes[j].pinned) { nodes[j].vx+=fx; nodes[j].vy+=fy; }
+    }
+  }
+  edges.forEach(e => {
+    const a=nodes[e.from], b2=nodes[e.to];
+    if (a.pinned && b2.pinned) return;  // both pinned: skip
+    const dx=b2.x-a.x, dy=b2.y-a.y, d=Math.sqrt(dx*dx+dy*dy);
+    if (d<1) return;
+    const f=d*ATTRACTION, fx=(dx/d)*f, fy=(dy/d)*f;
+    if (!a.pinned)  { a.vx+=fx;  a.vy+=fy;  }
+    if (!b2.pinned) { b2.vx-=fx; b2.vy-=fy; }
+  });
+  let maxV = 0;
+  nodes.forEach(nd => {
+    if (nd.pinned) return;   // pinned: don't integrate
+    nd.vx+=(cx-nd.x)*CENTER_PULL; nd.vy+=(cy-nd.y)*CENTER_PULL;
+    nd.vx*=DAMPING; nd.vy*=DAMPING;
+    nd.x+=nd.vx; nd.y+=nd.vy;
+    nd.x=Math.max(b.left, Math.min(b.right, nd.x));
+    nd.y=Math.max(b.top,  Math.min(b.bottom, nd.y));
+    maxV=Math.max(maxV, Math.abs(nd.vx)+Math.abs(nd.vy));
+  });
+  // Only converge if all non-pinned nodes are settled
+  if (maxV < VELOCITY_THRESHOLD) { physicsActive=false; nodes.forEach(nd=>{if(!nd.pinned){nd.vx=0;nd.vy=0;}}); }
+  if (symmetricMode) applySymmetry(cx);
+}
+
+function ptToSegDist(px,py,x1,y1,x2,y2) {
+  const dx=x2-x1,dy=y2-y1,lsq=dx*dx+dy*dy;
+  if (lsq===0) return Math.hypot(px-x1,py-y1);
+  const t=Math.max(0,Math.min(1,((px-x1)*dx+(py-y1)*dy)/lsq));
+  return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SORT LAYOUTS
+═══════════════════════════════════════════════════════════ */
+function _layoutConcentric() {
+  const b=canvasBounds();
+  const cx=(b.left+b.right)/2, cy=(b.top+b.bottom)/2;
+  const maxR=Math.min(b.right-b.left,b.bottom-b.top)*0.45;
+  const nL=bfsLayers.length, bandW=maxR/nL;
+  bfsLayers.forEach((layer,d)=>{
+    if(d===0){nodes[layer[0]].x=cx;nodes[layer[0]].y=cy;nodes[layer[0]].vx=nodes[layer[0]].vy=0;return;}
+    const rMid=(d+0.5)*bandW, count=layer.length;
+    const prevSet=new Set(bfsLayers[d-1]);
+    const connCount=layer.map(i=>adjacencyList.get(i).filter(j=>prevSet.has(j)).length);
+    const anchorIdx=connCount.indexOf(Math.max(...connCount));
+    const offset=-Math.PI/2-(anchorIdx/count)*2*Math.PI;
+    layer.forEach((i,pos)=>{
+      const angle=offset+(pos/count)*2*Math.PI;
+      nodes[i].x=cx+rMid*Math.cos(angle); nodes[i].y=cy+rMid*Math.sin(angle);
+      nodes[i].vx=nodes[i].vy=0;
+    });
+  });
+}
+
+function _layoutRows() {
+  const b=canvasBounds(), nL=bfsLayers.length, bandH=(b.bottom-b.top)/nL;
+
+  // Measure the widest badge label so node positions start safely to its right.
+  // Uses the same formula as the draw() badge code: max(textWidth(l1),textWidth(l2))+12
+  textFont('JetBrains Mono'); textSize(sortBadgeFontSize);
+  const maxLayer=bfsLayers.length-1;
+  const maxCnt=Math.max(...bfsLayers.map(l=>l.length));
+  const badgeW=Math.max(textWidth(`d=${maxLayer}`),textWidth(`c=${maxCnt}`))+12;
+  const rowLeft=b.left+badgeW+10;   // badge right-edge + 10 px breathing room
+  const rowW=b.right-rowLeft;
+
+  const baryMap=new Map();
+  bfsLayers.forEach((layer,d)=>{
+    if(d>0){
+      const prevPos=new Map(bfsLayers[d-1].map((ni,pos)=>[ni,pos]));
+      const prevLen=bfsLayers[d-1].length;
+      layer.forEach(i=>{
+        const nb=adjacencyList.get(i).filter(j=>prevPos.has(j));
+        const bc=nb.length?nb.reduce((s,j)=>s+prevPos.get(j)/(prevLen-1||1),0)/nb.length:0.5;
+        baryMap.set(i,bc);
+      });
+      layer.sort((a,bv)=>(baryMap.get(a)??0)-(baryMap.get(bv)??0));
+    }
+    const count=layer.length;
+    const y=sortRowsDir==='top'?b.top+(d+0.5)*bandH:b.bottom-(d+0.5)*bandH;
+    layer.forEach((i,pos)=>{
+      nodes[i].x=rowLeft+((pos+1)/(count+1))*rowW;
+      nodes[i].y=y; nodes[i].vx=nodes[i].vy=0;
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   p5.js SETUP & DRAW
+═══════════════════════════════════════════════════════════ */
+function setup() {
+  const cnv=createCanvas(windowWidth,windowHeight);
+  cnv.parent('canvas-container');
+  cnv.style('background','transparent');
+  textFont('JetBrains Mono');
+  buildGraph();
+}
+
+function draw() {
+  clear();
+  const b=canvasBounds();
+  const cx=(b.left+b.right)/2, cy=(b.top+b.bottom)/2;
+
+  // Canvas boundary
+  stroke(150,150,150,32); strokeWeight(1); noFill();
+  rect(b.left,b.top,b.right-b.left,b.bottom-b.top,12);
+
+  // Crosshairs (free mode only)
+  if (sortMode===null) {
+    stroke(100,100,100,50); strokeWeight(1);
+    drawingContext.setLineDash([7,7]);
+    line(cx,b.top,cx,b.bottom); line(b.left,cy,b.right,cy);
+    drawingContext.setLineDash([]);
+  }
+
+  // Concentric rings background
+  if (sortMode==='concentric' && bfsLayers.length>0) {
+    const maxR=Math.min(b.right-b.left,b.bottom-b.top)*0.45;
+    const nL=bfsLayers.length, bandW=maxR/nL;
+    noStroke(); fill(255);
+    ellipse(cx,cy,nL*bandW*2+4,nL*bandW*2+4);
+    stroke(0); strokeWeight(1.4); noFill();
+    for(let d=0;d<nL;d++) ellipse(cx,cy,(d+1)*bandW*2,(d+1)*bandW*2);
+    noStroke();
+    textStyle(BOLD); textFont('JetBrains Mono'); textSize(sortBadgeFontSize); textAlign(CENTER,CENTER);
+    for(let d=0;d<nL;d++){
+      const rO=(d+1)*bandW, cnt=bfsLayers[d].length;
+      const l1=`d=${d}`, l2=`c=${cnt}`;
+      const tw=Math.max(textWidth(l1),textWidth(l2))+8, th=sortBadgeFontSize*2+6;
+      for(const side of[-1,1]){
+        const lx=cx+side*rO, ly=cy;
+        fill(255); noStroke(); rect(lx-tw/2,ly-th/2,tw,th,3);
+        fill(0); text(l1,lx,ly-sortBadgeFontSize*0.55); text(l2,lx,ly+sortBadgeFontSize*0.55);
+      }
+    }
+    textStyle(NORMAL);
+  }
+
+  // Row separators
+  if (sortMode==='rows' && bfsLayers.length>0) {
+    const nL=bfsLayers.length, bandH=(b.bottom-b.top)/nL;
+    const badgeX=b.left-2;
+    drawingContext.setLineDash([4,7]);
+    textStyle(BOLD); textFont('JetBrains Mono'); textSize(sortBadgeFontSize); textAlign(CENTER,CENTER);
+    for(let d=0;d<nL;d++){
+      const yCenter=sortRowsDir==='top'?b.top+(d+0.5)*bandH:b.bottom-(d+0.5)*bandH;
+      const ySep=sortRowsDir==='top'?b.top+d*bandH:b.bottom-d*bandH;
+      if(d>0){stroke(100,149,237,38);strokeWeight(1);line(b.left,ySep,b.right,ySep);}
+      const cnt=bfsLayers[d].length, l1=`d=${d}`, l2=`c=${cnt}`;
+      const bw=Math.max(textWidth(l1),textWidth(l2))+12, bh=sortBadgeFontSize*2+8;
+      noStroke(); fill(225,234,252,220); rect(badgeX,yCenter-bh/2,bw,bh,5);
+      fill(50,90,200); text(l1,badgeX+bw/2,yCenter-sortBadgeFontSize*0.55); text(l2,badgeX+bw/2,yCenter+sortBadgeFontSize*0.55);
+    }
+    drawingContext.setLineDash([]); textStyle(NORMAL);
+  }
+
+  // Physics
+  if (physicsActive && !isFrozen) applyForces();
+
+  // Draw edges
+  const maxD = graphDiameter ? graphDiameter.diameter : formulaDiam();
+  edges.forEach((e, eIdx) => {
+    const a=nodes[e.from], bN=nodes[e.to];
+    const dx=bN.x-a.x, dy=bN.y-a.y, d=Math.sqrt(dx*dx+dy*dy);
+    if(d<1) return;
+    const sx=a.x+(dx/d)*a.radius, sy=a.y+(dy/d)*a.radius;
+    const ex=bN.x-(dx/d)*bN.radius, ey=bN.y-(dy/d)*bN.radius;
+    const pKey=`${Math.min(e.from,e.to)}-${Math.max(e.from,e.to)}`;
+    const onPth=pathEdgeKeys.has(pKey);
+    const isTree=bfsTreeEdgeKeys.has(pKey);
+    const inSort=(sortMode==='concentric'||sortMode==='rows');
+
+    // Multi-edge offset: spread parallel edges apart so labels don't overlap
+    const siblings = pairEdgeMap.get(pKey) || [eIdx];
+    const rank     = siblings.indexOf(eIdx);           // 0-based rank among siblings
+    const count    = siblings.length;
+    // Signed perpendicular offset: distribute evenly around 0
+    // e.g. count=1 → [0]; count=2 → [-1,+1]*gap/2; count=3 → [-1,0,+1]*gap
+    const gap      = Math.max(NODE_RADIUS * 0.72, 8);
+    const spread   = count > 1 ? (rank - (count-1)/2) * gap : 0;
+
+    const ec=TRANS_COLORS[e.posIdx % TRANS_COLORS.length];
+    const col=color(ec);
+    noFill();
+
+    // Path glow (drawn below main stroke)
+    if(onPth){
+      stroke(255,252,180,200); strokeWeight(8);
+      drawEdgeWithOffset(e,sx,sy,ex,ey,dx,dy,d,spread,inSort);
+    }
+
+    if(inSort && !isTree){ stroke(red(col),green(col),blue(col),100); strokeWeight(1.2); }
+    else { stroke(ec); strokeWeight(onPth?3.5:2.2); }
+
+    if(!e.isForward) drawingContext.setLineDash([6,3]);
+    const midPt = drawEdgeWithOffset(e,sx,sy,ex,ey,dx,dy,d,spread,inSort);
+    drawingContext.setLineDash([]);
+
+    // Store midpoint for hit-testing (array pre-allocated in buildGraph)
+    edgeMidpoints[eIdx] = midPt || {x:(sx+ex)/2,y:(sy+ey)/2};
+
+    // Perpendicular unit vector (recomputed here for label/handle placement)
+    const px2 = -dy/d, py2 = dx/d;
+    // Label sits AT the midpoint; handle sits 14px perpendicular ABOVE it
+    // so they never overlap regardless of edge orientation.
+    const HANDLE_OFFSET = 14;
+    const hx = midPt.x + px2 * HANDLE_OFFSET;
+    const hy = midPt.y + py2 * HANDLE_OFFSET;
+    // Update hit-testing point to the handle position
+    edgeMidpoints[eIdx] = { x: hx, y: hy };
+
+    // Generator label — stays at visual midpoint
+    if(showGenerator && midPt) {
+      const lbl = `${e.isForward?'▶':'◀'}${e.posIdx}${e.isWrapped?'w':''}`;
+      const fs = edgeLabelFontSize, pad = 3;
+      const tw = lbl.length*(fs*0.61) + pad*2, th = fs + pad*2;
+      noStroke(); fill(255, 255, 255, 210);
+      rect(midPt.x - tw/2, midPt.y - th/2, tw, th, 3);
+      fill(ec); textFont('JetBrains Mono'); textSize(fs);
+      textAlign(CENTER, CENTER); textStyle(BOLD);
+      text(lbl, midPt.x, midPt.y);
+      textStyle(NORMAL);
+    }
+
+    // In stretch mode: draw drag handle offset from label
+    if(stretchMode) {
+      const isBeingDragged = draggedEdge && draggedEdge.edgeIdx === eIdx;
+      const handleR = isBeingDragged ? 7 : 5;
+      noStroke();
+      fill(isBeingDragged ? 220 : 200, isBeingDragged ? 100 : 80, 0, isBeingDragged ? 240 : 170);
+      ellipse(hx, hy, handleR*2, handleR*2);
+      if(e.cpOffset !== null){
+        stroke(220,80,0,220); strokeWeight(1.5); noFill();
+        ellipse(hx, hy, handleR*2+5, handleR*2+5);
+      }
+      // Thin connector line from handle to midpoint so the association is clear
+      stroke(180,80,0,80); strokeWeight(1);
+      line(midPt.x, midPt.y, hx, hy);
+    }
+  });
+
+  // Draw nodes
+  nodes.forEach((nd,i)=>drawNode(nd,i,maxD));
+
+  // ── Holography: show lattice-path diagrams ──
+  if(sortMode !== 'pick'){
+    hoveredNodeIdx = -1;
+    for(let i=0;i<nodes.length;i++){
+      if(Math.hypot(mouseX-nodes[i].x, mouseY-nodes[i].y) < nodes[i].radius+4){
+        hoveredNodeIdx=i; break;
+      }
+    }
+    if(showHolography){
+      // All nodes: draw every diagram
+      nodes.forEach(nd => drawHolographyTooltip(nd));
+    } else if(hoveredNodeIdx >= 0){
+      // Hover only
+      drawHolographyTooltip(nodes[hoveredNodeIdx]);
+    }
+  }
+
+  // Freeze callouts — also redraw A on top so it stays visible and clickable
+  if(isFrozen && sortMode===null){
+    textFont('JetBrains Mono'); textAlign(LEFT,CENTER);
+    nodes.forEach((nd,i)=>{
+      if(!nd.isCanonical && !nd.isAntipodal) return;
+      // Redraw the node itself on top so it's never buried
+      drawNode(nd, i, maxD);
+      const col=nd.isCanonical?'#2E7D32':'#7c3aed';
+      const lbl=nd.isCanonical?`A = ${nd.label}`:`A* = ${nd.label}`;
+      const tx=nd.x+nd.radius+7, ty=nd.y;
+      const tw=7*lbl.length+8, th=16;
+      stroke(col);strokeWeight(1.5);noFill();line(nd.x+nd.radius,ty,tx-2,ty);
+      noStroke();fill(255,255,255,230);rect(tx,ty-th/2,tw,th,4);
+      fill(col);textStyle(BOLD);textSize(10);text(lbl,tx+4,ty);textStyle(NORMAL);
+    });
+    noStroke();fill(245,158,11,200);rect(b.left+4,b.top+4,90,20,5);
+    fill(255);textSize(10);textStyle(BOLD);textAlign(CENTER,CENTER);
+    text('❄ FROZEN',b.left+49,b.top+14);textStyle(NORMAL);
+  }
+
+  // Pick-mode overlay
+  if(sortMode==='pick'){
+    fill(15,30,70,155);noStroke();rect(b.left,b.top,b.right-b.left,b.bottom-b.top,12);
+    const bw=320,bh=54,bx=cx-bw/2,by=cy-bh/2;
+    fill(255,255,255,230);stroke(14,165,233,180);strokeWeight(1.5);rect(bx,by,bw,bh,10);
+    noStroke();fill(2,132,199);textFont('JetBrains Mono');textSize(13);textAlign(CENTER,CENTER);textStyle(BOLD);
+    text('Click a node to use as the BFS root',cx,by+18);
+    textStyle(NORMAL);textSize(11);fill(100,116,139);text('Press Esc to cancel',cx,by+37);
+  }
+}
+
+/**
+ * Draw one edge with a signed perpendicular offset (for multi-edge separation).
+ * spread > 0 → curve right of direction from→to; spread < 0 → left.
+ * spread = 0 and no crossing → straight line.
+ * Returns the visual midpoint {x,y} for label placement.
+ */
+function drawEdgeWithOffset(e,sx,sy,ex,ey,dx,dy,d,spread,inSort) {
+  const px = -dy/d, py = dx/d;   // unit perpendicular (left of from→to)
+
+  // User-dragged override takes full priority
+  if (e.cpOffset !== null) {
+    const mx = (sx+ex)/2, my = (sy+ey)/2;
+    const ctrlX = mx + px*e.cpOffset, ctrlY = my + py*e.cpOffset;
+    beginShape(); vertex(sx,sy); quadraticVertex(ctrlX,ctrlY,ex,ey); endShape();
+    return { x: 0.25*sx+0.5*ctrlX+0.25*ex, y: 0.25*sy+0.5*ctrlY+0.25*ey };
+  }
+
+  // Auto: multi-edge spread + node-crossing detection
+  let curveAmt = spread;
+
+  if (Math.abs(curveAmt) < 0.5) {
+    const checkCross = e.isWrapped || inSort;
+    if (checkCross) {
+      for (let i = 0; i < nodes.length; i++) {
+        if (i===e.from || i===e.to) continue;
+        if (ptToSegDist(nodes[i].x, nodes[i].y,
+              nodes[e.from].x, nodes[e.from].y,
+              nodes[e.to].x, nodes[e.to].y) < nodes[i].radius + 6) {
+          const b = canvasBounds();
+          const cx = (b.left+b.right)/2, cy = (b.top+b.bottom)/2;
+          const midX = (nodes[e.from].x+nodes[e.to].x)/2;
+          const midY = (nodes[e.from].y+nodes[e.to].y)/2;
+          const awayX = midX - cx, awayY = midY - cy;
+          const dot = awayX*px + awayY*py;
+          curveAmt = Math.max(d*0.38, NODE_RADIUS*2.5) * (dot >= 0 ? 1 : -1);
+          break;
+        }
+      }
+    }
+  }
+
+  if (Math.abs(curveAmt) > 0.5) {
+    const mx = (sx+ex)/2, my = (sy+ey)/2;
+    const cv = Math.abs(curveAmt) < 1 ? Math.max(d*0.38, NODE_RADIUS*2.5) * Math.sign(curveAmt) : curveAmt;
+    const ctrlX = mx + px*cv, ctrlY = my + py*cv;
+    beginShape(); vertex(sx,sy); quadraticVertex(ctrlX,ctrlY,ex,ey); endShape();
+    return { x: 0.25*sx+0.5*ctrlX+0.25*ex, y: 0.25*sy+0.5*ctrlY+0.25*ey };
+  } else {
+    line(sx,sy,ex,ey);
+    return { x:(sx+ex)/2, y:(sy+ey)/2 };
+  }
+}
+
+function drawNode(nd,idx,maxD){
+  const isSrc=(idx===selectedSource), isTgt=(idx===selectedTarget);
+  const onPath=shortestPath.includes(idx)&&!isSrc&&!isTgt;
+  const isCan=nd.isCanonical, isAnt=nd.isAntipodal;
+  const isDxyX=(dxyMode!==null&&idx===dxyX), isDxyY=(dxyMode!==null&&idx===dxyY);
+  const isMismatch = uPrimeMismatch[idx] === true;  // ceil(I(B)/2) ≠ d(A,X)
+
+  let nc;
+  if(isSrc) nc=color('#FFD700');
+  else if(isTgt) nc=color('#FF6B35');
+  else if(isMismatch) nc=color('#ef4444');  // vivid red for mismatch
+  else {
+    switch(colorMode){
+      case 'bfs-A':    nc=color(bfsFromA?distColor(bfsFromA.dist[idx],maxD,isCan):getDegColor(nd.degree));break;
+      case 'bfs-Astar':nc=color(bfsFromAstar?distColor(bfsFromAstar.dist[idx],maxD,isAnt):getDegColor(nd.degree));break;
+      case 'bfs-source':nc=color(bfsResult?distColor(bfsResult.dist[idx],maxD,isSrc):getDegColor(nd.degree));break;
+      default: nc=color(getDegColor(nd.degree));
+    }
+  }
+
+  const isPinned = nd.pinned;
+  const r = nd.radius;
+
+  // Drop shadow — square for mismatch nodes
+  noStroke(); fill(0,0,0,20);
+  if(isMismatch) rect(nd.x-r+4, nd.y-r+4, r*2, r*2, 3);
+  else           ellipse(nd.x+3, nd.y+3, r*2+2);
+
+  noFill();
+  if(isDxyX||isDxyY){stroke(29,78,216);strokeWeight(3.5);ellipse(nd.x,nd.y,r*2+22);
+    noStroke();fill(29,78,216,200);textFont('JetBrains Mono');textSize(8);textStyle(BOLD);textAlign(CENTER,CENTER);
+    text(isDxyX?'X':'Y',nd.x+r+7,nd.y-r-2);textStyle(NORMAL);noFill();}
+  if(isAnt&&!isSrc&&!isTgt){stroke('#7c3aed');strokeWeight(2.5);ellipse(nd.x,nd.y,r*2+16);}
+  if(isCan&&!isSrc&&!isTgt){stroke('#2E7D32');strokeWeight(2.5);ellipse(nd.x,nd.y,r*2+9);}
+  if(isSrc){stroke('#FFD700');strokeWeight(4);ellipse(nd.x,nd.y,r*2+13);}
+  if(isTgt){stroke('#FF6B35');strokeWeight(4);ellipse(nd.x,nd.y,r*2+13);}
+  if(onPath){stroke(255,255,220,190);strokeWeight(2.5);ellipse(nd.x,nd.y,r*2+7);}
+  // Pinned node: red dashed ring + small pin icon
+  if(isPinned){
+    stroke(220,38,38);strokeWeight(2);
+    drawingContext.setLineDash([4,3]);
+    ellipse(nd.x,nd.y,r*2+23);
+    drawingContext.setLineDash([]);
+    noStroke();fill(220,38,38);
+    ellipse(nd.x+r+4, nd.y-r-4, 8, 8);
+    fill(255);textFont('JetBrains Mono');textSize(6);textStyle(BOLD);textAlign(CENTER,CENTER);
+    text('P',nd.x+r+4,nd.y-r-4);
+    textStyle(NORMAL);noFill();
+  }
+
+  // Node body — square for mismatch, circle otherwise
+  fill(nc); stroke(red(nc)*0.6,green(nc)*0.6,blue(nc)*0.6); strokeWeight(2);
+  if(isMismatch) rect(nd.x-r, nd.y-r, r*2, r*2, 4);
+  else           ellipse(nd.x, nd.y, r*2);
+
+  noStroke();
+  const fs=map(N,3,10,17,9);
+  textAlign(CENTER,CENTER);textStyle(BOLD);
+  if(isDxyX||isDxyY){textSize(Math.max(fs+2,12));fill(29,78,216);}
+  else if(isCan||isAnt){textSize(Math.max(fs+4,14));fill(0,220,230);}
+  else{textSize(fs); fill(0,220,230);}  // cyan for all binary string labels
+  text(nd.label,nd.x,nd.y);textStyle(NORMAL);
+}
+
+/**
+ * HOLOGRAPHY — lattice path diagram for a hovered node.
+ *
+ * Given a binary string of length n with k zeros and (n-k) ones:
+ *   Rectangle: k columns wide × (n-k) rows tall
+ *   Path: start lower-left; '0' → step right, '1' → step up
+ *   Area under path = I(B) = Σ(z_i − i)
+ *
+ * The diagram is drawn as a k×(n-k) grid of cells.
+ * Cells at or below the path are shaded (the "area").
+ */
+function drawHolographyTooltip(nd) {
+  const label = nd.label;
+  const nCols = K;          // number of '0's = width
+  const nRows = N - K;      // number of '1's = height
+
+  if (nCols === 0 || nRows === 0) return;  // degenerate
+
+  // Fixed small cell size — just enough to see grid lines and path
+  const cs = 10;
+  const W = nCols * cs;
+  const H = nRows * cs;
+  const PAD = 5;
+  // Compute I(B) and optional term string
+  const zPos = [];
+  for (let c = 0; c < label.length; c++) if (label[c]==='0') zPos.push(c+1);
+  const terms = zPos.map((z,i) => z-(i+1));
+  const termStr = terms.map((d,i) => `(${zPos[i]}-${i+1})=${d}`).join(' ');
+  const LBL_H = showIBFormula ? 30 : 14;
+  const boxW = showIBFormula
+    ? Math.max(W + PAD*2, termStr.length * 4.8 + PAD*2)
+    : W + PAD*2;
+  const boxH = H + PAD*2 + LBL_H;
+
+  // Position: to the right of node, flip left if near right edge
+  const b = canvasBounds();
+  let bx = nd.x + nd.radius + 16;
+  let by = nd.y - boxH / 2;
+  if (bx + boxW > b.right - 10)  bx = nd.x - nd.radius - boxW - 10;
+  if (by < b.top + 4)            by = b.top + 4;
+  if (by + boxH > b.bottom - 4)  by = b.bottom - boxH - 4;
+
+  // Build the lattice path: track (col, row) from (0,0)
+  const path = [{col:0, row:0}];
+  for (let c = 0; c < label.length; c++) {
+    const last = path[path.length - 1];
+    if (label[c] === '0') path.push({col: last.col+1, row: last.row});
+    else                   path.push({col: last.col,   row: last.row+1});
+  }
+  // path goes from (0,0) to (nCols, nRows)
+
+  // Compute area = number of unit cells strictly below the path
+  // For each column x (0-based, 0..nCols-1), the path height at column x
+  // is the row value just before taking the (x+1)-th right step.
+  // Equivalently, colHeight[x] = number of '1's before the (x+1)-th '0'.
+  const colHeight = [];
+  let onesSeenSoFar = 0;
+  let zerosFound = 0;
+  for (let c = 0; c < label.length && zerosFound < nCols; c++) {
+    if (label[c] === '1') onesSeenSoFar++;
+    else { colHeight.push(onesSeenSoFar); zerosFound++; }
+  }
+  const area = colHeight.reduce((s, h) => s + h, 0);
+
+  // ── Draw background box ──
+  noStroke(); fill(255, 255, 255, 245);
+  rect(bx, by, boxW, boxH, 8);
+  stroke(180, 180, 200, 180); strokeWeight(1); noFill();
+  rect(bx, by, boxW, boxH, 8);
+
+  // ── Grid origin in canvas coords (lower-left of grid) ──
+  const ox = bx + PAD;          // left edge of grid
+  const oy = by + PAD + H;      // bottom edge of grid (y increases downward in canvas)
+
+  // ── Shade cells below the path ──
+  noStroke();
+  for (let col = 0; col < nCols; col++) {
+    const h = colHeight[col];  // filled rows in this column
+    for (let row = 0; row < h; row++) {
+      // cell (col, row): col=0 is leftmost, row=0 is bottom
+      fill(220, 30, 30, 55);
+      rect(ox + col*cs, oy - (row+1)*cs, cs, cs);
+    }
+  }
+
+  // ── Grid lines ──
+  stroke(190, 190, 210, 160); strokeWeight(0.7);
+  for (let col = 0; col <= nCols; col++) {
+    const x = ox + col*cs;
+    line(x, oy, x, oy - H);
+  }
+  for (let row = 0; row <= nRows; row++) {
+    const y = oy - row*cs;
+    line(ox, y, ox + W, y);
+  }
+
+  // ── Lattice path (red) ──
+  stroke(220, 30, 30); strokeWeight(2.5); noFill();
+  for (let i = 0; i < path.length - 1; i++) {
+    const p0 = path[i], p1 = path[i+1];
+    const x0 = ox + p0.col*cs, y0 = oy - p0.row*cs;
+    const x1 = ox + p1.col*cs, y1 = oy - p1.row*cs;
+    line(x0, y0, x1, y1);
+  }
+  // Start/end dots
+  noStroke(); fill(220, 30, 30, 200);
+  ellipse(ox, oy, 5, 5);                              // lower-left
+  ellipse(ox + W, oy - H, 5, 5);                      // upper-right
+
+  // ── I(B) formula label ──
+  noStroke();
+  textFont('JetBrains Mono'); textAlign(CENTER, CENTER);
+  if (showIBFormula) {
+    textSize(7); textStyle(NORMAL); fill(80, 80, 110);
+    text(`I(B)=Σ(zᵢ−i): ${termStr}`, bx + boxW/2, by + PAD + H + 8);
+    textSize(8); textStyle(BOLD); fill(40, 40, 80);
+    text(`U=${area}`, bx + boxW/2, by + PAD + H + 22);
+  } else {
+    textSize(8); textStyle(BOLD); fill(40, 40, 80);
+    text(`U=${area}`, bx + boxW/2, by + PAD + H + 9);
+  }
+  textStyle(NORMAL);
+}
+
+function windowResized(){resizeCanvas(windowWidth,windowHeight);}
+
+/* ═══════════════════════════════════════════════════════════
+   SHAKE / FREEZE / SYMMETRIC
+═══════════════════════════════════════════════════════════ */
+function shakeNodes(){
+  if(sortMode!==null) exitSortMode();
+  const b=canvasBounds();
+  const cx=(b.left+b.right)/2,cy=(b.top+b.bottom)/2;
+  const rx=(b.right-b.left)*0.36,ry=(b.bottom-b.top)*0.36;
+  symmetricMode=true;
+  const placed=new Uint8Array(nodes.length);
+  for(let i=0;i<nodes.length;i++){
+    if(placed[i]) continue;
+    const j=reversalOf[i];placed[i]=placed[j]=1;
+    const angle=Math.random()*2*Math.PI,r=0.3+0.7*Math.random();
+    const y=cy+Math.sin(angle)*ry*r,vy=(Math.random()-.5)*18;
+    if(i===j){nodes[i].x=cx;nodes[i].y=y;nodes[i].vx=0;nodes[i].vy=vy;}
+    else{
+      const dx=(0.25+0.75*Math.random())*rx*r,vx=(0.5+0.5*Math.random())*12;
+      nodes[i].x=cx+dx;nodes[j].x=cx-dx;nodes[i].y=nodes[j].y=y;
+      nodes[i].vx=vx;nodes[j].vx=-vx;nodes[i].vy=nodes[j].vy=vy;
+    }
+  }
+  physicsActive=true;
+  if(isFrozen){isFrozen=false;document.getElementById('btn-freeze').textContent='❄  Freeze';
+    document.getElementById('btn-freeze').style.background='linear-gradient(135deg,#64748b,#334155)';}
+}
+
+function toggleFreeze(){
+  isFrozen=!isFrozen;
+  if(isFrozen){physicsActive=false;nodes.forEach(nd=>{nd.vx=0;nd.vy=0;});
+    document.getElementById('btn-freeze').textContent='▶  Unfreeze';
+    document.getElementById('btn-freeze').style.background='linear-gradient(135deg,#f59e0b,#d97706)';}
+  else{physicsActive=true;
+    document.getElementById('btn-freeze').textContent='❄  Freeze';
+    document.getElementById('btn-freeze').style.background='linear-gradient(135deg,#64748b,#334155)';}
+}
+
+function exportPNG(){
+  // p5's saveCanvas saves the p5 canvas; supply a filename with the graph params
+  saveCanvas(`G3_k${K}_n${N}`, 'png');
+}
+
+function toggleSymmetric(checked){symmetricMode=checked;if(checked) physicsActive=true;}
+
+function toggleStretchMode(checked){
+  stretchMode=checked;
+  if(checked){
+    document.body.classList.add('stretch-mode');
+  } else {
+    document.body.classList.remove('stretch-mode');
+    // Unchecking stretch mode keeps pins — user must clear explicitly
+  }
+  updatePinCount();
+}
+
+function updatePinCount(){
+  pinnedCount=nodes.filter(nd=>nd.pinned).length;
+  const btn=document.getElementById('btn-clear-pins');
+  if(btn) btn.style.display = pinnedCount>0 ? 'block' : 'none';
+  // Update button text with count
+  if(btn && pinnedCount>0) btn.textContent=`✕  Clear ${pinnedCount} pin${pinnedCount>1?'s':''}`;
+}
+
+function clearAllPins(){
+  nodes.forEach(nd=>{ nd.pinned=false; nd.vx=0; nd.vy=0; });
+  pinnedCount=0;
+  document.getElementById('btn-clear-pins').style.display='none';
+  physicsActive=true;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HOLOGRAPHY MODE — sort rows rooted at A
+═══════════════════════════════════════════════════════════ */
+function activateHolographyMode(){
+  // Exit any active mode first
+  if(dxyMode!==null) exitDxyMode();
+  if(sortMode!==null && sortMode!=='pick') exitSortMode();
+
+  const canonIdx = nodes.findIndex(nd => nd.isCanonical);
+  if(canonIdx < 0){ alert('Canonical vertex A not found. Please Generate first.'); return; }
+
+  // Configure: rows layout, top-down, rooted at A
+  sortSubMode = 'rows';
+  sortRowsDir = 'top';
+
+  // Mark button active
+  document.getElementById('btn-holography').classList.add('active');
+  document.getElementById('btn-sort-vertices').classList.add('active');
+
+  // Clear any existing sort-submenu verification rows
+  const sub = document.getElementById('sort-submenu');
+  sub.querySelectorAll('[data-ver]').forEach(el => el.remove());
+
+  // Run the same logic as handleSortPick but directly on A
+  handleSortPick(canonIdx);
+
+  // Switch to rows sub-layout (handleSortPick uses sortSubMode already)
+  applySortLayout('rows');
+
+  // Sync direction buttons
+  ['sub-topdown','sub-bottomup'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('sub-topdown').classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SORT MODE
+═══════════════════════════════════════════════════════════ */
+function enterPickMode(){
+  sortMode='pick'; dxyMode=null;
+  document.body.classList.add('pick-mode');
+  document.getElementById('btn-sort-vertices').classList.add('active');
+  document.getElementById('sort-submenu').classList.remove('visible');
+  updateRightPanel();
+}
+
+function exitSortMode(){
+  sortMode=null;sortRoot=null;bfsLayers=[];bfsTreeEdgeKeys=new Set();
+  document.body.classList.remove('pick-mode');
+  document.getElementById('btn-sort-vertices').classList.remove('active');
+  document.getElementById('btn-holography').classList.remove('active');
+  document.getElementById('sort-submenu').classList.remove('visible');
+  document.getElementById('rows-dir-row').style.display='none';
+  const sub=document.getElementById('sort-submenu');
+  sub.querySelectorAll('[data-ver]').forEach(el=>el.remove());
+  physicsActive=true;updateRightPanel();
+}
+
+function handleSortPick(idx){
+  sortRoot=idx; sortMode=sortSubMode;
+  document.body.classList.remove('pick-mode');
+  const {dist}=bfsFrom(idx);
+  const maxLayer=Math.max(...dist.filter(d=>d>=0));
+  bfsLayers=[];
+  for(let d=0;d<=maxLayer;d++) bfsLayers.push(nodes.map((_,i)=>i).filter(i=>dist[i]===d));
+  const b=canvasBounds(),nL=bfsLayers.length;
+  if(nL>1){
+    const maxRR=Math.min(b.right-b.left,b.bottom-b.top)*0.45;
+    const maxFit=Math.max(6,Math.floor(Math.min(maxRR/nL,(b.bottom-b.top)/nL)*0.42));
+    if(NODE_RADIUS>maxFit){NODE_RADIUS=maxFit;
+      const s2=document.getElementById('nodeSizeSlider2');
+      if(s2) s2.value=maxFit;
+      const v2=document.getElementById('nodeSizeVal2');
+      if(v2) v2.textContent=maxFit;}
+  }
+  bfsTreeEdgeKeys=new Set();
+  edges.forEach(e=>{
+    const da=dist[e.from],db=dist[e.to];
+    if(da>=0&&db>=0&&Math.abs(da-db)===1) bfsTreeEdgeKeys.add(`${Math.min(e.from,e.to)}-${Math.max(e.from,e.to)}`);
+  });
+  const rootLabel=nodes[idx].label;
+  document.getElementById('sort-root-label').textContent=`root: ${rootLabel}`;
+  const canonIdx=nodes.findIndex(nd=>nd.isCanonical);
+  const antipodIdx=nodes.findIndex(nd=>nd.isAntipodal);
+  const bda=canonIdx>=0?dist[canonIdx]:-1, bdas=antipodIdx>=0?dist[antipodIdx]:-1;
+  const fda=canonIdx>=0?canonDist(nodes[canonIdx].label).dist:-1;
+  const fdas=canonIdx>=0&&antipodIdx>=0?canonDist(nodes[antipodIdx].label).dist:-1;
+  const verRow=(lbl,bv,fv)=>{
+    const m=bv===fv;
+    return `<div style="font-size:0.6rem;font-family:'JetBrains Mono',monospace;margin-bottom:3px;color:#334155">
+      <span style="color:#64748b">${lbl}:</span> BFS=${bv>=0?bv:'?'}
+      <span style="${m?'color:#16a34a':'color:#dc2626'}">${m?'✓':'⚠'}</span> fml=${fv>=0?fv:'?'}</div>`;
+  };
+  const verHtml=`<div data-ver="1" style="margin-top:5px;padding:5px 6px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+    <div style="font-size:0.57rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#94a3b8;margin-bottom:4px;font-family:'DM Sans',sans-serif">d(U,·) check</div>
+    ${verRow('→ A',bda,fda)}${verRow('→ A*',bdas,fdas)}
+    <div style="font-size:0.58rem;color:#94a3b8;margin-top:3px">BFS vs (I+Δ)/2</div></div>`;
+  document.getElementById('sort-root-label').insertAdjacentHTML('afterend',verHtml);
+  document.getElementById('sort-submenu').classList.add('visible');
+  ['sub-concentric','sub-rows'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById(sortSubMode==='concentric'?'sub-concentric':'sub-rows').classList.add('active');
+  applySortLayout(sortSubMode);
+}
+
+function applySortLayout(subMode){
+  if(sortRoot===null) return;
+  sortSubMode=subMode;sortMode=subMode;physicsActive=false;
+  ['sub-concentric','sub-rows'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById(subMode==='concentric'?'sub-concentric':'sub-rows').classList.add('active');
+  document.getElementById('rows-dir-row').style.display=subMode==='rows'?'flex':'none';
+  if(subMode==='concentric') _layoutConcentric();
+  else _layoutRows();
+}
+
+function setSortDir(dir){
+  sortRowsDir=dir;
+  ['sub-topdown','sub-bottomup'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById(dir==='top'?'sub-topdown':'sub-bottomup').classList.add('active');
+  _layoutRows();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   d(X,Y) MODE
+═══════════════════════════════════════════════════════════ */
+function enterDxyMode(){
+  dxyMode='pickX';dxyX=null;dxyY=null;dxyResult=null;
+  document.getElementById('btn-dxy').classList.add('active');
+  document.getElementById('dxy-submenu').classList.add('visible');
+  document.getElementById('dxy-input-x').value='';
+  document.getElementById('dxy-input-y').value='';
+  document.getElementById('dxy-compute-btn').disabled=true;
+  updateRightPanel();
+}
+
+function exitDxyMode(){
+  dxyMode=null;dxyX=null;dxyY=null;dxyResult=null;
+  document.getElementById('btn-dxy').classList.remove('active');
+  document.getElementById('dxy-submenu').classList.remove('visible');
+  updateRightPanel();
+}
+
+function handleDxyPick(idx){
+  if(dxyMode==='pickX'||dxyMode==='result'){
+    dxyX=idx;dxyY=null;dxyResult=null;dxyMode='pickY';
+    document.getElementById('dxy-input-x').value=nodes[idx].label;
+    document.getElementById('dxy-input-y').value='';
+    document.getElementById('dxy-compute-btn').disabled=true;
+  } else if(dxyMode==='pickY'){
+    if(idx===dxyX) return;
+    dxyY=idx;document.getElementById('dxy-input-y').value=nodes[idx].label;
+    document.getElementById('dxy-compute-btn').disabled=false;
+  }
+  updateRightPanel();
+}
+
+function dxyInputChanged(which){
+  const lbl=document.getElementById(`dxy-input-${which}`).value.trim();
+  const idx=nodes.findIndex(nd=>nd.label===lbl);
+  if(which==='x'){dxyX=idx>=0?idx:null;dxyMode='pickY';}
+  else dxyY=idx>=0?idx:null;
+  document.getElementById('dxy-compute-btn').disabled=!(dxyX!==null&&dxyY!==null&&dxyX!==dxyY);
+  updateRightPanel();
+}
+
+function countShortestPaths(srcIdx){
+  const dist=new Array(nodes.length).fill(-1);
+  const count=new Array(nodes.length).fill(0);
+  dist[srcIdx]=0;count[srcIdx]=1;
+  const q=[srcIdx];let qi=0;
+  while(qi<q.length){
+    const v=q[qi++];
+    // Deduplicate neighbors: parallel edges (fwd/rev at same position) both
+    // write the same node into the adjacency list, which would inflate No.
+    const seen=new Set();
+    for(const u of adjacencyList.get(v)){
+      if(seen.has(u)) continue;
+      seen.add(u);
+      if(dist[u]<0){dist[u]=dist[v]+1;count[u]=count[v];q.push(u);}
+      else if(dist[u]===dist[v]+1) count[u]+=count[v];
+    }
+  }
+  return {dist,count};
+}
+
+const NP_CAP=1_000_000;
+function countAllSimplePaths(srcIdx,tgtIdx){
+  let count=0,capped=false;
+  const visited=new Uint8Array(nodes.length);
+  // Build deduplicated adjacency for simple-path counting:
+  // parallel edges (same node pair, different fwd/rev key) must not be treated
+  // as distinct routes since Np counts vertex-sequences, not edge-sequences.
+  const dedupAdj=nodes.map((_,i)=>[...new Set(adjacencyList.get(i))]);
+  function dfs(v){
+    if(capped) return;
+    if(v===tgtIdx){count++;if(count>=NP_CAP) capped=true;return;}
+    visited[v]=1;
+    for(const u of dedupAdj[v]){if(!visited[u]) dfs(u);if(capped) break;}
+    visited[v]=0;
+  }
+  dfs(srcIdx);return {count,capped};
+}
+
+function computeDxy(){
+  if(dxyX===null||dxyY===null||dxyX===dxyY) return;
+  const {dist,count}=countShortestPaths(dxyX);
+  const d=dist[dxyY], No=d>=0?count[dxyY]:0;
+  let Np=0,NpCapped=false;
+  if(d>=0){const r=countAllSimplePaths(dxyX,dxyY);Np=r.count;NpCapped=r.capped;}
+  dxyResult={d,No,Np,NpCapped};dxyMode='result';updateRightPanel();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOUSE HANDLING
+═══════════════════════════════════════════════════════════ */
+function mousePressed(){
+  for(const id of['left-panel','right-panel']){
+    const el=document.getElementById(id);if(!el) continue;
+    const r=el.getBoundingClientRect();
+    if(mouseX>=r.left&&mouseX<=r.right&&mouseY>=r.top&&mouseY<=r.bottom){pressedOnCanvas=false;return;}
+  }
+  pressedOnCanvas=true;mouseHasMoved=false;draggedNode=null;draggedEdge=null;
+
+  // In stretch mode: check edge handle hit BEFORE node hit
+  if(stretchMode && edgeMidpoints.length>0){
+    const HIT_R=11;
+    for(let i=0;i<edges.length;i++){
+      const mp=edgeMidpoints[i];if(!mp) continue;
+      if(Math.hypot(mouseX-mp.x,mouseY-mp.y)<HIT_R){
+        const a=nodes[edges[i].from],bN=nodes[edges[i].to];
+        const dx=bN.x-a.x,dy=bN.y-a.y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d>0) draggedEdge={edgeIdx:i,dx,dy,d};
+        return;
+      }
+    }
+  }
+
+  for(let i=0;i<nodes.length;i++){
+    if(Math.hypot(mouseX-nodes[i].x,mouseY-nodes[i].y)<nodes[i].radius){draggedNode=nodes[i];break;}
+  }
+}
+
+function mouseDragged(){
+  if(!pressedOnCanvas) return;
+  if(Math.hypot(mouseX-pmouseX,mouseY-pmouseY)>2) mouseHasMoved=true;
+
+  if(draggedEdge){
+    const e=edges[draggedEdge.edgeIdx];
+    const {dx,dy,d}=draggedEdge;
+    const px=-dy/d, py=dx/d;
+    const a=nodes[e.from],bN=nodes[e.to];
+    const mx=(a.x+bN.x)/2,my=(a.y+bN.y)/2;
+    e.cpOffset=(mouseX-mx)*px+(mouseY-my)*py;
+    return;
+  }
+
+  if(!draggedNode) return;
+  if(symmetricMode){
+    const b=canvasBounds(),cx=(b.left+b.right)/2;
+    const i=nodes.indexOf(draggedNode),j=reversalOf[i];
+    if(j===i){draggedNode.x=cx;draggedNode.y=mouseY;}
+    else{draggedNode.x=mouseX;draggedNode.y=mouseY;
+      nodes[j].x=2*cx-mouseX;nodes[j].y=mouseY;nodes[j].vx=0;nodes[j].vy=0;}
+  } else {draggedNode.x=mouseX;draggedNode.y=mouseY;}
+  draggedNode.vx=0;draggedNode.vy=0;
+  if(!stretchMode) physicsActive=true;
+}
+
+function mouseReleased(){
+  if(pressedOnCanvas&&!mouseHasMoved){
+    // Click on edge handle: reset cpOffset (straighten the edge)
+    if(stretchMode && draggedEdge){
+      edges[draggedEdge.edgeIdx].cpOffset=null;
+      draggedEdge=null;mouseHasMoved=false;pressedOnCanvas=false;return;
+    }
+    if(dxyMode!==null){
+      let hit=null;
+      for(let i=0;i<nodes.length;i++) if(Math.hypot(mouseX-nodes[i].x,mouseY-nodes[i].y)<nodes[i].radius){hit=i;break;}
+      if(hit!==null) handleDxyPick(hit);
+      draggedEdge=null;draggedNode=null;mouseHasMoved=false;pressedOnCanvas=false;return;
+    }
+    if(sortMode==='pick'){
+      let hit=null;
+      for(let i=0;i<nodes.length;i++) if(Math.hypot(mouseX-nodes[i].x,mouseY-nodes[i].y)<nodes[i].radius){hit=i;break;}
+      if(hit!==null) handleSortPick(hit);
+      draggedEdge=null;draggedNode=null;mouseHasMoved=false;pressedOnCanvas=false;return;
+    }
+    if(stretchMode && draggedNode && draggedNode.pinned){
+      draggedNode.pinned=false;
+      const j=reversalOf[nodes.indexOf(draggedNode)];
+      if(j!==nodes.indexOf(draggedNode)) nodes[j].pinned=false;
+      updatePinCount();physicsActive=true;
+      draggedEdge=null;draggedNode=null;mouseHasMoved=false;pressedOnCanvas=false;return;
+    }
+    if(draggedNode) handleNodeClick(nodes.indexOf(draggedNode));
+    else handleNodeClick(null);
+  } else if(pressedOnCanvas && mouseHasMoved){
+    if(!draggedEdge && stretchMode && draggedNode){
+      const i=nodes.indexOf(draggedNode);
+      draggedNode.pinned=true; draggedNode.vx=0; draggedNode.vy=0;
+      if(symmetricMode){
+        const j=reversalOf[i];
+        if(j!==i){ nodes[j].pinned=true; nodes[j].vx=0; nodes[j].vy=0; }
+      }
+      updatePinCount();
+      physicsActive=true;
+    }
+  }
+  draggedEdge=null;draggedNode=null;mouseHasMoved=false;pressedOnCanvas=false;
+}
+
+
+function handleNodeClick(idx){
+  if(idx===null){selectedSource=selectedTarget=null;bfsResult=null;shortestPath=[];pathEdgeKeys=new Set();}
+  else if(selectedSource===null){selectedSource=idx;bfsResult=bfsFrom(selectedSource);selectedTarget=null;shortestPath=[];pathEdgeKeys=new Set();}
+  else if(selectedTarget===null){
+    if(idx===selectedSource){selectedSource=null;bfsResult=null;}
+    else{selectedTarget=idx;shortestPath=tracePath(bfsResult.dist,bfsResult.parent,selectedTarget);pathEdgeKeys=buildPathKeys(shortestPath);}
+  } else {selectedSource=idx;selectedTarget=null;bfsResult=bfsFrom(selectedSource);shortestPath=[];pathEdgeKeys=new Set();}
+  updateRightPanel();
+}
+
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(sortMode!==null) exitSortMode();
+    else if(dxyMode!==null) exitDxyMode();
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   UI UPDATE — LEFT PANEL
+═══════════════════════════════════════════════════════════ */
+function updateLeftPanel(){
+  document.getElementById('infoK').textContent=K;
+  document.getElementById('infoA').textContent=canonLabel();
+  const antIdx=nodes.findIndex(nd=>nd.isAntipodal);
+  document.getElementById('infoAstar').textContent=antIdx>=0?nodes[antIdx].label:'?';
+  document.getElementById('infoV').textContent=nodes.length;
+  document.getElementById('infoE').textContent=edges.length;
+
+  // Legend: two rows per position
+  let lh='';
+  for(let i=0;i<=N-3;i++){
+    const c=TRANS_COLORS[i%TRANS_COLORS.length];
+    lh+=`<div class="leg-item"><div class="leg-swatch" style="background:${c}"></div><span>▶ (${i},${i+1},${i+2})</span></div>`;
+    lh+=`<div class="leg-item"><div class="leg-swatch-dash" style="border-top-color:${c}"></div><span>◀ (${i},${i+2},${i+1})</span></div>`;
+  }
+  if(isWrapped){
+    const c=TRANS_COLORS[(N-2)%TRANS_COLORS.length];
+    lh+=`<div class="leg-item"><div class="leg-swatch" style="background:${c};border:1px dashed #888"></div><span>▶ wrap</span></div>`;
+    lh+=`<div class="leg-item"><div class="leg-swatch-dash" style="border-top-color:${c}"></div><span>◀ wrap</span></div>`;
+  }
+  document.getElementById('legendItems').innerHTML=lh;
+
+  // Degree table
+  const dc=new Map();
+  nodes.forEach((_,i)=>{const d=adjacencyList.get(i).length;dc.set(d,(dc.get(d)||0)+1);});
+  const tbody=document.getElementById('degTbody');tbody.innerHTML='';
+  [...dc.keys()].sort((a,b)=>a-b).forEach(deg=>{
+    const cnt=dc.get(deg),c=getDegColor(deg);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};margin-right:5px;vertical-align:middle"></span>${deg}</td><td>${cnt} v.</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UI UPDATE — RIGHT PANEL
+═══════════════════════════════════════════════════════════ */
+function updateRightPanel(){
+  const mismatchCount = uPrimeMismatch.filter(Boolean).length;
+
+  // Closed-form mismatch formula for k=3 and k=4:
+  // m(n,k) = C(floor(n/2), 4) + (k-3)*C(ceil(n/2), 4)
+  function C4(m){ return m<4 ? 0 : m*(m-1)*(m-2)*(m-3)/24; }
+  let formulaMismatch = null;
+  if(K===3 || K===4){
+    formulaMismatch = C4(Math.floor(N/2)) + (K-3)*C4(Math.ceil(N/2));
+  }
+  const formulaMatch = formulaMismatch===null || formulaMismatch===mismatchCount;
+  const fDiam=formulaDiam();
+  const bfsDiam=graphDiameter?graphDiameter.diameter:null;
+  const antIdx=nodes.findIndex(nd=>nd.isAntipodal);
+  const antLabel=antIdx>=0?nodes[antIdx].label:'?';
+
+  // Diameter badge
+  let diamBadge;
+  if(bfsDiam!==null){
+    const m=bfsDiam===fDiam;
+    diamBadge=`BFS=${bfsDiam} <span style="color:${m?'#16a34a':'#dc2626'}">${m?'✓':'⚠'}</span>`;
+  } else { diamBadge=`<span style="color:#94a3b8;font-size:0.82em">(formula)</span>`; }
+
+  // Formula verification badge
+  let verBadge='';
+  if(formulaVerified===true) verBadge=`<div class="formula-pill green">d(A,B) = (I+Δ)/2 verified ✓ for all B</div>`;
+  else if(formulaVerified===false) verBadge=`<div class="formula-pill red">d(A,B) formula ⚠ mismatch found</div>`;
+
+  let html=`
+    <div class="panel-title">📐 Analysis</div>
+    <div class="info-row"><span class="info-key">Graph:</span><span class="info-val">G₃(${K}, ${N})</span></div>
+    <div class="info-row"><span class="info-key">|V| = C(n,k):</span><span class="info-val">${nodes.length}</span></div>
+    <div class="info-row"><span class="info-key">m(n) mismatches:</span><span class="info-val" style="color:${(mismatchCount>0&&formulaMatch)?'#dc2626':!formulaMatch?'#dc2626':'#16a34a'}">${mismatchCount}${mismatchCount>0?' 🟥':' ✓'}</span></div>
+    ${formulaMismatch!==null?`<div class="info-row"><span class="info-key">formula m(n,k)=</span><span class="info-val" style="color:${formulaMatch?'#16a34a':'#dc2626'};font-weight:700">${formulaMismatch}${formulaMatch?' ✓':' ⚠ mismatch!'}</span></div>`:''}
+    <div class="info-row"><span class="info-key">|E|:</span><span class="info-val">${edges.length}</span></div>
+    <div class="info-row"><span class="info-key">A =</span><span class="info-val mono" style="color:#2E7D32">${canonLabel()}</span></div>
+    <div class="info-row"><span class="info-key">A* =</span><span class="info-val mono" style="color:#7c3aed">${antLabel}</span></div>
+
+    <div class="section-divider"><div class="section-label">Distance Formulas</div></div>
+    <div class="formula-pill">d(A,B) = (I(B)+Δ(B)) / 2<br>I(B) = Σᵢ(zᵢ−i)<br>Δ(B) = |Σᵢ(−1)<sup>i+1</sup>(dᵢ mod 2)|</div>
+    <div class="formula-pill">Bounds: ⌈½Σ|xᵢ−yᵢ|⌉ ≤ d(X,Y) ≤ Σ⌈|xᵢ−yᵢ|/2⌉<br><span style="color:#94a3b8;font-size:0.9em">No closed-form exact formula for general d(X,Y)</span></div>
+    <div class="formula-pill">diam = ⌈k(n−k)/2⌉ = <b style="color:#1d4ed8">${fDiam}</b>  ${diamBadge}</div>
+    ${K===1?`<div class="formula-pill">k=1: d(A,B) = ⌈(z₁−1)/2⌉</div>`:''}
+    ${K===2?`<div class="formula-pill">k=2: d(A,B) = ⌈((z₁−1)+(z₂−2))/2⌉</div>`:''}
+    ${verBadge}
+
+    <div class="section-divider"><div class="section-label">Physics &amp; Display</div></div>
+    <div style="font-size:0.6rem;display:flex;flex-direction:column;gap:5px;margin-bottom:4px">
+      ${[
+        ['Node radius','nodeSizeSlider2','nodeSizeVal2',14,72,NODE_RADIUS,'updateNodeSize2'],
+        ['Repulsion','repulsionSlider2','repulsionVal2',1000,80000,REPULSION,'updateRepulsion2'],
+        ['Attraction','attractionSlider2','attractionVal2',1,50,Math.round(ATTRACTION*1000),'updateAttraction2'],
+        ['Analysis font','analysisFsSlider2','analysisFsVal2',8,18,analysisFontSize,'updateAnalysisFs2'],
+        ['Edge label font','edgeLabelFsSlider2','edgeLabelFsVal2',7,16,edgeLabelFontSize,'updateEdgeLabelFs2'],
+        ['Sort badge font','sortBadgeFsSlider2','sortBadgeFsVal2',8,28,sortBadgeFontSize,'updateSortBadgeFs2'],
+      ].map(([lbl,sid,vid,mn,mx,val,fn])=>`
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+            <span style="color:#64748b;text-transform:uppercase;letter-spacing:0.4px;font-family:'DM Sans',sans-serif;font-weight:700">${lbl}</span>
+            <span id="${vid}" style="font-weight:600;color:#1d4ed8;background:#eff6ff;padding:0 4px;border-radius:3px">${lbl==='Attraction'?(val/1000).toFixed(3):val}</span>
+          </div>
+          <input type="range" id="${sid}" min="${mn}" max="${mx}" value="${val}"
+            oninput="${fn}(this.value)"
+            style="-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:#e2e8f0;outline:none;cursor:pointer">
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="section-divider"><div class="section-label">Node Selection</div></div>
+  `;
+
+  // Sync right-panel slider thumb colors via injected style
+  setTimeout(()=>{
+    document.querySelectorAll('#right-panel input[type=range]').forEach(el=>{
+      el.style.setProperty('accent-color','#4ade80');
+    });
+  },0);
+
+  // Selection state
+  if(selectedSource===null){
+    const modeHint=colorMode==='bfs-source'
+      ?`<b>Click a node</b> for source.<br><span style="color:#64748b">Nodes color by BFS distance.</span><br><br><b>Click a second node</b> for target &amp; path.`
+      :`<b>Click a node</b> for source &amp; target.<br><span style="color:#94a3b8;font-size:0.9em">(Colors fixed in this mode.)</span>`;
+    html+=`<div class="hint-box">${modeHint}<br><br>
+      <span style="color:#2E7D32">▷ Green ring = A</span><br>
+      <span style="color:#7c3aed">▷ Purple ring = A*</span></div>`;
+  } else {
+    const sLabel=nodes[selectedSource].label;
+    const isSCan=nodes[selectedSource].isCanonical, isSAnt=nodes[selectedSource].isAntipodal;
+    html+=`<div class="sel-src"><b>Src:</b> <span class="mono">${sLabel}</span>
+      ${isSCan?'<span class="canon-badge">A</span>':''}
+      ${isSAnt?'<span class="canon-badge" style="background:#ede9fe;color:#6d28d9">A*</span>':''}</div>`;
+    if(selectedTarget===null){
+      html+=`<div class="hint-box">Nodes colored by BFS distance from source.<br><br><b>Click another node</b> to compute d &amp; path.</div>`;
+    } else {
+      const tLabel=nodes[selectedTarget].label;
+      const isTCan=nodes[selectedTarget].isCanonical, isTAnt=nodes[selectedTarget].isAntipodal;
+      const bfsDist=bfsResult?bfsResult.dist[selectedTarget]:-1;
+      html+=`<div class="sel-tgt"><b>Tgt:</b> <span class="mono">${tLabel}</span>
+        ${isTCan?'<span class="canon-badge">A</span>':''}
+        ${isTAnt?'<span class="canon-badge" style="background:#ede9fe;color:#6d28d9">A*</span>':''}</div>`;
+      if(bfsDist<0){html+=`<div class="disconnected-note">⚠ Disconnected.</div>`;}
+      else {
+        html+=`<div class="dist-hero">d = ${bfsDist}</div><div class="dist-sub">(BFS exact)</div>`;
+        if(isSCan){
+          // d(A,B): show full formula breakdown
+          const {IB,Delta,terms}=canonDist(tLabel);
+          const tHtml=terms.map(t=>`(${t.zi}−${t.idx})=${t.di}, p${t.idx}=${t.diMod2}`).join('<br>');
+          html+=`<div class="formula-detail">I(B) = Σ(zᵢ−i):<br>${tHtml}<br>─────<br>I(B)=${IB}<br>Δ(B)=|Σ(−1)ⁱ⁺¹·pᵢ|=${Delta}<br>d=(${IB}+${Delta})/2=<b>${(IB+Delta)/2}</b></div>`;
+        } else {
+          // General: show bounds
+          const bnds=distBounds(sLabel,tLabel);
+          const bHtml=bnds.terms.map(t=>`|${t.xi}−${t.yi}|=${t.diff}`).join('<br>');
+          html+=`<div class="formula-detail">Σ|xᵢ−yᵢ|:<br>${bHtml}<br>─────<br>Lower ⌈½·Σ⌉=${bnds.lower}<br>Upper Σ⌈·/2⌉=${bnds.upper}<br>BFS exact=<b>${bfsDist}</b></div>`;
+        }
+        if(shortestPath.length>0){
+          const pNodes=shortestPath.map(i=>`<span class="path-node">${nodes[i].label}</span>`);
+          html+=`<div class="path-hdr">Shortest path (length ${shortestPath.length-1}):</div>
+            <div class="path-box">${pNodes.join(' →<br>')}</div>`;
+        }
+        html+=`<div class="hint-box" style="margin-top:9px">Click a node to start new selection.</div>`;
+      }
+    }
+  }
+
+  // d(X,Y) results
+  if(dxyMode!==null){
+    const xLabel=dxyX!==null?nodes[dxyX].label:'—';
+    const yLabel=dxyY!==null?nodes[dxyY].label:'—';
+    html+=`<div class="section-divider"><div class="section-label">d(X,Y) Calculator</div></div>`;
+    if(dxyResult){
+      const {d,No,Np,NpCapped}=dxyResult;
+      const bnds=dxyX!==null&&dxyY!==null?distBounds(xLabel,yLabel):null;
+      html+=`<div class="dxy-result-block">
+        <div class="dxy-result-title">Results</div>
+        <div class="dxy-pair-label">X = <b>${xLabel}</b><br>Y = <b>${yLabel}</b></div>
+        ${d<0?`<div class="disconnected-note">⚠ Disconnected.</div>`:`
+        <div class="dxy-metric"><span class="dxy-metric-key">d(X,Y)</span><span class="dxy-metric-val">${d}</span></div>
+        <div class="dxy-metric"><span class="dxy-metric-key">N<sub>o</sub>(X,Y)</span><span class="dxy-metric-val">${No.toLocaleString()}</span></div>
+        <div class="dxy-metric"><span class="dxy-metric-key">N<sub>p</sub>(X,Y)</span><span class="dxy-metric-val ${NpCapped?'warn':''}">${NpCapped?'≥ 1,000,000':Np.toLocaleString()}</span></div>
+        ${bnds?`<div style="font-size:0.6rem;color:#6b7280;margin-top:5px;background:#fff;border-radius:5px;padding:4px 6px">Bounds: ${bnds.lower} ≤ d ≤ ${bnds.upper}</div>`:''}
+        `}
+        <div style="font-size:0.57rem;color:#6b7280;margin-top:6px;line-height:1.6">d=shortest dist<br>N<sub>o</sub>=# shortest paths<br>N<sub>p</sub>=# all simple paths${NpCapped?' (capped 1M)':''}</div>
+      </div>
+      <div class="hint-box" style="margin-top:7px">Click a node to pick new X</div>`;
+    } else if(dxyMode==='pickY'){
+      html+=`<div class="dxy-pair-label">X = <b>${xLabel}</b><br>Y = —</div>
+        <div class="hint-box">Click a node to pick Y,<br>or type its label above.<br><br>Then press <b>↳ Compute</b>.</div>`;
+    } else {
+      html+=`<div class="hint-box">Click a node on the graph<br>to pick <b>X</b>,<br>or type its label above.</div>`;
+    }
+  }
+
+  document.getElementById('right-panel').innerHTML=html;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COLOR MODE & CONTROL CALLBACKS
+═══════════════════════════════════════════════════════════ */
+function setColorMode(mode){
+  colorMode=mode;
+  ['degree','bfs-A','bfs-Astar','bfs-source'].forEach(m=>{
+    const el=document.getElementById(`rm-${m}`);
+    if(el) el.classList.toggle('active',m===mode);
+  });
+  updateRightPanel();
+}
+
+function rebuildGraph(){
+  const newN=parseInt(document.getElementById('inputN').value);
+  const newK=parseInt(document.getElementById('inputK').value);
+  if(isNaN(newN)||newN<3){alert('n must be ≥ 3 for G₃');return;}
+  if(newN>15){alert('n cannot exceed 15');return;}
+  if(isNaN(newK)||newK<1){alert('k must be ≥ 1');return;}
+  if(newK>=newN){alert('k must be < n');return;}
+  if(sortMode!==null){sortMode=null;sortRoot=null;bfsLayers=[];bfsTreeEdgeKeys=new Set();
+    document.body.classList.remove('pick-mode');
+    document.getElementById('btn-sort-vertices').classList.remove('active');
+    document.getElementById('btn-holography').classList.remove('active');
+    document.getElementById('sort-submenu').classList.remove('visible');}
+  N=newN;K=newK;
+  isFrozen=false;
+  stretchMode=false;
+  document.getElementById('stretchCb').checked=false;
+  document.body.classList.remove('stretch-mode');
+  document.getElementById('btn-clear-pins').style.display='none';
+  pinnedCount=0; edgeMidpoints=[];
+  document.getElementById('btn-freeze').textContent='❄  Freeze';
+  document.getElementById('btn-freeze').style.background='linear-gradient(135deg,#64748b,#334155)';
+  buildGraph();
+}
+
+function resetAll(){
+  // Restore default parameters
+  document.getElementById('inputN').value = 5;
+  document.getElementById('inputK').value = 2;
+  document.getElementById('wrappedCb').checked = false;
+  document.getElementById('symmetricCb').checked = true;
+  document.getElementById('stretchCb').checked = false;
+  document.getElementById('showGeneratorCb').checked = false;
+  document.getElementById('showIBFormulaCb').checked = false;
+  document.getElementById('showHolographyCb').checked = false;
+  showGenerator = false;
+  showIBFormula = false;
+  showHolography = false;
+  colorMode = 'degree';
+  // Reset color mode radio
+  document.querySelector('input[name="colorMode"][value="degree"]').checked = true;
+  ['degree','bfs-A','bfs-Astar','bfs-source'].forEach(m => {
+    const el = document.getElementById(`rm-${m}`);
+    if(el) el.classList.toggle('active', m === 'degree');
+  });
+  // Exit any active modes
+  if(sortMode !== null) exitSortMode();
+  if(dxyMode !== null) exitDxyMode();
+  // Rebuild with defaults
+  N = 5; K = 2;
+  isFrozen = false;
+  stretchMode = false;
+  document.body.classList.remove('stretch-mode');
+  document.getElementById('btn-clear-pins').style.display = 'none';
+  pinnedCount = 0; edgeMidpoints = [];
+  document.getElementById('btn-freeze').textContent = '❄  Freeze';
+  document.getElementById('btn-freeze').style.background = 'linear-gradient(135deg,#64748b,#334155)';
+  buildGraph();
+}
+
+
+function updateRepulsion(v)  { REPULSION=parseInt(v); physicsActive=true; }
+function updateAttraction(v) { ATTRACTION=parseInt(v)/1000; physicsActive=true; }
+
+// Right-panel sliders are now the sole controls
+function updateNodeSize2(v){
+  document.getElementById('nodeSizeVal2').textContent=v;
+  updateNodeSize(v);
+}
+function updateRepulsion2(v){
+  document.getElementById('repulsionVal2').textContent=v;
+  updateRepulsion(v);
+}
+function updateAttraction2(v){
+  document.getElementById('attractionVal2').textContent=(parseInt(v)/1000).toFixed(3);
+  updateAttraction(v);
+}
+function updateAnalysisFs2(v){
+  document.getElementById('analysisFsVal2').textContent=v;
+  updateAnalysisFs(v);
+}
+function updateEdgeLabelFs2(v){
+  document.getElementById('edgeLabelFsVal2').textContent=v;
+  updateEdgeLabelFs(v);
+}
+function updateSortBadgeFs2(v){
+  document.getElementById('sortBadgeFsVal2').textContent=v;
+  updateSortBadgeFs(v);
+}
+
+let analysisFontSize = 11;   // px, right panel
+let edgeLabelFontSize = 9;   // px, edge generator labels
+
+function updateAnalysisFs(v){
+  analysisFontSize=parseInt(v);
+  document.getElementById('right-panel').style.setProperty('--analysis-fs', v+'px');
+  document.getElementById('right-panel').style.fontSize = v+'px';
+}
+
+function updateEdgeLabelFs(v){
+  edgeLabelFontSize=parseInt(v);
+}
+
+let sortBadgeFontSize = 18;  // px, d= / c= layer badges in Sort mode
+
+function updateSortBadgeFs(v){
+  sortBadgeFontSize=parseInt(v);
+}
+</script>
+</body>
+</html>
