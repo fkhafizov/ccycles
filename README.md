@@ -8,10 +8,7 @@
   * https://fkhafizov.github.io/ccycles/g3_k3_n_mismatch_nodes_v2.html
   * https://fkhafizov.github.io/ccycles/g3_distance_table.html
   * https://fkhafizov.github.io/ccycles/g3_k5_n_mismatch_nodes.html
-  * https://fkhafizov.github.io/ccycles/cc2-zk-n-sonnet46-v2.html
-  * https://fkhafizov.github.io/ccycles/cc3-zk-n-sonnet46-v8.html <-- easy holo
-  * https://fkhafizov.github.io/ccycles/cc3-zk-n-sn46-v9-dXYhm.html <-- easy holo, heat map d(x,y)
-  * https://fkhafizov.github.io/ccycles/cc3-zk-nsn46-v10.html
+  * https://fkhafizov.github.io/ccycles/cc3-zk-nsn46-v11.html <-- easy holo, heat map d(x,y)
 
 ---------------------------------------------------
 
@@ -45,3 +42,10 @@ git branch -M main
 git push -u origin main
 
 ```
+
+
+old:
+
+  * https://fkhafizov.github.io/ccycles/cc2-zk-n-sonnet46-v2.html
+  * https://fkhafizov.github.io/ccycles/cc3-zk-n-sonnet46-v8.html <-- easy holo
+  * https://fkhafizov.github.io/ccycles/cc3-zk-n-sn46-v9-dXYhm.html <-- easy holo, heat map d(x,y)
