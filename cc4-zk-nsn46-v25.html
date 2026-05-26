@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>G₄(k,n) — Schreier Graph Visualizer v25</title>
+<script>
+// Pre-declare globals touched by inline HTML handlers so they exist
+// before the main script loads (p5 loads after the HTML body).
+// Uses window properties — main script let/const declarations take over.
+window.frozen = false;
+window.showHolo = false; window.showHoloH = false;
+window.showGen = false;  window.showIB = false;
+window.showNoTbl = false;
+window.nodeRad = 18; window.repStr = 3500; window.attStr = 0.025;
+window.naturalLen = 90; window.holoCellSz = 14; window.analysisFontSz = 11;
+window.edgeLabelFontSz = 10; window.nodeLabelFontSz = 9;
+window.rowBadgeFontSz = 9; window.holoAnnotFontSz = 9;
+// Stub functions — overwritten once main script executes
+function enterSortMode(){}
+function exitSortMode(){}
+function activateHolographyMode(){}
+function rebuildGraph(){}
+function resetAll(){}
+function shakeNodes(){}
+function updateRightPanel(){}
+</script>
+<style>
+/* ═══════ RESET ═══════ */
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#dbeafe;color:#e2e8f0;font-family:'Inter',system-ui,sans-serif;font-size:12px;overflow:hidden;user-select:none}
+
+/* ═══════ PANELS ═══════ */
+.panel{position:fixed;top:0;bottom:0;background:#1e293b;overflow-y:auto;z-index:10;padding:10px;scrollbar-width:thin;scrollbar-color:#334155 #1e293b}
+.panel::-webkit-scrollbar{width:4px}
+.panel::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+#left-panel{left:0;width:190px;border-right:1px solid #334155}
+#right-panel{right:0;width:208px;border-left:1px solid #334155;font-size:11px}
+#canvas-container{position:fixed;left:190px;right:208px;top:0;bottom:0;overflow:hidden}
+
+/* ═══════ PANEL TITLE ═══════ */
+.panel-title{font-size:14px;font-weight:700;color:#38bdf8;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #334155}
+
+/* ═══════ BUTTONS ═══════ */
+.btn{display:block;width:100%;padding:7px 8px;margin-bottom:5px;border:none;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;color:#e0f2fe;transition:opacity .15s,transform .1s;text-align:left;background:linear-gradient(135deg,#1e40af,#1d4ed8)}
+.btn:hover{opacity:.88;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-reset{background:linear-gradient(135deg,#7c3aed,#6d28d9)}
+.btn-shake{background:linear-gradient(135deg,#0369a1,#0284c7)}
+.btn-sort{background:linear-gradient(135deg,#065f46,#047857)}
+.btn-dxy{background:linear-gradient(135deg,#9a3412,#c2410c)}
+.btn-holo{background:linear-gradient(135deg,#6b21a8,#7e22ce)}
+.btn-holo.active{background:linear-gradient(135deg,#a855f7,#9333ea);outline:2px solid #d8b4fe;outline-offset:1px}
+.btn-png{background:linear-gradient(135deg,#0ea5e9,#0369a1)}
+#btn-clear-pins{background:linear-gradient(135deg,#991b1b,#b91c1c);display:none}
+
+/* ═══════ SECTION DIVIDER ═══════ */
+.sdiv{margin:9px 0 5px;display:flex;align-items:center;gap:6px}
+.sdiv::before,.sdiv::after{content:'';flex:1;height:1px;background:#334155}
+.slbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:#64748b;white-space:nowrap}
+
+/* ═══════ CONTROLS ═══════ */
+.ctrl-label{display:block;font-size:10.5px;color:#94a3b8;margin:6px 0 2px}
+input[type=number]{width:100%;padding:5px 7px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:5px;font-size:12px;margin-bottom:3px}
+input[type=number]:focus{outline:none;border-color:#38bdf8}
+
+/* ═══════ CHECKBOXES ═══════ */
+.cb-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;cursor:pointer;font-size:11px;color:#cbd5e1}
+.cb-row input[type=checkbox]{display:none}
+.cb-box{width:14px;height:14px;flex-shrink:0;background:#0f172a;border:1.5px solid #475569;border-radius:3px;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
+.cb-row input:checked~.cb-box{background:#1d4ed8;border-color:#38bdf8}
+.cb-row input:checked~.cb-box::after{content:'✓';font-size:9px;color:#e0f2fe}
+
+/* ═══════ RADIO BUTTONS ═══════ */
+.radio-group{margin:4px 0}
+.rr{display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:2px;border-radius:5px;cursor:pointer;font-size:11px;color:#94a3b8;transition:background .15s}
+.rr:hover{background:#0f172a60}
+.rr.active{background:#0f172a80;color:#e2e8f0}
+.rr input[type=radio]{display:none}
+.rdot{width:12px;height:12px;flex-shrink:0;border:2px solid #475569;border-radius:50%;transition:border-color .15s}
+.rr.active .rdot{border-color:#38bdf8;background:radial-gradient(circle at center,#38bdf8 3px,transparent 3px)}
+
+/* ═══════ SLIDERS ═══════ */
+.sl-row{margin-bottom:6px}
+.sl-label{display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-bottom:2px}
+input[type=range]{width:100%;height:4px;background:#334155;border-radius:2px;appearance:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:12px;height:12px;background:#38bdf8;border-radius:50%}
+
+/* ═══════ INFO ROWS ═══════ */
+.ir{display:flex;justify-content:space-between;align-items:baseline;padding:2px 0;font-size:11px}
+.ik{color:#64748b}
+.iv{font-weight:700;color:#e2e8f0;font-family:monospace}
+.iv.mn{letter-spacing:1.5px}
+
+/* ═══════ SORT SUBMENU ═══════ */
+#sort-submenu{display:none;background:#0f172a;border-radius:6px;padding:8px;margin-bottom:6px;border:1px solid #334155}
+.ss-lbl{font-size:10px;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px}
+.root-badge{display:inline-block;background:#1e40af;color:#bfdbfe;font-family:monospace;font-size:11px;padding:2px 7px;border-radius:4px;margin-bottom:6px;letter-spacing:1.5px}
+.ss-row{display:flex;gap:4px;margin-bottom:4px}
+.ss-btn{flex:1;padding:4px 6px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;font-size:10px;cursor:pointer;transition:background .15s,color .15s}
+.ss-btn.active{background:#1e40af;color:#bfdbfe;border-color:#3b82f6}
+.ss-exit{width:100%;padding:4px;background:#7f1d1d;color:#fca5a5;border:none;border-radius:4px;font-size:10px;cursor:pointer;margin-top:4px}
+
+/* ═══════ DXY SUBMENU ═══════ */
+#dxy-submenu{display:none;background:#0f172a;border-radius:6px;padding:8px;margin-bottom:6px;border:1px solid #334155}
+.dxy-lbl{font-size:10px;color:#64748b;margin-bottom:3px}
+.dxy-inp{width:100%;padding:4px 6px;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:4px;font-size:11px;font-family:monospace;margin-bottom:4px;letter-spacing:1px}
+.dxy-inp:focus{outline:none;border-color:#38bdf8}
+.dxy-go{width:100%;padding:5px;background:#1e40af;color:#bfdbfe;border:none;border-radius:4px;font-size:11px;cursor:pointer;margin-bottom:4px}
+.dxy-go:disabled{opacity:.4;cursor:not-allowed}
+.dxy-exit{width:100%;padding:4px;background:#7f1d1d;color:#fca5a5;border:none;border-radius:4px;font-size:10px;cursor:pointer}
+
+/* ═══════ TABLES ═══════ */
+.deg-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:4px}
+.deg-tbl th{padding:3px 4px;background:#0f172a;color:#64748b;text-align:left;font-weight:600;border-bottom:1px solid #334155}
+.deg-tbl td{padding:2px 4px;color:#cbd5e1;border-bottom:1px solid #1e293b}
+
+/* ═══════ LEGEND ═══════ */
+#legendItems{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#94a3b8}
+
+/* ═══════ HELP BTN ═══════ */
+#help-btn{position:fixed;bottom:12px;right:216px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;z-index:20;transition:background .15s,color .15s}
+#help-btn:hover{background:#334155;color:#e2e8f0}
+
+/* ═══════ HELP MODAL ═══════ */
+#help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;align-items:center;justify-content:center}
+#help-overlay.open{display:flex}
+#help-modal{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:28px 32px;max-width:660px;width:90%;max-height:85vh;overflow-y:auto;position:relative;color:#e2e8f0;font-size:12.5px;line-height:1.65}
+#help-close{position:absolute;top:12px;right:16px;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer}
+#help-close:hover{color:#e2e8f0}
+#help-modal h2{font-size:18px;color:#38bdf8;margin-bottom:4px}
+.hm-sub{color:#64748b;font-size:11px;margin-bottom:16px}
+.hs{margin-bottom:16px}
+.hs h3{font-size:13px;color:#7dd3fc;margin-bottom:6px;border-bottom:1px solid #334155;padding-bottom:3px}
+.hs p{margin-bottom:6px;color:#cbd5e1}
+.hs ul{padding-left:16px;color:#cbd5e1}
+.hs li{margin-bottom:3px}
+.hkey{background:#0f172a;color:#7dd3fc;padding:1px 6px;border-radius:3px;font-weight:700;font-family:monospace;font-size:11px}
+.hf{background:#0f172a;border-left:3px solid #38bdf8;border-radius:0 6px 6px 0;padding:10px 14px;margin:8px 0;font-family:monospace;font-size:11px;color:#7dd3fc;line-height:1.8;white-space:pre-wrap}
+
+/* ═══════ RIGHT PANEL CONTENT ═══════ */
+.rp-sec{padding:8px 0;border-bottom:1px solid #334155}
+.rp-sec:last-child{border-bottom:none}
+.rp-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:700;margin-bottom:5px}
+.rp-row{display:flex;justify-content:space-between;align-items:baseline;padding:2px 0;font-size:10.5px}
+.rp-k{color:#64748b}.rp-v{color:#e2e8f0;font-weight:700;font-family:monospace}
+.rp-v.mn{letter-spacing:1.5px;color:#7dd3fc}
+.no-tbl{width:100%;border-collapse:collapse;font-size:10px;margin-top:4px}
+.no-tbl th{padding:2px 3px;background:#0f172a;color:#64748b;font-weight:600;border-bottom:1px solid #334155;text-align:left}
+.no-tbl td{padding:2px 3px;color:#cbd5e1;border-bottom:1px solid #1e293b30}
+.no-tbl tr.hl{background:#1e40af30}
+.bounds-row{font-size:10px;color:#64748b;padding:2px 0}
+.bounds-val{color:#94a3b8;font-weight:700}
+.warn-box{background:#431407;border:1px solid #9a3412;border-radius:5px;padding:6px 8px;font-size:10px;color:#fed7aa;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LEFT PANEL ══════════════ -->
+<div class="panel" id="left-panel">
+  <div class="panel-title">⬡ G₄(k, n)</div>
+  <button class="btn btn-reset" onclick="resetAll()">↺  Reset</button>
+
+  <label class="ctrl-label">n  (string length, 4–12)</label>
+  <input type="number" id="inputN" value="6" min="4" max="12"
+    oninput="var ki=document.getElementById('inputK');ki.max=Math.max(1,+this.value-1);if(+ki.value>+ki.max)ki.value=ki.max">
+
+  <label class="ctrl-label">k  (zeros, ≥ 1, &lt; n)</label>
+  <input type="number" id="inputK" value="3" min="1" max="5">
+
+  <label class="cb-row" style="margin-top:5px;margin-bottom:4px">
+    <input type="checkbox" id="useHalfCb" onchange="useHalf=this.checked">
+    <span class="cb-box"></span><span>Use half-rotate (σᵢ²)</span>
+  </label>
+
+  <button class="btn" onclick="rebuildGraph()">▶  Generate</button>
+  <button class="btn btn-shake" onclick="shakeNodes()">🔀  Shake &amp; Resettle</button>
+
+  <label class="cb-row" style="margin-top:4px">
+    <input type="checkbox" id="symCb" checked onchange="keepSym=this.checked">
+    <span class="cb-box"></span><span>Keep symmetric</span>
+  </label>
+  <label class="cb-row" id="stretchCbRow">
+    <input type="checkbox" id="stretchCb" onchange="toggleStretchMode(this.checked)">
+    <span class="cb-box"></span><span>📌 Stretch (pin nodes)</span>
+  </label>
+  <button class="btn" id="btn-clear-pins" onclick="clearAllPins()">✕  Clear all pins</button>
+  <button class="btn" id="btn-freeze" onclick="toggleFreeze()">❄  Freeze</button>
+  <button class="btn btn-png" onclick="exportPNG()">📷  Export PNG</button>
+  <button class="btn btn-holo" onclick="activateHolographyMode()">◻  Holography</button>
+  <label class="cb-row" style="margin-top:2px;margin-bottom:2px">
+    <input type="checkbox" id="showHoloCb" onchange="showHolo=this.checked;if(frozen)redraw()">
+    <span class="cb-box"></span><span>Show all holography</span>
+  </label>
+  <label class="cb-row" style="margin-top:2px;margin-bottom:6px">
+    <input type="checkbox" id="showHoloHCb" onchange="showHoloH=this.checked;if(frozen)redraw()">
+    <span class="cb-box"></span><span>Show only h&gt;0</span>
+  </label>
+
+  <button class="btn btn-sort" id="btn-sort" onclick="enterSortMode()">🎯  Sort Vertices</button>
+  <div id="sort-submenu" style="display:none">
+    <div class="ss-lbl">Sort root</div>
+    <span class="root-badge" id="sort-root-badge">—</span>
+    <div class="ss-lbl" style="margin-top:4px">Layout</div>
+    <div class="ss-row">
+      <button class="ss-btn active" id="sub-rings" onclick="setSortLayout('rings')">⬤ Rings</button>
+      <button class="ss-btn" id="sub-rows"  onclick="setSortLayout('rows')">≡ Rows</button>
+    </div>
+    <div class="ss-row" id="rows-dir-row" style="display:none">
+      <button class="ss-btn active" id="sub-td" onclick="setSortDir('top')">▼ Top→Down</button>
+      <button class="ss-btn" id="sub-bu"        onclick="setSortDir('bottom')">▲ Bottom→Up</button>
+    </div>
+    <button class="ss-exit" onclick="exitSortMode()">✕ Exit Sort Mode</button>
+  </div>
+
+  <button class="btn btn-dxy" onclick="enterDxyMode()">📏  d(X,Y)</button>
+  <div id="dxy-submenu" style="display:none">
+    <div class="dxy-lbl">Click nodes or type labels</div>
+    <div class="dxy-lbl" style="margin-top:4px">X:</div>
+    <input class="dxy-inp" id="dxy-x" placeholder="click node or type…" oninput="dxyInputChanged('x')">
+    <div class="dxy-lbl">Y:</div>
+    <input class="dxy-inp" id="dxy-y" placeholder="click node or type…" oninput="dxyInputChanged('y')">
+    <button class="dxy-go" id="dxy-go" onclick="computeDxy()" disabled>↳ Compute d(X,Y)</button>
+    <button class="dxy-exit" onclick="exitDxyMode()">✕ Exit</button>
+  </div>
+
+  <div class="sdiv"><div class="slbl">Node Color</div></div>
+  <div class="radio-group" id="colorGroup">
+    <label class="rr active" id="rm-degree">
+      <input type="radio" name="cm" value="degree" checked onchange="setColorMode('degree')">
+      <span class="rdot"></span><span>By degree</span>
+    </label>
+    <label class="rr" id="rm-bfs-A">
+      <input type="radio" name="cm" value="bfs-A" onchange="setColorMode('bfs-A')">
+      <span class="rdot"></span><span>d from A</span>
+    </label>
+    <label class="rr" id="rm-bfs-As">
+      <input type="radio" name="cm" value="bfs-As" onchange="setColorMode('bfs-As')">
+      <span class="rdot"></span><span>d from A*</span>
+    </label>
+    <label class="rr" id="rm-bfs-src">
+      <input type="radio" name="cm" value="bfs-src" onchange="setColorMode('bfs-src')">
+      <span class="rdot"></span><span>d from clicked</span>
+    </label>
+    <label class="rr" id="rm-no-A">
+      <input type="radio" name="cm" value="no-A" onchange="setColorMode('no-A')">
+      <span class="rdot"></span><span>Nₒ from A <span style="font-size:.55rem;color:#475569">(heatmap)</span></span>
+    </label>
+  </div>
+  <label class="cb-row" style="margin-top:4px;margin-bottom:2px">
+    <input type="checkbox" id="showNoTblCb" onchange="showNoTbl=this.checked;updateRightPanel()">
+    <span class="cb-box"></span><span>Show Nₒ(A,·) table</span>
+  </label>
+
+  <div class="sdiv"><div class="slbl">Graph Info</div></div>
+  <div class="ir"><span class="ik">Zeros k:</span><span class="iv" id="iK">3</span></div>
+  <div class="ir"><span class="ik">A:</span><span class="iv mn" id="iA">000111</span></div>
+  <div class="ir"><span class="ik">A*:</span><span class="iv mn" id="iAs">111000</span></div>
+  <div class="ir"><span class="ik">|V| = C(n,k):</span><span class="iv" id="iV">20</span></div>
+  <div class="ir"><span class="ik">|E|:</span><span class="iv" id="iE">0</span></div>
+  <div class="ir"><span class="ik">diam:</span><span class="iv" id="iDiam">—</span></div>
+
+  <div class="sdiv"><div class="slbl">Generators</div></div>
+  <label class="cb-row" style="margin-bottom:6px">
+    <input type="checkbox" id="showGenCb" onchange="showGen=this.checked;if(frozen)redraw()">
+    <span class="cb-box"></span><span>Show generator labels</span>
+  </label>
+  <label class="cb-row" style="margin-bottom:6px">
+    <input type="checkbox" id="showIBCb" onchange="showIB=this.checked;if(frozen)redraw()">
+    <span class="cb-box"></span><span>Show I(B) formula</span>
+  </label>
+  <div id="legendItems"></div>
+
+  <div class="sdiv"><div class="slbl">Physics</div></div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Node Radius</span><span id="lbl-rad">18</span></div>
+    <input type="range" id="sl-rad" min="10" max="32" value="18"
+      oninput="nodeRad=+this.value;document.getElementById('lbl-rad').textContent=this.value;if(frozen)redraw()">
+  </div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Repulsion</span><span id="lbl-rep">3500</span></div>
+    <input type="range" id="sl-rep" min="500" max="9000" step="100" value="3500"
+      oninput="repStr=+this.value;document.getElementById('lbl-rep').textContent=this.value;if(frozen)redraw()">
+  </div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Attraction</span><span id="lbl-att">0.025</span></div>
+    <input type="range" id="sl-att" min="5" max="150" value="25"
+      oninput="attStr=this.value/1000;document.getElementById('lbl-att').textContent=(this.value/1000).toFixed(3);if(frozen)redraw()">
+  </div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Natural length</span><span id="lbl-nl">90</span></div>
+    <input type="range" id="sl-nl" min="40" max="220" value="90"
+      oninput="naturalLen=+this.value;document.getElementById('lbl-nl').textContent=this.value;if(frozen)redraw()">
+  </div>
+
+  <div class="sdiv"><div class="slbl">Display</div></div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Holo cell</span><span id="lbl-hc">14</span></div>
+    <input type="range" id="sl-hc" min="6" max="28" value="14"
+      oninput="holoCellSz=+this.value;document.getElementById('lbl-hc').textContent=this.value;if(frozen)redraw()">
+  </div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Analysis font</span><span id="lbl-af">11</span></div>
+    <input type="range" id="sl-af" min="8" max="18" value="11"
+      oninput="analysisFontSz=+this.value;document.getElementById('lbl-af').textContent=this.value;updateRightPanel();if(frozen)redraw()">
+  </div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Edge label font</span><span id="lbl-ef">10</span></div>
+    <input type="range" id="sl-ef" min="7" max="16" value="10"
+      oninput="edgeLabelFontSz=+this.value;document.getElementById('lbl-ef').textContent=this.value;if(frozen)redraw()">
+  </div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Node label font</span><span id="lbl-nlf">9</span></div>
+    <input type="range" id="sl-nlf" min="5" max="18" value="9"
+      oninput="nodeLabelFontSz=+this.value;document.getElementById('lbl-nlf').textContent=this.value;if(frozen)redraw()">
+  </div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Row badge font</span><span id="lbl-rbf">9</span></div>
+    <input type="range" id="sl-rbf" min="6" max="16" value="9"
+      oninput="rowBadgeFontSz=+this.value;document.getElementById('lbl-rbf').textContent=this.value;if(frozen)redraw()">
+  </div>
+  <div class="sl-row">
+    <div class="sl-label"><span>Holo annot font</span><span id="lbl-haf">9</span></div>
+    <input type="range" id="sl-haf" min="6" max="18" value="9"
+      oninput="holoAnnotFontSz=+this.value;document.getElementById('lbl-haf').textContent=this.value;if(frozen)redraw()">
+  </div>
+
+  <div class="sdiv"><div class="slbl">Degree Distribution</div></div>
+  <table class="deg-tbl">
+    <thead><tr><th>Deg</th><th>Vertices</th></tr></thead>
+    <tbody id="degTbody"></tbody>
+  </table>
+</div>
+
+<!-- ══════════════ RIGHT PANEL ══════════════ -->
+<div class="panel" id="right-panel"></div>
+
+<!-- ══════════════ HELP ══════════════ -->
+<button id="help-btn" onclick="document.getElementById('help-overlay').classList.add('open')">Help</button>
+
+<div id="help-overlay" onclick="if(event.target===this)this.classList.remove('open')">
+<div id="help-modal">
+  <button id="help-close" onclick="document.getElementById('help-overlay').classList.remove('open')">✕</button>
+  <h2>G₄(k, n) — Schreier Graph Visualizer</h2>
+  <div class="hm-sub">consecutive 4-cycle Schreier graph · v25</div>
+
+  <div class="hs">
+    <h3>What is G₄(k, n)?</h3>
+    <p>G₄(k, n) is the Schreier coset graph of the symmetric group Sₙ with respect to the subgroup S_k × S_{n−k} and the generating set of all consecutive 4-cycles and their powers.</p>
+    <p><strong>Vertices:</strong> all binary strings of length n with exactly k zeros — equivalently, cosets of S_k × S_{n−k}. Total: C(n, k) vertices.</p>
+    <div class="hf">Canonical A  =  0⁰…0  1¹…1  (k zeros then n-k ones)
+A*           =  1¹…1  0⁰…0  (antipodal node)</div>
+  </div>
+
+  <div class="hs">
+    <h3>Generators (2 or 3 types per window position i)</h3>
+    <p>At each window position i (0 ≤ i ≤ n−4), the four-cell window (s[i], s[i+1], s[i+2], s[i+3]) is acted on by:</p>
+    <div class="hf">σᵢ     RIGHT-rotate  (a,b,c,d) → (d,a,b,c)   ▶  solid line   [always on]
+σᵢ⁻¹   LEFT-rotate   (a,b,c,d) → (b,c,d,a)   ◀  dashed line  [always on]
+σᵢ²    HALF-rotate   (a,b,c,d) → (c,d,a,b)   ●  dotted line  [optional — enable before Generate]</div>
+    <p>By default only σᵢ and σᵢ⁻¹ are used (2 generators per position). Check <strong>Use half-rotate (σᵢ²)</strong> before clicking Generate to add σᵢ² as a third generator. Edge colour encodes window position i; edge style encodes generator type.</p>
+  </div>
+
+  <div class="hs">
+    <h3>Distance &amp; Holography</h3>
+    <p><strong>No closed-form distance formula is known for G₄.</strong> All distances d₄(A, B) are computed by BFS from A at graph-build time.</p>
+    <p><strong>Mann-Whitney U statistic:</strong> U = I(B) = Σᵢ (pos(zᵢ) − i) equals the pink shaded area under the lattice path of B — also called the <strong>AUC (Area Under the Curve)</strong>. The lattice path steps <em>right</em> for each '0' bit and <em>up</em> for each '1' bit.</p>
+    <p><strong>Holography annotations</strong> shown under each lattice map:</p>
+    <div class="hf">I      = area under lattice path (= AUC = U)
+⌈I/3⌉  = ceiling of I/3
+h      = d − ⌈I/3⌉    (holographic residual)</div>
+    <p>Click <strong>◻ Holography</strong> then click a node to see its k×(n−k) lattice diagram. Enable <strong>Show all holography</strong> to display grids on every node simultaneously.</p>
+  </div>
+
+  <div class="hs">
+    <h3>Node Coloring Modes</h3>
+    <ul>
+      <li><strong>By degree</strong>: blue (low) → red (high). Max degree = 3(n−3).</li>
+      <li><strong>d from A</strong>: green (d=0) → red (d=diam). BFS-based.</li>
+      <li><strong>d from A*</strong>: same gradient from the antipodal node.</li>
+      <li><strong>d from clicked</strong>: click any node to set BFS source.</li>
+      <li><strong>Nₒ from A</strong>: heatmap of shortest-path count (log scale).</li>
+    </ul>
+  </div>
+
+  <div class="hs">
+    <h3>Sort Vertices</h3>
+    <p>Click <strong>🎯 Sort Vertices</strong>, then click a root node. Choose layout:</p>
+    <ul>
+      <li><strong>Rings</strong>: BFS layers placed on concentric circles.</li>
+      <li><strong>Rows</strong>: BFS layers in horizontal rows with barycenter ordering to reduce crossings.</li>
+    </ul>
+  </div>
+
+  <div class="hs">
+    <h3>d(X,Y) Calculator</h3>
+    <p>Click <strong>📏 d(X,Y)</strong>, then click or type two node labels. Computes: exact BFS distance, Nₒ (shortest paths count), Nₚ (all simple paths, capped at 10⁶), and Hamming bounds ⌈H/2⌉ ≤ d ≤ H.</p>
+  </div>
+
+  <div class="hs">
+    <h3>Stretch Mode</h3>
+    <p>Enable <strong>📌 Stretch</strong>. Drag nodes to pin them. Click a pinned node to unpin. Drag an edge's midpoint handle to bend it. Shake &amp; Resettle clears all pins and bends.</p>
+  </div>
+
+  <div class="hs">
+    <h3>Keyboard Shortcuts</h3>
+    <ul>
+      <li><span class="hkey">Esc</span> — exit any active mode / close help</li>
+      <li><span class="hkey">f</span> — toggle Freeze</li>
+      <li><span class="hkey">s</span> — toggle symmetric</li>
+      <li><span class="hkey">g</span> — toggle generator labels</li>
+    </ul>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════ CANVAS ══════════════ -->
+<div id="canvas-container"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<script>
+// ════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════
+let N = 6, K = 3;
+let verts = [], vIdx = new Map();
+let nodes = [], edges = [], adjMap = new Map();
+let A_label = '', As_label = '';
+let distA = new Map(), distAs = new Map(), distSrc = new Map();
+let noA = new Map();
+let graphDiam = null, maxDeg = 0;
+// Cached maxima for color modes — recomputed on demand, never per-frame
+let _maxDistSrc = 0;   // max value in distSrc; update whenever distSrc changes
+let _maxNoA     = 0;   // max value in noA;     update whenever noA changes
+let components    = [];      // array of arrays of vertex labels; A's component first
+let nodeComp      = new Map(); // label → component index
+let sortCompLayers = [];     // [{layers, secX, secW, rootLbl}] built in applySortRows
+
+// UI toggles
+let colorMode = 'degree';
+let showGen = false;
+let showHolo = false;
+let showHoloH = false;   // show holography grids only for nodes with h > 0
+let showNoTbl = false;
+let showIB = false;
+let keepSym = true;
+let useHalf = false;   // half-rotate generator σᵢ² is optional, off by default
+let inStretch = false;
+let frozen = false;
+
+// Physics params
+let nodeRad = 18;
+let repStr = 3500;
+let attStr = 0.025;
+let naturalLen = 90;
+let holoCellSz = 14;
+let analysisFontSz = 11;
+let edgeLabelFontSz = 10;
+let nodeLabelFontSz = 9;    // bit-string font inside nodes
+let rowBadgeFontSz  = 9;    // d=/c= badge font in rows sort layout
+let holoAnnotFontSz = 9;    // font for I=, ceil, h= lines under holography grids
+
+// Sort mode
+let inSortMode = false;
+let sortRootIdx = -1;
+let sortLayout = 'rings';
+let sortDir = 'top';
+let sortLayers = null;
+
+// d(X,Y) mode
+let inDxyMode = false;
+let dxyX = null, dxyY = null, dxyResult = null;
+
+// Holography mode
+let inHoloMode = false;
+let holoIdx = -1;
+
+// Selection / BFS source
+let selectedNode = -1;
+let srcNodeIdx = -1;
+
+// Drag state
+let dragNodeIdx = -1;
+let dragEdgeIdx = -1;
+let hasDragged = false;
+
+// ════════════════════════════════════════════════════
+//  MATH — generators
+// ════════════════════════════════════════════════════
+function applyRight(s, i) {
+  const a = s.split('');
+  const tmp = a[i+3];
+  a[i+3] = a[i+2]; a[i+2] = a[i+1]; a[i+1] = a[i]; a[i] = tmp;
+  return a.join('');
+}
+function applyHalf(s, i) {
+  const a = s.split('');
+  let tmp = a[i]; a[i] = a[i+2]; a[i+2] = tmp;
+  tmp = a[i+1]; a[i+1] = a[i+3]; a[i+3] = tmp;
+  return a.join('');
+}
+function applyLeft(s, i) {
+  const a = s.split('');
+  const tmp = a[i];
+  a[i] = a[i+1]; a[i+1] = a[i+2]; a[i+2] = a[i+3]; a[i+3] = tmp;
+  return a.join('');
+}
+
+function genVertices(n, k) {
+  const r = [];
+  (function g(p, z, o, s) {
+    if (!z && !o) { r.push(s); return; }
+    if (z > 0) g(p+1, z-1, o, s+'0');
+    if (o > 0) g(p+1, z, o-1, s+'1');
+  })(0, k, n-k, '');
+  return r;
+}
+
+function computeI(s) {
+  let I = 0, zi = 0;
+  for (let p = 0; p < s.length; p++)
+    if (s[p] === '0') { zi++; I += (p+1) - zi; }
+  return I;
+}
+
+// ════════════════════════════════════════════════════
+//  MATH — BFS / path counting
+// ════════════════════════════════════════════════════
+function bfsFrom(root, adj) {
+  const d = new Map([[root, 0]]);
+  const q = [root]; let qi = 0;
+  while (qi < q.length) {
+    const c = q[qi++], dc = d.get(c);
+    for (const nb of (adj.get(c) || [])) {
+      if (!d.has(nb)) { d.set(nb, dc+1); q.push(nb); }
+    }
+  }
+  return d;
+}
+
+function countSP(root, adj) {
+  const d = new Map([[root,0]]), cnt = new Map([[root,1]]);
+  const q = [root]; let qi = 0;
+  while (qi < q.length) {
+    const c = q[qi++], dc = d.get(c);
+    for (const nb of (adj.get(c) || [])) {
+      if (!d.has(nb)) {
+        d.set(nb, dc+1); cnt.set(nb, cnt.get(c)); q.push(nb);
+      } else if (d.get(nb) === dc+1) {
+        cnt.set(nb, (cnt.get(nb)||0) + cnt.get(c));
+      }
+    }
+  }
+  return cnt;
+}
+
+function bfsOneSP(src, tgt, adj) {
+  if (src === tgt) return [src];
+  const par = new Map([[src, null]]);
+  const q = [src]; let qi = 0;
+  while (qi < q.length) {
+    const c = q[qi++];
+    if (c === tgt) break;
+    for (const nb of (adj.get(c) || [])) {
+      if (!par.has(nb)) { par.set(nb, c); q.push(nb); }
+    }
+  }
+  if (!par.has(tgt)) return null;
+  const path = []; let cur = tgt;
+  while (cur !== null) { path.unshift(cur); cur = par.get(cur); }
+  return path;
+}
+
+function countSPBetween(src, tgt, adj) {
+  if (src === tgt) return 1;
+  const d = new Map([[src,0]]), cnt = new Map([[src,1]]);
+  const q = [src]; let qi = 0;
+  while (qi < q.length) {
+    const c = q[qi++], dc = d.get(c);
+    if (d.has(tgt) && dc > d.get(tgt)) break;
+    for (const nb of (adj.get(c) || [])) {
+      if (!d.has(nb)) { d.set(nb, dc+1); cnt.set(nb, cnt.get(c)); q.push(nb); }
+      else if (d.get(nb) === dc+1) cnt.set(nb, (cnt.get(nb)||0) + cnt.get(c));
+    }
+  }
+  return cnt.get(tgt) || 0;
+}
+
+const NP_CAP = 1000000;
+function countAllSimple(src, tgt, adj) {
+  if (src === tgt) return {count:1, capped:false};
+  let count = 0, capped = false;
+  const vis = new Set([src]);
+  const dl = Date.now() + 3000;
+  function dfs(c) {
+    if (capped) return;
+    if (Date.now() > dl) { capped = true; return; }
+    for (const nb of (adj.get(c) || [])) {
+      if (nb === tgt) { if (++count >= NP_CAP) { capped = true; return; } }
+      else if (!vis.has(nb)) { vis.add(nb); dfs(nb); vis.delete(nb); }
+      if (capped) return;
+    }
+  }
+  dfs(src);
+  return {count, capped};
+}
+
+// ════════════════════════════════════════════════════
+//  EDGE BUILDING
+// ════════════════════════════════════════════════════
+function buildEdges(vs, n) {
+  const vidx = new Map(vs.map((v,i) => [v, i]));
+  const seen = new Set(), res = [];
+  const GENS = [['right',applyRight],['left',applyLeft]];
+  if (useHalf) GENS.splice(1, 0, ['half', applyHalf]);  // insert σᵢ² only when enabled
+
+  for (const v of vs) {
+    const vi = vidx.get(v);
+    for (let i = 0; i <= n-4; i++) {
+      for (const [type, fn] of GENS) {
+        const w = fn(v, i);
+        if (w === v) continue;
+        const wi = vidx.get(w);
+        if (wi === undefined) continue;
+        const [lo, hi] = vi < wi ? [vi, wi] : [wi, vi];
+        // Canonical type from lower-index vertex perspective
+        let ct = type;
+        if (vi > wi) {
+          if (type === 'right') ct = 'left';
+          else if (type === 'left') ct = 'right';
+          // 'half' stays 'half' (involution)
+        }
+        const key = `${lo}|${hi}|${i}|${ct}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          res.push({a:lo, b:hi, pos:i, type:ct, bend:null, offset:0});
+        }
+      }
+    }
+  }
+
+  // Compute parallel offsets for edges sharing the same node pair
+  const pairCnt = new Map(), pairIdx = new Map();
+  for (const e of res) {
+    const k = `${e.a}|${e.b}`;
+    pairCnt.set(k, (pairCnt.get(k)||0) + 1);
+  }
+  for (const e of res) {
+    const k = `${e.a}|${e.b}`;
+    const idx = pairIdx.get(k) ?? 0;
+    pairIdx.set(k, idx+1);
+    const tot = pairCnt.get(k);
+    e.offset = (idx - (tot-1)/2) * 18;
+  }
+  return res;
+}
+
+// ════════════════════════════════════════════════════
+//  CONNECTED COMPONENTS
+// ════════════════════════════════════════════════════
+function findComponents() {
+  const visited = new Set();
+  const comps   = [];
+
+  // A's component first
+  const aComp = [...bfsFrom(A_label, adjMap).keys()];
+  comps.push(aComp);
+  aComp.forEach(v => visited.add(v));
+
+  // Remaining components, largest first
+  const pending = [];
+  for (const v of verts) {
+    if (!visited.has(v)) {
+      const comp = [...bfsFrom(v, adjMap).keys()];
+      pending.push(comp);
+      comp.forEach(w => visited.add(w));
+    }
+  }
+  pending.sort((a, b) => b.length - a.length);
+  comps.push(...pending);
+
+  // Build reverse map: label → component index
+  nodeComp = new Map();
+  for (let ci = 0; ci < comps.length; ci++)
+    for (const v of comps[ci]) nodeComp.set(v, ci);
+
+  return comps;
+}
+
+// ════════════════════════════════════════════════════
+//  GRAPH BUILDING
+// ════════════════════════════════════════════════════
+function buildGraph() {
+  verts = genVertices(N, K);
+  vIdx  = new Map(verts.map((v,i) => [v, i]));
+
+  adjMap = new Map(verts.map(v => [v, []]));
+  edges  = buildEdges(verts, N);
+  for (const e of edges) {
+    const u = verts[e.a], v = verts[e.b];
+    adjMap.get(u).push(v);
+    adjMap.get(v).push(u);
+  }
+  // Deduplicate: multiple edges (different generators) can connect the same pair,
+  // which inflates Nₒ and Nₚ counts in BFS path-counting routines.
+  for (const [v, nbs] of adjMap) adjMap.set(v, [...new Set(nbs)]);
+
+  A_label  = '0'.repeat(K) + '1'.repeat(N-K);
+  As_label = '1'.repeat(N-K) + '0'.repeat(K);
+
+  distA  = bfsFrom(A_label,  adjMap);
+  distAs = bfsFrom(As_label, adjMap);
+  noA    = countSP(A_label,  adjMap);
+
+  // Cache BFS distance maxima — used every frame in nodeColor()
+  let _mA = 0; for (const d of distA.values())  if (d>_mA)  _mA  = d;
+  let _mAs= 0; for (const d of distAs.values()) if (d>_mAs) _mAs = d;
+  window._maxDistA  = _mA;
+  window._maxDistAs = _mAs;
+  // Cache noA maximum — used every frame in nodeColor() for 'no-A' mode
+  _maxNoA = 0; for (const v of noA.values()) if (v > _maxNoA) _maxNoA = v;
+  // Reset distSrc cache (source node cleared on rebuild)
+  _maxDistSrc = 0;
+
+  // Diameter — all-pairs BFS for small graphs
+  if (verts.length <= 300) {
+    graphDiam = 0;
+    for (const v of verts) {
+      const d = bfsFrom(v, adjMap);
+      for (const dv of d.values()) if (dv > graphDiam) graphDiam = dv;
+    }
+  } else {
+    graphDiam = null;
+  }
+
+  maxDeg = 0;
+  for (const v of verts) {
+    const deg = adjMap.get(v).length;
+    if (deg > maxDeg) maxDeg = deg;
+  }
+
+  // Build node objects
+  nodes = verts.map((v, i) => {
+    const rev = v.split('').reverse().join('');
+    return {
+      label: v, x:0, y:0, vx:0, vy:0,
+      pinned: false,
+      mirrorIdx: vIdx.get(rev) ?? i,
+      deg: adjMap.get(v).length,
+      U: computeI(v),
+      dA:  distA.get(v) ?? 0,
+      dAs: distAs.get(v) ?? 0,
+      no:  noA.get(v) ?? 0,
+    };
+  });
+
+  initPositions();
+  components = findComponents();   // detect connected components
+  updateLeftInfo();
+  buildLegend();
+  buildDegTable();
+  updateRightPanel();
+}
+
+function initPositions() {
+  // Temporarily detect components using adjMap (components global not yet set)
+  const visited = new Set();
+  const tempComps = [];
+  const aReach = [...bfsFrom(A_label, adjMap).keys()];
+  tempComps.push(aReach); aReach.forEach(v => visited.add(v));
+  for (const v of verts) {
+    if (!visited.has(v)) {
+      const c = [...bfsFrom(v, adjMap).keys()];
+      tempComps.push(c); c.forEach(w => visited.add(w));
+    }
+  }
+  // A's component is always first (pushed before the loop above); no sort needed.
+
+  const numC  = tempComps.length;
+  const secW  = width / numC;
+
+  for (let ci = 0; ci < numC; ci++) {
+    const comp   = tempComps[ci];
+    const ccx    = secW * (ci + 0.5);
+    const ccy    = height / 2;
+    const dists  = bfsFrom(comp[0], adjMap);
+    let maxD = 0; for (const d of dists.values()) if (d > maxD) maxD = d;
+    const maxR = Math.min(secW * 0.46, height * 0.40);
+
+    const layers = new Map();
+    for (const lbl of comp) {
+      const d = dists.get(lbl) ?? 0;
+      if (!layers.has(d)) layers.set(d, []);
+      layers.get(d).push(vIdx.get(lbl));
+    }
+    for (const [d, idxs] of layers) {
+      const r = maxD > 0 ? (d / maxD) * maxR : maxR * 0.5;
+      for (let j = 0; j < idxs.length; j++) {
+        const angle = (j / idxs.length) * TWO_PI + d * 0.7;
+        nodes[idxs[j]].x = ccx + r * Math.cos(angle) + (random()-0.5)*12;
+        nodes[idxs[j]].y = ccy + r * Math.sin(angle) + (random()-0.5)*12;
+        nodes[idxs[j]].vx = nodes[idxs[j]].vy = 0;
+      }
+    }
+  }
+  if (keepSym && tempComps.length === 1) enforceSymmetry();
+}
+
+// ════════════════════════════════════════════════════
+//  PHYSICS
+// ════════════════════════════════════════════════════
+function applyPhysics() {
+  if (frozen) return;
+  const DAMP = 0.80, CP = 0.012;
+  const cx = width/2, cy = height/2;
+
+  for (const n of nodes) { n.fx = 0; n.fy = 0; }
+
+  // O(V²) repulsion
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i+1; j < nodes.length; j++) {
+      const dx = nodes[j].x - nodes[i].x;
+      const dy = nodes[j].y - nodes[i].y;
+      const d2 = dx*dx + dy*dy + 1;
+      const d  = Math.sqrt(d2);
+      const f  = repStr / d2;
+      const fx = f*dx/d, fy = f*dy/d;
+      nodes[i].fx -= fx; nodes[i].fy -= fy;
+      nodes[j].fx += fx; nodes[j].fy += fy;
+    }
+  }
+
+  // Spring attraction along edges
+  for (const e of edges) {
+    const a = nodes[e.a], b = nodes[e.b];
+    const dx = b.x-a.x, dy = b.y-a.y;
+    const d  = Math.sqrt(dx*dx + dy*dy) + 0.1;
+    const f  = attStr * (d - naturalLen);
+    const fx = f*dx/d, fy = f*dy/d;
+    a.fx += fx; a.fy += fy;
+    b.fx -= fx; b.fy -= fy;
+  }
+
+  // Integrate — pull each node toward its component's home center
+  const numC = Math.max(1, components.length);
+  for (const n of nodes) {
+    if (n.pinned) { n.vx = n.vy = 0; continue; }
+    const ci  = nodeComp.get(n.label) ?? 0;
+    const ccx = (ci + 0.5) * width / numC;
+    n.fx += (ccx    - n.x) * CP;
+    n.fy += (height/2 - n.y) * CP;
+    n.vx = (n.vx + n.fx) * DAMP;
+    n.vy = (n.vy + n.fy) * DAMP;
+    n.x += n.vx;
+    n.y += n.vy;
+    n.x = Math.max(nodeRad+2, Math.min(width-nodeRad-2, n.x));
+    n.y = Math.max(nodeRad+2, Math.min(height-nodeRad-2, n.y));
+  }
+
+  if (keepSym && components.length === 1) enforceSymmetry();
+}
+
+function enforceSymmetry() {
+  const cx = width / 2;
+  for (let i = 0; i < nodes.length; i++) {
+    const mi = nodes[i].mirrorIdx;
+    if (mi <= i) continue; // process each pair once
+    const avgY = (nodes[i].y + nodes[mi].y) / 2;
+    const avgDist = (Math.abs(cx-nodes[i].x) + Math.abs(cx-nodes[mi].x)) / 2;
+    nodes[i].x  = cx - avgDist; nodes[mi].x = cx + avgDist;
+    nodes[i].y  = avgY;         nodes[mi].y = avgY;
+    nodes[mi].vx = -nodes[i].vx; nodes[mi].vy = nodes[i].vy;
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  COLOR HELPERS
+// ════════════════════════════════════════════════════
+const POS_COLORS = [
+  [239,68,68],[249,115,22],[234,179,8],[34,197,94],
+  [6,182,212],[59,130,246],[139,92,246],[236,72,153],[20,184,166]
+];
+
+function lerpRGB(c0, c1, t) {
+  return [c0[0]+(c1[0]-c0[0])*t, c0[1]+(c1[1]-c0[1])*t, c0[2]+(c1[2]-c0[2])*t];
+}
+
+function distColor(d, maxD) {
+  if (d === 0) return [50,220,100];
+  if (d === undefined || maxD === 0) return [120,120,120];
+  return lerpRGB([100,200,255],[255,60,60], Math.min(1, d/maxD));
+}
+
+function nodeColor(ni) {
+  const n = nodes[ni];
+  if (colorMode === 'degree') {
+    const t = maxDeg > 0 ? n.deg/maxDeg : 0;
+    return lerpRGB([80,140,255],[255,80,80], t);
+  }
+  if (colorMode === 'bfs-A') {
+    return distColor(n.dA, window._maxDistA ?? 1);
+  }
+  if (colorMode === 'bfs-As') {
+    return distColor(n.dAs, window._maxDistAs ?? 1);
+  }
+  if (colorMode === 'bfs-src') {
+    const d = distSrc.get(n.label);
+    if (d === undefined) return [80,80,80];
+    return distColor(d, _maxDistSrc);
+  }
+  if (colorMode === 'no-A') {
+    if (!n.no || _maxNoA === 0) return [50,70,100];
+    const t = Math.log(n.no) / Math.log(_maxNoA+1);
+    return lerpRGB([80,130,255],[255,80,30], t);
+  }
+  return [120,120,120];
+}
+
+// ════════════════════════════════════════════════════
+//  DRAWING HELPERS
+// ════════════════════════════════════════════════════
+function getEdgeCtrl(e) {
+  if (e.bend) return e.bend;
+  const a = nodes[e.a], b = nodes[e.b];
+  const dx = b.x-a.x, dy = b.y-a.y;
+  const len = Math.sqrt(dx*dx+dy*dy) + 0.001;
+  const ux = dx/len, uy = dy/len;   // unit vector along edge
+  const nx = -uy,   ny =  ux;       // unit normal (left perpendicular)
+
+  // Base control point: midpoint shifted by any parallel-edge offset
+  let cpx = (a.x+b.x)/2 + nx*e.offset;
+  let cpy = (a.y+b.y)/2 + ny*e.offset;
+
+  // Auto-deflect: if any non-endpoint node lies too close to the straight
+  // line segment, bend the control point to arc around it.
+  const CLEAR = nodeRad + 10;
+  let bestDeflect = 0, bestSign = 1;
+  for (let i = 0; i < nodes.length; i++) {
+    if (i === e.a || i === e.b) continue;
+    const n = nodes[i];
+    // Parametric projection onto the segment [a, b]
+    const t = ((n.x - a.x)*ux + (n.y - a.y)*uy) / len;
+    if (t < 0.05 || t > 0.95) continue;
+    // Signed perpendicular distance from the node to the line
+    const perp = (n.x - a.x)*nx + (n.y - a.y)*ny;
+    const gap  = CLEAR - Math.abs(perp);
+    if (gap > 0 && gap > bestDeflect) {
+      bestDeflect = gap;
+      bestSign    = perp >= 0 ? -1 : 1;  // push control point away from node
+    }
+  }
+  if (bestDeflect > 0) {
+    // Moving the quadratic Bezier control point by d shifts the curve apex by d/2,
+    // so multiply by 2 to achieve the required clearance at the curve midpoint.
+    cpx += nx * bestSign * bestDeflect * 2;
+    cpy += ny * bestSign * bestDeflect * 2;
+  }
+
+  return {x: cpx, y: cpy};
+}
+
+function edgeMidPt(e) {
+  const a = nodes[e.a], b = nodes[e.b], cp = getEdgeCtrl(e);
+  return {x: 0.25*a.x + 0.5*cp.x + 0.25*b.x, y: 0.25*a.y + 0.5*cp.y + 0.25*b.y};
+}
+
+function dashedCurve(x0,y0,cpx,cpy,x1,y1,dL,gL) {
+  const pts = [];
+  for (let t = 0; t <= 1; t += 0.02) {
+    const u = 1-t;
+    pts.push({x: u*u*x0+2*u*t*cpx+t*t*x1, y: u*u*y0+2*u*t*cpy+t*t*y1});
+  }
+  let acc = 0, on = true;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x-pts[i-1].x, dy = pts[i].y-pts[i-1].y;
+    const sl = Math.sqrt(dx*dx+dy*dy);
+    if (on) line(pts[i-1].x, pts[i-1].y, pts[i].x, pts[i].y);
+    acc += sl;
+    if ((on && acc >= dL) || (!on && acc >= gL)) { acc = 0; on = !on; }
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  MAIN DRAW ROUTINES
+// ════════════════════════════════════════════════════
+function drawEdges() {
+  // Highlight d(X,Y) path
+  if (dxyResult && dxyResult.path && dxyResult.path.length > 1) {
+    const pathSet = new Set();
+    for (let i = 0; i < dxyResult.path.length-1; i++) {
+      pathSet.add(dxyResult.path[i]+'|'+dxyResult.path[i+1]);
+      pathSet.add(dxyResult.path[i+1]+'|'+dxyResult.path[i]);
+    }
+    strokeWeight(7); stroke(255,220,0,70); noFill();
+    for (const e of edges) {
+      const ua = verts[e.a], ub = verts[e.b];
+      if (pathSet.has(ua+'|'+ub) || pathSet.has(ub+'|'+ua)) {
+        const a = nodes[e.a], b = nodes[e.b], cp = getEdgeCtrl(e);
+        beginShape(); vertex(a.x,a.y); quadraticVertex(cp.x,cp.y,b.x,b.y); endShape();
+      }
+    }
+  }
+
+  // Draw all edges
+  for (const e of edges) {
+    const a = nodes[e.a], b = nodes[e.b];
+    const [r,g,bl] = POS_COLORS[e.pos % POS_COLORS.length];
+    stroke(r, g, bl, 190); noFill();
+    const cp = getEdgeCtrl(e);
+    const curved = e.bend || Math.abs(e.offset) > 0.5;
+
+    if (e.type === 'right') {
+      strokeWeight(2);
+      beginShape(); vertex(a.x,a.y); quadraticVertex(cp.x,cp.y,b.x,b.y); endShape();
+    } else if (e.type === 'half') {
+      strokeWeight(2.5);
+      dashedCurve(a.x,a.y, cp.x,cp.y, b.x,b.y, 4, 5);
+    } else {
+      strokeWeight(2);
+      dashedCurve(a.x,a.y, cp.x,cp.y, b.x,b.y, 10, 5);
+    }
+  }
+}
+
+function drawEdgeLabels() {
+  for (const e of edges) {
+    const mp = edgeMidPt(e);
+    let sym, bgR,bgG,bgB, fgR,fgG,fgB;
+    if (e.type === 'right') {
+      sym=`▶${e.pos}`; bgR=220;bgG=252;bgB=231; fgR=22;fgG=101;fgB=52;
+    } else if (e.type === 'half') {
+      sym=`●${e.pos}`; bgR=219;bgG=234;bgB=254; fgR=30;fgG=64;fgB=175;
+    } else {
+      sym=`◀${e.pos}`; bgR=255;bgG=237;bgB=213; fgR=154;fgG=52;fgB=18;
+    }
+    textSize(edgeLabelFontSz); textAlign(CENTER,CENTER);
+    const tw = textWidth(sym)+6, th = edgeLabelFontSz+4;
+    fill(bgR,bgG,bgB,220); stroke(fgR,fgG,fgB,120); strokeWeight(0.8);
+    rect(mp.x-tw/2, mp.y-th/2, tw, th, 3);
+    fill(fgR,fgG,fgB); noStroke();
+    text(sym, mp.x, mp.y);
+  }
+}
+
+function drawEdgeHandles() {
+  for (let i = 0; i < edges.length; i++) {
+    const mp = edgeMidPt(edges[i]);
+    const [r,g,bl] = POS_COLORS[edges[i].pos % POS_COLORS.length];
+    fill(r,g,bl,110); stroke(r,g,bl,200); strokeWeight(1);
+    ellipse(mp.x, mp.y, 10, 10);
+  }
+}
+
+function drawNodes() {
+  for (let i = 0; i < nodes.length; i++) {
+    const n  = nodes[i];
+    const [r,g,bl] = nodeColor(i);
+    const hv = n.dA - Math.ceil(n.U / 3);   // h = d - ceil(I/3)
+    const nr = nodeRad;
+    // Helper: draw node outline shape (circle or square)
+    const outlineShape = (sz) => {
+      if (hv > 0) rect(n.x - sz, n.y - sz, sz*2, sz*2, 3);
+      else        ellipse(n.x, n.y, sz*2);
+    };
+
+    // Selection / mode rings
+    if (inHoloMode && i === holoIdx) {
+      noFill(); stroke(200,200,255,200); strokeWeight(3);
+      outlineShape(nr+6);
+    }
+    if (inSortMode && i === sortRootIdx) {
+      noFill(); stroke(100,255,160,200); strokeWeight(2.5);
+      outlineShape(nr+5);
+    }
+    if (i === selectedNode || n.label === dxyX || n.label === dxyY) {
+      noFill(); stroke(255,220,0,200); strokeWeight(2.5);
+      outlineShape(nr+4);
+    }
+    if (n.pinned) {
+      noFill(); stroke(255,80,80,160); strokeWeight(1.5);
+      outlineShape(nr+5);
+      fill(255,80,80,200); noStroke();
+      ellipse(n.x+nr+2, n.y-nr-2, 7, 7);
+    }
+
+    // Node body
+    fill(r,g,bl); stroke(20,30,55); strokeWeight(1.5);
+    if (hv > 0) rect(n.x - nr, n.y - nr, nr*2, nr*2, 3);
+    else        ellipse(n.x, n.y, nr*2);
+
+    // Label — cyan for A and A*, dark otherwise
+    const isSpecial = n.label === A_label || n.label === As_label;
+    fill(isSpecial ? 0 : 15, isSpecial ? 255 : 23, isSpecial ? 255 : 42);
+    noStroke(); textAlign(CENTER,CENTER);
+    textSize(nodeLabelFontSz);
+    text(n.label, n.x, n.y);
+  }
+}
+
+function drawHoloGrid(s, x, y, cs) {
+  const k0 = s.split('').filter(c=>c==='0').length;
+  const nk = s.length - k0;
+  if (!k0 || !nk) return;
+  const W = k0*cs, H = nk*cs;
+
+  fill(191,219,254,230); stroke(150,180,220,180); strokeWeight(1);
+  rect(x, y, W, H, 2);
+
+  let col = 0, mh = 0;
+  for (const b of s) {
+    if (b==='1') { mh++; }
+    else {
+      fill(255,180,180,200); noStroke();
+      for (let r = 0; r < mh; r++) rect(x+col*cs, y+(nk-1-r)*cs, cs, cs);
+      col++;
+    }
+  }
+
+  stroke(180,200,220,150); strokeWeight(0.5);
+  for (let c = 0; c <= k0; c++) line(x+c*cs, y, x+c*cs, y+H);
+  for (let r = 0; r <= nk; r++) line(x, y+r*cs, x+W, y+r*cs);
+
+  stroke(200,50,50); strokeWeight(Math.max(1.5, cs/8));
+  let px = x, py = y+H;
+  for (const b of s) {
+    const nx = b==='0' ? px+cs : px;
+    const ny = b==='0' ? py : py-cs;
+    line(px, py, nx, ny); px=nx; py=ny;
+  }
+  noStroke();
+}
+
+function drawAllHolograms() {
+  if (!frozen && verts.length > 60) return; // skip during animation for large graphs; always draw when frozen
+  for (let i = 0; i < nodes.length; i++) {
+    const n  = nodes[i];
+    const hv = n.dA - Math.ceil(n.U / 3);
+    if (showHoloH && hv <= 0) continue;   // filter: show only h>0 nodes
+    const k0 = n.label.split('').filter(c=>c==='0').length;
+    const nk = n.label.length - k0;
+    if (!k0 || !nk) continue;
+    const cs = holoCellSz;
+    const GH = nk * cs;
+    const hx = n.x + nodeRad + 4;
+    const hy = n.y - GH / 2;
+    drawHoloGrid(n.label, hx, hy, cs);
+
+    // Annotations below each grid
+    const I   = n.U;
+    const I3c = Math.ceil(I / 3);
+    // hv already declared above
+    const lh  = holoAnnotFontSz;
+    textFont('monospace'); textSize(lh); textAlign(LEFT, TOP); noStroke();
+    const ay = hy + GH + 2;
+    const lines = [
+      { txt: `I=${I}`,            col: [180, 130, 255] },
+      { txt: `\u2308I/3\u2309=${I3c}`, col: [80, 210, 140] },
+      { txt: `h=${hv}`,           col: [255, 180, 60] },
+    ];
+    lines.forEach(({txt, col}, i) => {
+      const ty = ay + i * (lh + 3);
+      fill(10, 18, 38, 190); noStroke();
+      rect(hx - 1, ty, textWidth(txt) + 4, lh + 1, 2);
+      fill(...col); noStroke();
+      text(txt, hx + 1, ty + 1);
+    });
+  }
+}
+
+function drawSortLayout() {
+  if (!inSortMode || sortRootIdx < 0 || !sortLayers) return;
+  if (sortLayout === 'rings') {
+    const numC = components.length;
+    const secW = width / numC;
+    noFill(); stroke(50,80,120,55); strokeWeight(1);
+    for (let ci = 0; ci < numC; ci++) {
+      const comp    = components[ci];
+      const compSet = new Set(comp);
+      const rootLbl = ci === 0 ? nodes[sortRootIdx].label : comp[0];
+      const dists   = bfsFrom(rootLbl, adjMap);
+      let maxD = 0; for (const d of dists.values()) if (d > maxD) maxD = d;
+      const cx   = (ci + 0.5) * secW;
+      const cy   = height / 2;
+      const maxR = Math.min(secW * 0.46, height * 0.44);
+      for (let d = 1; d <= maxD; d++) {
+        ellipse(cx, cy, (d / maxD) * maxR * 2);
+      }
+    }
+  } else {
+    // ── Vertical component separators ──────────────────────────────
+    if (sortCompLayers.length > 1) {
+      stroke(100, 140, 200, 60); strokeWeight(1.5);
+      for (let ci = 1; ci < sortCompLayers.length; ci++) {
+        const x = sortCompLayers[ci].secX;
+        line(x, 0, x, height);
+      }
+    }
+
+    // ── Row guide lines & d=/c= badges per component ───────────────
+    const LBL_W = 58, LBL_H = 28, LBL_R = 5;
+
+    for (let ci = 0; ci < sortCompLayers.length; ci++) {
+      const {layers, secX, secW} = sortCompLayers[ci];
+      let maxD = 0; for (const d of layers.keys()) if (d > maxD) maxD = d;
+      const rowH = (height - 60) / (maxD + 1);
+
+      // Subtle row guide lines scoped to this component's section
+      stroke(50, 80, 120, 35); strokeWeight(1);
+      for (let d = 0; d <= maxD; d++) {
+        const y = sortDir==='top' ? (30+d*rowH) : (height-30-d*rowH);
+        line(secX, y, secX + secW, y);
+      }
+
+      // Badges — only in the leftmost component's margin (ci===0)
+      // For ci>0 draw a compact badge just inside their section
+      for (const [d, idxs] of layers) {
+        const y  = sortDir==='top' ? (30+d*rowH) : (height-30-d*rowH);
+        const bx = ci === 0 ? 4 : secX + 4;
+        const by = y - LBL_H/2;
+
+        fill(236, 246, 255, 220); stroke(147, 197, 253, 190); strokeWeight(1);
+        rect(bx, by, LBL_W, LBL_H, LBL_R);
+
+        textFont('monospace'); textAlign(LEFT, TOP); noStroke();
+        textSize(rowBadgeFontSz);
+        fill(30, 80, 180);  text(`d=${d}`,        bx+5, by+3);
+        fill(20, 120, 80);  text(`c=${idxs.length}`, bx+5, by+14);
+      }
+    }
+  }
+}
+
+function drawFreezeCallouts() {
+  const ai = vIdx.get(A_label), asi = vIdx.get(As_label);
+  if (ai !== undefined) drawCallout(nodes[ai], 'A', [50,220,100]);
+  if (asi !== undefined && A_label !== As_label) drawCallout(nodes[asi], 'A*', [255,100,100]);
+}
+
+function drawCallout(n, label, col) {
+  const side = n.x > width/2 ? -1 : 1;
+  const tx = n.x + side*70;
+  // Flip callout below the node when it's too close to the top edge
+  const goDown = n.y < 60;
+  const ty = goDown ? n.y + 40 : n.y - 40;
+  stroke(...col, 150); strokeWeight(1);
+  line(n.x, n.y, tx, ty);
+  textSize(12); textAlign(CENTER,CENTER);
+  const tw = textWidth(label)+12;
+  fill(20,30,50,220); stroke(...col, 180); strokeWeight(1);
+  rect(tx-tw/2, ty-12, tw, 24, 5);
+  fill(...col); noStroke();
+  text(label, tx, ty);
+}
+
+function drawInfoOverlay() {
+  // BFS distance color legend
+  if (colorMode==='bfs-A'||colorMode==='bfs-As'||colorMode==='bfs-src') {
+    let mx = 0;
+    const dmap = colorMode==='bfs-A' ? distA : colorMode==='bfs-As' ? distAs : distSrc;
+    for (const d of dmap.values()) if (d>mx) mx=d;
+    textSize(9); textAlign(LEFT,TOP);
+    for (let d = 0; d <= Math.min(mx,12); d++) {
+      const [r,g,bl] = distColor(d,mx);
+      fill(r,g,bl); noStroke();
+      rect(10, 10+d*12, 10, 10, 2);
+      fill(20,50,110); text(`d=${d}`, 24, 10+d*12);
+    }
+  }
+
+  // Mode label
+  let ml = '';
+  if (inSortMode) ml = '🎯 Sort Mode — click a node as BFS root';
+  else if (inDxyMode) ml = '📏 d(X,Y) Mode — click two nodes';
+  else if (inHoloMode) ml = '◻ Holography — click a node';
+  else if (inStretch) ml = '📌 Stretch Mode — drag nodes/edge handles';
+  if (ml) {
+    textSize(11); textAlign(LEFT,BOTTOM); fill(20,60,160); noStroke();
+    text(ml, 10, height-10);
+  }
+}
+
+// Inline holography overlay near selected node
+function drawHoloInline() {
+  if (!inHoloMode || holoIdx < 0) return;
+  const n  = nodes[holoIdx];
+  const k0 = n.label.split('').filter(c=>c==='0').length;
+  const nk = n.label.length - k0;
+  if (!k0 || !nk) return;
+  const cs  = holoCellSz;
+  const GW  = k0 * cs;
+  const GH  = nk * cs;
+
+  // Annotation block height: 3 lines × 14px + 6px gap above grid
+  const ANNOT_H = 48;
+  // Flip left if grid would overflow right edge
+  const goLeft = n.x + nodeRad + 8 + GW + 120 > width;
+  const hx = goLeft ? n.x - nodeRad - 8 - GW : n.x + nodeRad + 8;
+  // Clamp so annotation + grid fit vertically
+  const hy = Math.min(Math.max(n.y - GH/2, ANNOT_H + 4), height - GH - 4);
+
+  // ── Lattice grid ───────────────────────────────────────────────
+  drawHoloGrid(n.label, hx, hy, cs);
+
+  // ── Annotation below the grid ──────────────────────────────────
+  const I   = n.U;
+  const I3c = Math.ceil(I / 3);
+  const hv  = n.dA - I3c;   // h = d - ceil(I/3)
+  const lh  = holoAnnotFontSz;
+  const annots = [
+    { txt: `d(A,B) = ${n.dA}`,          col: [100, 160, 240] },
+    { txt: `I = ${I}`,                   col: [180, 130, 255] },
+    { txt: `\u2308I/3\u2309 = ${I3c}`,  col: [80,  210, 140] },
+    { txt: `h = ${hv}`,                  col: [255, 180,  60] },
+  ];
+  textFont('monospace'); textSize(lh); textAlign(LEFT, TOP); noStroke();
+  annots.forEach(({txt, col}, i) => {
+    const ty = hy + GH + 3 + i * (lh + 3);
+    const tw = textWidth(txt) + 6;
+    fill(10, 18, 38, 200); noStroke();
+    rect(hx - 2, ty, tw, lh + 2, 2);
+    fill(...col); noStroke();
+    text(txt, hx + 1, ty + 1);
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  AUTO-SORT HELPER  (called after every graph build)
+// ════════════════════════════════════════════════════
+function autoSortFromA() {
+  inSortMode  = true;
+  sortLayout  = 'rows';
+  sortDir     = 'top';
+  sortRootIdx = vIdx.get(A_label) ?? 0;
+  // Freeze so physics doesn't fight the layout
+  frozen = true; noLoop();
+  document.getElementById('btn-freeze').textContent = '▶  Unfreeze';
+  // Sync submenu UI
+  document.getElementById('sort-submenu').style.display = 'block';
+  document.getElementById('sort-root-badge').textContent = A_label;
+  document.getElementById('sub-rings').classList.remove('active');
+  document.getElementById('sub-rows').classList.add('active');
+  document.getElementById('rows-dir-row').style.display = 'flex';
+  document.getElementById('sub-td').classList.add('active');
+  document.getElementById('sub-bu').classList.remove('active');
+  applyCurrentSort();
+}
+
+// ════════════════════════════════════════════════════
+//  P5 LIFECYCLE
+// ════════════════════════════════════════════════════
+function setup() {
+  const c = document.getElementById('canvas-container');
+  const cnv = createCanvas(c.offsetWidth, c.offsetHeight);
+  cnv.parent('canvas-container');
+  frameRate(30);
+  textFont('monospace');
+  buildGraph();
+  autoSortFromA();   // default view: Sort Rows (top-down) rooted at A
+}
+
+function draw() {
+  background(219, 234, 254);
+  applyPhysics();
+  drawEdges();
+  if (showGen)   drawEdgeLabels();
+  if (inStretch) drawEdgeHandles();
+  if (showHolo || showHoloH) drawAllHolograms();
+  drawNodes();
+  drawSortLayout();
+  drawFreezeCallouts();
+  drawHoloInline();
+  drawInfoOverlay();
+}
+
+function windowResized() {
+  const c = document.getElementById('canvas-container');
+  resizeCanvas(c.offsetWidth, c.offsetHeight);
+}
+
+// ════════════════════════════════════════════════════
+//  MOUSE INTERACTIONS
+// ════════════════════════════════════════════════════
+function mousePressed() {
+  if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return;
+  hasDragged = false;
+
+  // Find nearest node
+  let closest = -1, minD = Infinity;
+  for (let i = 0; i < nodes.length; i++) {
+    const d = dist(mouseX, mouseY, nodes[i].x, nodes[i].y);
+    if (d < minD) { minD = d; closest = i; }
+  }
+  const hitNode = closest >= 0 && minD < nodeRad*2 + 4;
+
+  if (inSortMode) {
+    if (hitNode) {
+      sortRootIdx = closest;
+      document.getElementById('sort-root-badge').textContent = nodes[closest].label;
+      applyCurrentSort();
+    }
+    return;
+  }
+
+  if (inDxyMode) {
+    if (hitNode) {
+      const lbl = nodes[closest].label;
+      if (!dxyX) {
+        dxyX = lbl;
+        document.getElementById('dxy-x').value = lbl;
+      } else if (!dxyY && lbl !== dxyX) {
+        dxyY = lbl;
+        document.getElementById('dxy-y').value = lbl;
+      } else {
+        dxyX = lbl; dxyY = null;
+        document.getElementById('dxy-x').value = lbl;
+        document.getElementById('dxy-y').value = '';
+      }
+      checkDxyReady();
+    }
+    return;
+  }
+
+  if (inHoloMode) {
+    if (hitNode) { holoIdx = closest; updateRightPanel(); if (frozen) redraw(); }
+    return;
+  }
+
+  if (inStretch) {
+    // Check edge handles
+    let eHandle = -1, eMinD = 12;
+    for (let i = 0; i < edges.length; i++) {
+      const mp = edgeMidPt(edges[i]);
+      const d = dist(mouseX, mouseY, mp.x, mp.y);
+      if (d < eMinD) { eMinD = d; eHandle = i; }
+    }
+    if (eHandle >= 0) { dragEdgeIdx = eHandle; dragNodeIdx = -1; return; }
+    if (hitNode) { dragNodeIdx = closest; dragEdgeIdx = -1; }
+    return;
+  }
+
+  // Normal mode
+  if (hitNode) {
+    dragNodeIdx = closest;
+    selectedNode = closest;
+    if (colorMode === 'bfs-src') {
+      srcNodeIdx = closest;
+      distSrc = bfsFrom(nodes[closest].label, adjMap);
+      _maxDistSrc = 0; for (const dv of distSrc.values()) if (dv > _maxDistSrc) _maxDistSrc = dv;
+    }
+    updateRightPanel();
+  } else {
+    dragNodeIdx = -1;
+    selectedNode = -1;
+  }
+}
+
+function mouseDragged() {
+  hasDragged = true;
+  if (dragEdgeIdx >= 0) {
+    edges[dragEdgeIdx].bend = {x: mouseX, y: mouseY};
+    return;
+  }
+  if (dragNodeIdx >= 0) {
+    nodes[dragNodeIdx].x = mouseX;
+    nodes[dragNodeIdx].y = mouseY;
+    nodes[dragNodeIdx].vx = nodes[dragNodeIdx].vy = 0;
+    if (inStretch) nodes[dragNodeIdx].pinned = true;
+    if (keepSym) {
+      const mi = nodes[dragNodeIdx].mirrorIdx;
+      if (mi !== dragNodeIdx) {
+        nodes[mi].x = width - mouseX;
+        nodes[mi].y = mouseY;
+        nodes[mi].vx = nodes[mi].vy = 0;
+        if (inStretch) nodes[mi].pinned = true;
+      }
+    }
+  }
+}
+
+function mouseReleased() {
+  if (inStretch && dragNodeIdx >= 0 && !hasDragged) {
+    nodes[dragNodeIdx].pinned = false;
+    const mi = nodes[dragNodeIdx].mirrorIdx;
+    if (mi !== dragNodeIdx) nodes[mi].pinned = false;
+  }
+  if (inStretch && dragEdgeIdx >= 0 && !hasDragged) {
+    edges[dragEdgeIdx].bend = null;
+  }
+  const anyPin = nodes.some(n => n.pinned);
+  document.getElementById('btn-clear-pins').style.display = (anyPin && inStretch) ? 'block' : 'none';
+  dragNodeIdx = -1; dragEdgeIdx = -1;
+}
+
+function keyPressed() {
+  if (keyCode === ESCAPE) {
+    exitSortMode(); exitDxyMode();
+    if (inHoloMode) {
+      inHoloMode = false; holoIdx = -1;
+      document.querySelector('.btn-holo').classList.remove('active');
+      updateRightPanel();
+    }
+    document.getElementById('help-overlay').classList.remove('open');
+  }
+  const t = key.toLowerCase();
+  if (t === 'f') toggleFreeze();
+  if (t === 's') {
+    keepSym = !keepSym;
+    document.getElementById('symCb').checked = keepSym;
+  }
+  if (t === 'g') {
+    showGen = !showGen;
+    document.getElementById('showGenCb').checked = showGen;
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  CONTROL FUNCTIONS
+// ════════════════════════════════════════════════════
+function rebuildGraph() {
+  N = Math.max(4, Math.min(12, parseInt(document.getElementById('inputN').value)||6));
+  K = Math.max(1, Math.min(N-1, parseInt(document.getElementById('inputK').value)||3));
+  document.getElementById('inputN').value = N;
+  document.getElementById('inputK').value = K;
+  document.getElementById('inputK').max = N-1;
+
+  // Reset all modes
+  inSortMode = false; inDxyMode = false; inHoloMode = false;
+  inStretch = false; frozen = false;
+  document.getElementById('sort-submenu').style.display = 'none';
+  document.getElementById('dxy-submenu').style.display  = 'none';
+  document.getElementById('stretchCb').checked = false;
+  document.getElementById('btn-clear-pins').style.display = 'none';
+  document.getElementById('btn-freeze').textContent = '❄  Freeze';
+  selectedNode = -1; holoIdx = -1; dxyResult = null;
+  dxyX = null; dxyY = null; sortRootIdx = -1; sortLayers = null;
+
+  // Reset display toggles that could be expensive on a different-sized graph
+  showHolo  = false; document.getElementById('showHoloCb').checked  = false;
+  showHoloH = false; document.getElementById('showHoloHCb').checked = false;
+  showNoTbl = false; document.getElementById('showNoTblCb').checked = false;
+  showIB    = false; document.getElementById('showIBCb').checked    = false;
+  document.querySelector('.btn-holo').classList.remove('active');
+
+  buildGraph();
+  autoSortFromA();   // default view: Sort Rows (top-down) rooted at A
+}
+
+function resetAll() {
+  document.getElementById('inputN').value = 6;
+  document.getElementById('inputK').value = 3;
+  document.getElementById('inputK').max   = 5;
+  document.getElementById('symCb').checked  = true; keepSym = true;
+  document.getElementById('useHalfCb').checked = false; useHalf = false;
+  document.getElementById('showGenCb').checked = false; showGen = false;
+  document.getElementById('showIBCb').checked  = false; showIB  = false;
+  document.getElementById('showHoloCb').checked = false; showHolo = false;
+  document.getElementById('showNoTblCb').checked = false; showNoTbl = false;
+  // Reset color mode
+  document.querySelector('input[value="degree"]').checked = true;
+  document.querySelectorAll('.rr').forEach(r => r.classList.remove('active'));
+  document.getElementById('rm-degree').classList.add('active');
+  colorMode = 'degree';
+  // Sliders
+  const sliders = [['sl-rad','lbl-rad',18,v=>nodeRad=v],
+    ['sl-rep','lbl-rep',3500,v=>repStr=v],
+    ['sl-att','lbl-att',25,v=>{attStr=v/1000}],
+    ['sl-nl','lbl-nl',90,v=>naturalLen=v],
+    ['sl-hc','lbl-hc',14,v=>holoCellSz=v],
+    ['sl-af','lbl-af',11,v=>analysisFontSz=v],
+    ['sl-ef','lbl-ef',10,v=>edgeLabelFontSz=v],
+    ['sl-nlf','lbl-nlf',9,v=>nodeLabelFontSz=v],
+    ['sl-rbf','lbl-rbf',9,v=>rowBadgeFontSz=v],
+    ['sl-haf','lbl-haf',9,v=>holoAnnotFontSz=v]];
+  for (const [sid,lid,val,fn] of sliders) {
+    document.getElementById(sid).value = val;
+    const disp = sid==='sl-att' ? '0.025' : String(val);
+    document.getElementById(lid).textContent = disp;
+    fn(val);
+  }
+  attStr = 0.025;
+  rebuildGraph();
+}
+
+function shakeNodes() {
+  if (frozen) { frozen = false; document.getElementById('btn-freeze').textContent = '❄  Freeze'; loop(); }
+  for (const n of nodes) {
+    n.pinned = false;
+    n.x += (Math.random()-0.5)*80;
+    n.y += (Math.random()-0.5)*80;
+    n.vx = (Math.random()-0.5)*3;
+    n.vy = (Math.random()-0.5)*3;
+  }
+  for (const e of edges) e.bend = null;
+  keepSym = true; document.getElementById('symCb').checked = true;
+  document.getElementById('btn-clear-pins').style.display = 'none';
+}
+
+function toggleFreeze() {
+  frozen = !frozen;
+  const btn = document.getElementById('btn-freeze');
+  if (frozen) {
+    btn.textContent = '▶  Unfreeze'; noLoop(); redraw();
+  } else {
+    btn.textContent = '❄  Freeze'; loop();
+  }
+}
+
+function toggleStretchMode(v) {
+  inStretch = v;
+  if (!v) {
+    for (const n of nodes) n.pinned = false;
+    document.getElementById('btn-clear-pins').style.display = 'none';
+  }
+}
+
+function clearAllPins() {
+  for (const n of nodes) n.pinned = false;
+  document.getElementById('btn-clear-pins').style.display = 'none';
+}
+
+function exportPNG() { saveCanvas(`G4_k${K}_n${N}`, 'png'); }
+
+function setColorMode(m) {
+  colorMode = m;
+  document.querySelectorAll('.rr').forEach(r => r.classList.remove('active'));
+  document.getElementById(`rm-${m}`).classList.add('active');
+  if (m === 'bfs-src' && srcNodeIdx >= 0) {
+    distSrc = bfsFrom(nodes[srcNodeIdx].label, adjMap);
+    _maxDistSrc = 0; for (const dv of distSrc.values()) if (dv > _maxDistSrc) _maxDistSrc = dv;
+  }
+  updateRightPanel();
+  if (frozen) redraw();  // canvas is frozen by default (autoSortFromA); must force repaint
+}
+
+// ════════════════════════════════════════════════════
+//  SORT MODE
+// ════════════════════════════════════════════════════
+function enterSortMode() {
+  exitDxyMode();
+  inSortMode = true;
+  sortRootIdx = -1; sortLayers = null;
+  document.getElementById('sort-submenu').style.display = 'block';
+  document.getElementById('sort-root-badge').textContent = '—';
+  // Auto-freeze so physics doesn't destroy the sorted layout
+  if (!frozen) {
+    frozen = true; noLoop();
+    document.getElementById('btn-freeze').textContent = '▶  Unfreeze';
+  }
+}
+
+function exitSortMode() {
+  inSortMode = false; sortRootIdx = -1; sortLayers = null;
+  document.getElementById('sort-submenu').style.display = 'none';
+  // Resume physics on exit
+  frozen = false;
+  document.getElementById('btn-freeze').textContent = '❄  Freeze';
+  loop();
+}
+
+function setSortLayout(t) {
+  sortLayout = t;
+  document.getElementById('sub-rings').classList.toggle('active', t==='rings');
+  document.getElementById('sub-rows').classList.toggle('active',  t==='rows');
+  document.getElementById('rows-dir-row').style.display = t==='rows' ? 'flex' : 'none';
+  if (sortRootIdx >= 0) applyCurrentSort();
+}
+
+function setSortDir(d) {
+  sortDir = d;
+  document.getElementById('sub-td').classList.toggle('active', d==='top');
+  document.getElementById('sub-bu').classList.toggle('active', d==='bottom');
+  if (sortRootIdx >= 0) applyCurrentSort();
+}
+
+function applyCurrentSort() {
+  const rootLbl = nodes[sortRootIdx].label;
+  const dists   = bfsFrom(rootLbl, adjMap);
+  sortLayers = new Map();
+  for (const [lbl, d] of dists) {
+    if (!sortLayers.has(d)) sortLayers.set(d, []);
+    sortLayers.get(d).push(vIdx.get(lbl));
+  }
+  if (sortLayout === 'rings') applySortRings();
+  else applySortRows();
+  redraw();  // always redraw — physics is frozen during sort mode
+}
+
+function applySortRings() {
+  const numC  = components.length;
+  const secW  = width / numC;
+
+  for (let ci = 0; ci < numC; ci++) {
+    const comp    = components[ci];
+    const compSet = new Set(comp);
+    const rootLbl = ci === 0 ? nodes[sortRootIdx].label : comp[0];
+    const dists   = bfsFrom(rootLbl, adjMap);
+
+    // Build layers for this component
+    const layers = new Map();
+    for (const [lbl, d] of dists) {
+      if (!compSet.has(lbl)) continue;
+      if (!layers.has(d)) layers.set(d, []);
+      layers.get(d).push(vIdx.get(lbl));
+    }
+
+    let maxD = 0; for (const d of layers.keys()) if (d > maxD) maxD = d;
+    const cx   = (ci + 0.5) * secW;
+    const cy   = height / 2;
+    const maxR = Math.min(secW * 0.46, height * 0.44);
+
+    for (const [d, idxs] of layers) {
+      if (d === 0) {
+        nodes[idxs[0]].x = cx; nodes[idxs[0]].y = cy;
+        nodes[idxs[0]].vx = nodes[idxs[0]].vy = 0;
+        continue;
+      }
+      const r = (d / maxD) * maxR;
+      for (let j = 0; j < idxs.length; j++) {
+        const angle = (j / idxs.length) * TWO_PI - HALF_PI; // start at top
+        nodes[idxs[j]].x = cx + r * Math.cos(angle);
+        nodes[idxs[j]].y = cy + r * Math.sin(angle);
+        nodes[idxs[j]].vx = nodes[idxs[j]].vy = 0;
+      }
+    }
+  }
+}
+
+function applySortRows() {
+  const BADGE_W  = 65;  // left margin reserved for d=/c= badges
+  const numC     = components.length;
+  const secW     = (width - BADGE_W) / numC;
+  sortCompLayers = [];
+
+  for (let ci = 0; ci < numC; ci++) {
+    const comp    = components[ci];
+    const compSet = new Set(comp);
+    // Use the sort root for component 0; first vertex (lowest U) for others
+    const rootLbl = ci === 0 ? nodes[sortRootIdx].label : comp[0];
+    const dists   = bfsFrom(rootLbl, adjMap);
+
+    // Build layers for this component only
+    const layers  = new Map();
+    for (const [lbl, d] of dists) {
+      if (!compSet.has(lbl)) continue;
+      if (!layers.has(d)) layers.set(d, []);
+      layers.get(d).push(vIdx.get(lbl));
+    }
+
+    let maxD = 0; for (const d of layers.keys()) if (d > maxD) maxD = d;
+    const rowH = (height - 60) / (maxD + 1);
+    const secX = BADGE_W + ci * secW;
+
+    // Barycenter ordering within this component's section
+    const order = new Map();
+    for (const [d, idxs] of layers) {
+      if (d === 0) { order.set(idxs[0], 0.5); continue; }
+      const prev    = layers.get(d-1) || [];
+      const prevPos = new Map();
+      prev.forEach((ni, j) => prevPos.set(ni, (j+1)/(prev.length+1)));
+      const scored  = idxs.map(ni => {
+        const nbs = adjMap.get(nodes[ni].label) || [];
+        let s = 0, c = 0;
+        for (const nb of nbs) {
+          const nbi = vIdx.get(nb);
+          if (prevPos.has(nbi)) { s += prevPos.get(nbi); c++; }
+        }
+        return {ni, sc: c > 0 ? s/c : 0.5};
+      }).sort((a, b) => a.sc - b.sc);
+      scored.forEach(({ni}, j) => order.set(ni, (j+1)/(idxs.length+1)));
+    }
+
+    for (const [d, idxs] of layers) {
+      const y = sortDir==='top' ? (30 + d*rowH) : (height - 30 - d*rowH);
+      for (const ni of idxs) {
+        nodes[ni].x = secX + (order.get(ni) || 0.5) * secW;
+        nodes[ni].y = y;
+        nodes[ni].vx = nodes[ni].vy = 0;
+      }
+    }
+
+    sortCompLayers.push({layers, secX, secW, rootLbl});
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  d(X,Y) MODE
+// ════════════════════════════════════════════════════
+function enterDxyMode() {
+  exitSortMode();
+  inDxyMode = true; dxyX = null; dxyY = null; dxyResult = null;
+  document.getElementById('dxy-submenu').style.display = 'block';
+  document.getElementById('dxy-x').value = '';
+  document.getElementById('dxy-y').value = '';
+  document.getElementById('dxy-go').disabled = true;
+  updateRightPanel();
+}
+
+function exitDxyMode() {
+  inDxyMode = false; dxyX = null; dxyY = null; dxyResult = null;
+  document.getElementById('dxy-submenu').style.display = 'none';
+  updateRightPanel();   // clear d(X,Y) section from panel immediately
+}
+
+function dxyInputChanged(which) {
+  const v = document.getElementById(`dxy-${which}`).value.trim();
+  if (which === 'x') dxyX = vIdx.has(v) ? v : null;
+  else               dxyY = vIdx.has(v) ? v : null;
+  dxyResult = null;       // clear stale result while inputs are being edited
+  updateRightPanel();
+  checkDxyReady();
+}
+
+function checkDxyReady() {
+  document.getElementById('dxy-go').disabled = !(dxyX && dxyY && dxyX !== dxyY);
+}
+
+function computeDxy() {
+  if (!dxyX || !dxyY) return;
+  // bfsOneSP already traverses the graph to find the shortest path;
+  // derive d from path length to avoid a redundant full BFS.
+  const path = bfsOneSP(dxyX, dxyY, adjMap);
+  const d    = path ? path.length - 1 : Infinity;
+  const no = countSPBetween(dxyX, dxyY, adjMap);
+  const {count:np, capped:npC} = countAllSimple(dxyX, dxyY, adjMap);
+  let H = 0; for (let i = 0; i < dxyX.length; i++) if (dxyX[i]!==dxyY[i]) H++;
+  dxyResult = {x:dxyX, y:dxyY, d, no, np, npC, path, lb:Math.ceil(H/2), ub:H};
+  updateRightPanel();
+}
+
+// ════════════════════════════════════════════════════
+//  HOLOGRAPHY MODE
+// ════════════════════════════════════════════════════
+function activateHolographyMode() {
+  inHoloMode = !inHoloMode;
+  if (inHoloMode) {
+    // Exit sort/dxy modes so clicks aren't intercepted by their handlers
+    if (inSortMode) exitSortMode();
+    if (inDxyMode)  exitDxyMode();
+    holoIdx = -1;
+  } else {
+    holoIdx = -1;
+  }
+  document.querySelector('.btn-holo').classList.toggle('active', inHoloMode);
+  updateRightPanel();
+  if (frozen) redraw();
+}
+
+// ════════════════════════════════════════════════════
+//  RIGHT PANEL
+// ════════════════════════════════════════════════════
+function buildHoloSVG(s, cs) {
+  const k0 = s.split('').filter(c=>c==='0').length;
+  const nk = s.length - k0;
+  if (!k0 || !nk) return '<p style="color:#64748b;font-size:10px">trivial weight</p>';
+  const W = k0*cs, H = nk*cs;
+  let svg = `<svg width="${W+2}" height="${H+2}" viewBox="-1 -1 ${W+2} ${H+2}" style="margin:6px 0;display:block">`;
+  svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="#bfdbfe"/>`;
+  let col = 0, mh = 0;
+  for (const b of s) {
+    if (b==='1') mh++;
+    else {
+      for (let r = 0; r < mh; r++)
+        svg += `<rect x="${col*cs}" y="${(nk-1-r)*cs}" width="${cs}" height="${cs}" fill="#fecdd3"/>`;
+      col++;
+    }
+  }
+  for (let c = 0; c <= k0; c++) svg += `<line x1="${c*cs}" y1="0" x2="${c*cs}" y2="${H}" stroke="#cbd5e1" stroke-width="0.5"/>`;
+  for (let r = 0; r <= nk; r++) svg += `<line x1="0" y1="${r*cs}" x2="${W}" y2="${r*cs}" stroke="#cbd5e1" stroke-width="0.5"/>`;
+  svg += `<rect x="0" y="0" width="${W}" height="${H}" fill="none" stroke="#94a3b8" stroke-width="1"/>`;
+  let pts = `0,${H}`; let px=0, py=H;
+  for (const b of s) {
+    if (b==='0') px+=cs; else py-=cs;
+    pts += ` ${px},${py}`;
+  }
+  svg += `<polyline points="${pts}" fill="none" stroke="#ef4444" stroke-width="${Math.max(1.5,cs/8)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  svg += '</svg>';
+  return svg;
+}
+
+function buildNoTableHTML() {
+  const rows = verts.map(v => {
+    const ni = vIdx.get(v);
+    return {label:v, d:nodes[ni].dA, U:nodes[ni].U, no:nodes[ni].no};
+  }).sort((a,b) => a.d-b.d || a.label.localeCompare(b.label));
+
+  let h = '<div class="rp-sec">';
+  h += '<div class="rp-title">Nₒ(A, ·) Table</div>';
+  h += '<table class="no-tbl"><thead><tr><th>d</th><th>B</th><th>U</th><th>Nₒ</th></tr></thead><tbody>';
+  for (const r of rows) {
+    const cls = r.label===A_label ? ' class="hl"' : '';
+    h += `<tr${cls}><td>${r.d}</td><td style="font-family:monospace;letter-spacing:1px">${r.label}</td><td>${r.U}</td><td>${r.no.toLocaleString()}</td></tr>`;
+  }
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function updateRightPanel() {
+  const el = document.getElementById('right-panel');
+  if (!el) return;
+  let h = '';
+
+  // Graph stats
+  h += '<div class="rp-sec">';
+  h += `<div class="rp-title">G₄(${K}, ${N})</div>`;
+  h += `<div class="rp-row"><span class="rp-k">|V| = C(${N},${K}):</span><span class="rp-v">${verts.length}</span></div>`;
+  h += `<div class="rp-row"><span class="rp-k">|E|:</span><span class="rp-v">${edges.length}</span></div>`;
+  h += `<div class="rp-row"><span class="rp-k">diam:</span><span class="rp-v">${graphDiam ?? '? (|V|>300)'}</span></div>`;
+  h += `<div class="rp-row"><span class="rp-k">max deg:</span><span class="rp-v">${maxDeg}</span></div>`;
+  h += `<div class="rp-row"><span class="rp-k">generators/pos:</span><span class="rp-v">${useHalf ? 3 : 2}</span></div>`;
+  if (verts.length > 300) h += `<div class="warn-box">⚠ Large graph (|V|=${verts.length}). Physics may be slow — Freeze early. Diameter not computed.</div>`;
+  h += '</div>';
+
+  // Selected node info
+  if (selectedNode >= 0) {
+    const n = nodes[selectedNode];
+    h += '<div class="rp-sec">';
+    h += '<div class="rp-title">Node Info</div>';
+    h += `<div class="rp-row"><span class="rp-k">B =</span><span class="rp-v mn">${n.label}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">deg =</span><span class="rp-v">${n.deg}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">U = I(B) =</span><span class="rp-v">${n.U}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">d₄(A, B) =</span><span class="rp-v">${n.dA}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">d₄(A*, B) =</span><span class="rp-v">${n.dAs}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">Nₒ(A, B) =</span><span class="rp-v">${n.no.toLocaleString()}</span></div>`;
+    if (showIB) {
+      const k0 = n.label.split('').filter(c=>c==='0').length;
+      let zi=0, terms=[];
+      for (let p=0; p<n.label.length; p++) {
+        if (n.label[p]==='0') { zi++; terms.push(`(${p+1}−${zi})`); }
+      }
+      h += `<div class="rp-row" style="flex-direction:column;align-items:flex-start">`;
+      h += `<span class="rp-k">I(B) = Σ(pos(zᵢ)−i):</span>`;
+      h += `<span class="rp-v" style="font-size:9px;word-break:break-all">${terms.join('+')} = ${n.U}</span>`;
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // d(X,Y) result
+  if (dxyResult) {
+    h += '<div class="rp-sec">';
+    h += '<div class="rp-title">d(X, Y)</div>';
+    h += `<div class="rp-row"><span class="rp-k">X =</span><span class="rp-v mn">${dxyResult.x}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">Y =</span><span class="rp-v mn">${dxyResult.y}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">d(X,Y) =</span><span class="rp-v">${dxyResult.d}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">Nₒ(X,Y) =</span><span class="rp-v">${dxyResult.no.toLocaleString()}</span></div>`;
+    const npStr = `${dxyResult.npC?'≥':''}${dxyResult.np.toLocaleString()}${dxyResult.npC?'+':''}`;
+    h += `<div class="rp-row"><span class="rp-k">Nₚ(X,Y) =</span><span class="rp-v">${npStr}</span></div>`;
+    h += `<div class="bounds-row">Bounds:  ⌈H/2⌉ = <span class="bounds-val">${dxyResult.lb}</span>  ≤  d  ≤  H = <span class="bounds-val">${dxyResult.ub}</span></div>`;
+    h += '</div>';
+  }
+
+  // Holography panel
+  if (inHoloMode && holoIdx >= 0) {
+    const n  = nodes[holoIdx];
+    const k0 = n.label.split('').filter(c=>c==='0').length;
+    const nk = n.label.length - k0;
+    const I   = n.U;
+    const I3c = Math.ceil(I / 3);
+    const hv  = n.dA - I3c;   // h = d - ceil(I/3)
+    h += '<div class="rp-sec">';
+    h += `<div class="rp-title">Holography: ${n.label}</div>`;
+    h += `<div class="rp-row"><span class="rp-k">d₄(A,B) =</span><span class="rp-v">${n.dA}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">k × (n−k) =</span><span class="rp-v">${k0} × ${nk}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k">AUC = U =</span><span class="rp-v">${I}</span></div>`;
+    h += `<div class="rp-row" style="padding:4px 0;border-top:1px solid #334155;margin-top:4px"><span class="rp-k" style="color:#a78bfa;font-size:12px;font-weight:700">I =</span><span class="rp-v" style="color:#c4b5fd;font-size:14px">${I}</span></div>`;
+    h += `<div class="rp-row"><span class="rp-k" style="color:#34d399;font-size:12px;font-weight:700">⌈I/3⌉ =</span><span class="rp-v" style="color:#6ee7b7;font-size:14px">${I3c}</span></div>`;
+    h += `<div class="rp-row" style="padding-bottom:6px"><span class="rp-k" style="color:#fbbf24;font-size:12px;font-weight:700">h = d−⌈I/3⌉ =</span><span class="rp-v" style="color:#fde68a;font-size:14px">${hv}</span></div>`;
+    h += buildHoloSVG(n.label, holoCellSz * 2);
+    h += '</div>';
+  }
+
+  // Nₒ table
+  if (showNoTbl) h += buildNoTableHTML();
+
+  el.innerHTML = h;
+  el.style.fontSize = analysisFontSz + 'px';
+}
+
+// ════════════════════════════════════════════════════
+//  LEFT PANEL UPDATES
+// ════════════════════════════════════════════════════
+function updateLeftInfo() {
+  document.getElementById('iK').textContent = K;
+  document.getElementById('iA').textContent = A_label;
+  document.getElementById('iAs').textContent = As_label;
+  document.getElementById('iV').textContent = verts.length;
+  document.getElementById('iE').textContent = edges.length;
+  document.getElementById('iDiam').textContent = graphDiam ?? '? (|V|>300)';
+}
+
+function buildLegend() {
+  const el = document.getElementById('legendItems');
+  if (!el) return;
+  const types = [
+    {sym:'▶', color:'#22c55e', style:'solid',  desc:'σᵢ  right-rotate'},
+    ...(useHalf ? [{sym:'●', color:'#3b82f6', style:'dotted', desc:'σᵢ²  half-rotate'}] : []),
+    {sym:'◀', color:'#f97316', style:'dashed', desc:'σᵢ⁻¹ left-rotate'},
+  ];
+  let h = '';
+  for (const t of types) {
+    const lineStyle = t.style==='solid'
+      ? `background:${t.color};height:3px;`
+      : `border-top:2px ${t.style} ${t.color};height:0;`;
+    h += `<div class="leg-item">
+      <div style="width:28px;${lineStyle}flex-shrink:0;border-radius:1px"></div>
+      <span style="font-size:10px">${t.sym} ${t.desc}</span>
+    </div>`;
+  }
+  h += '<div style="margin-top:6px;font-size:9.5px;color:#475569">Edge colour = window position i:</div>';
+  const numPos = Math.max(1, N-3);
+  for (let i = 0; i < numPos; i++) {
+    const [r,g,bl] = POS_COLORS[i % POS_COLORS.length];
+    h += `<div class="leg-item">
+      <div style="width:10px;height:10px;border-radius:50%;background:rgb(${r},${g},${bl});flex-shrink:0"></div>
+      <span style="font-size:9.5px;color:#64748b">pos ${i}</span>
+    </div>`;
+  }
+  el.innerHTML = h;
+}
+
+function buildDegTable() {
+  const tbody = document.getElementById('degTbody');
+  if (!tbody) return;
+  const cnt = new Map();
+  for (const n of nodes) cnt.set(n.deg, (cnt.get(n.deg)||0)+1);
+  const rows = [...cnt.entries()].sort((a,b) => a[0]-b[0]);
+  tbody.innerHTML = rows.map(([d,c]) => `<tr><td>${d}</td><td>${c}</td></tr>`).join('');
+}
+</script>
+</body>
+</html>
