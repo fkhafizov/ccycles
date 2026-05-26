@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC4 Moves — Consecutive 4-Cycle Visualizer v12b</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #bbdefb;
+    --bg2:        #90caf9;
+    --bg3:        #64b5f6;
+    --panel:      rgba(255,255,255,0.72);
+    --panel2:     rgba(255,255,255,0.9);
+    --blue-deep:  #0d47a1;
+    --blue-mid:   #1565c0;
+    --blue-soft:  #1976d2;
+    --blue-pale:  #e3f2fd;
+    --cell0-bg:   #ffffff;
+    --cell0-txt:  #0d47a1;
+    --cell0-bdr:  #90caf9;
+    --cell1-bg:   #0d47a1;
+    --cell1-txt:  #e3f2fd;
+    --active-bg:  #e65100;
+    --active-txt: #ffffff;
+    --active-bdr: #bf360c;
+    --shadow:     rgba(13,71,161,0.18);
+    --text:       #0d1a40;
+    --text2:      #2a4f8a;
+    --text3:      #5072b0;
+    --radius:     10px;
+    --radius-lg:  16px;
+    --ff-display: 'Crimson Pro', Georgia, serif;
+    --ff-mono:    'JetBrains Mono', 'Courier New', monospace;
+    --ff-ui:      'DM Sans', 'Segoe UI', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(144,202,249,0.55) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 90%, rgba(100,181,246,0.35) 0%, transparent 55%);
+    min-height: 100vh;
+    color: var(--text);
+    font-family: var(--ff-ui);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    gap: 20px;
+  }
+
+  /* ── HEADER ── */
+  header { text-align: center; max-width: 700px; }
+  header h1 {
+    font-family: var(--ff-display);
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 700;
+    color: var(--blue-deep);
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+  }
+  header h1 span { color: var(--blue-soft); font-style: italic; }
+  header .subtitle {
+    font-family: var(--ff-display);
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--text2);
+    margin-top: 6px;
+  }
+  header .subtitle code {
+    font-family: var(--ff-mono);
+    font-style: normal;
+    font-size: 0.95rem;
+    background: rgba(21,101,192,0.12);
+    padding: 1px 6px;
+    border-radius: 5px;
+    color: var(--blue-mid);
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--panel);
+    border: 1.5px solid rgba(144,202,249,0.65);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 20px var(--shadow);
+    padding: 20px 28px;
+    width: 100%;
+    max-width: 960px;
+  }
+  .panel-title {
+    font-family: var(--ff-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  /* ── PARAMETERS ── */
+  .params-row {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .param-group { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 180px; }
+  .param-group label {
+    font-family: var(--ff-mono);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--blue-deep);
+    white-space: nowrap;
+  }
+  .param-group label .katex-like { font-style: italic; }
+  .spin-wrap {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid var(--cell0-bdr);
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+  }
+  .spin-btn {
+    background: var(--blue-pale);
+    border: none;
+    color: var(--blue-mid);
+    width: 32px; height: 36px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    line-height: 1;
+  }
+  .spin-btn:hover  { background: var(--bg3); color: white; }
+  .spin-btn:active { background: var(--bg2); }
+  .spin-val {
+    width: 42px;
+    text-align: center;
+    font-family: var(--ff-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--blue-deep);
+    border: none; outline: none;
+    background: transparent;
+  }
+  .param-constraint { font-size: 0.82rem; color: var(--text3); font-style: italic; }
+
+  /* ── STRING DISPLAY ── */
+  #string-display-area {
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .string-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .row-label {
+    font-family: var(--ff-mono);
+    font-size: 0.75rem;
+    color: var(--text3);
+    font-style: italic;
+    margin-right: 5px;
+    min-width: 22px;
+    text-align: right;
+  }
+
+  /* ── CELLS ── */
+  .cell {
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--ff-mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 7px;
+    border: 2px solid transparent;
+    position: relative;
+    transition: background 0.3s, color 0.3s, border-color 0.3s, transform 0.25s;
+    user-select: none;
+  }
+  .cell.small {
+    width: 22px; height: 22px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border-width: 1.5px;
+  }
+  .cell.c0 { background: var(--cell0-bg); color: var(--cell0-txt); border-color: var(--cell0-bdr); box-shadow: 0 2px 6px rgba(0,0,0,0.07); }
+  .cell.c1 { background: var(--cell1-bg); color: var(--cell1-txt); border-color: #0b3d91; box-shadow: 0 2px 8px rgba(13,71,161,0.32); }
+  .cell.active {
+    background: var(--active-bg) !important;
+    color: var(--active-txt) !important;
+    border-color: var(--active-bdr) !important;
+    box-shadow: 0 0 0 3px rgba(230,81,0,0.28) !important;
+    transform: scale(1.12);
+    z-index: 2;
+  }
+  .cell.just-changed { animation: flashChange 0.5s ease-out; }
+  @keyframes flashChange {
+    0%   { transform: scale(1.22); box-shadow: 0 0 0 6px rgba(13,71,161,0.35); }
+    100% { transform: scale(1); box-shadow: none; }
+  }
+
+  .cell-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .cell-pos { font-family: var(--ff-mono); font-size: 0.62rem; color: var(--text3); }
+  .cell-pos.pos-active { color: var(--active-bg); font-weight: 700; }
+
+  /* Bracket above active quad */
+  .bracket-label {
+    position: absolute;
+    top: 30px; left: 0; right: 0;
+    text-align: center;
+    font-family: var(--ff-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--active-bg);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .bracket-label.visible { opacity: 1; }
+  .bracket-bar {
+    position: absolute;
+    top: 43px; left: 4px; right: 4px;
+    height: 2px;
+    background: var(--active-bg);
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .bracket-bar.visible { opacity: 1; }
+
+  /* ── STEP INFO ── */
+  #step-info-panel {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 60px;
+  }
+  .step-badge {
+    font-family: var(--ff-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    background: var(--bg2);
+    color: var(--blue-mid);
+    border: 1px solid var(--bg3);
+  }
+  .move-description {
+    font-family: var(--ff-display);
+    font-size: 1.25rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .move-description .mono {
+    font-family: var(--ff-mono);
+    font-size: 1rem;
+    background: rgba(21,101,192,0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: var(--blue-mid);
+  }
+  .move-description .orange { color: var(--active-bg); font-weight: 600; }
+  .transformation-arrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--ff-mono);
+    font-size: 1.1rem;
+    color: var(--text2);
+  }
+  .transformation-arrow .arr { font-size: 1.5rem; color: var(--active-bg); }
+  .quad-val { display: inline-flex; gap: 3px; }
+  .done-msg {
+    font-family: var(--ff-display);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--blue-deep);
+    font-style: italic;
+  }
+  .done-msg span { color: var(--blue-soft); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { width: 100%; max-width: 400px; }
+  .progress-track { width: 100%; height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue-mid), var(--blue-soft));
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .progress-text { font-size: 0.8rem; color: var(--text3); margin-top: 4px; text-align: center; font-family: var(--ff-mono); }
+
+  .target-label {
+    font-family: var(--ff-display);
+    font-style: italic;
+    color: var(--text3);
+    font-size: 0.78rem;
+    margin: 2px 0 1px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 960px;
+  }
+  .btn {
+    font-family: var(--ff-ui);
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 12px 26px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.18s;
+    flex: 1;
+    min-width: 120px;
+    max-width: 180px;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px var(--shadow); }
+  .btn:active { transform: translateY(0); box-shadow: none; }
+  .btn:disabled { opacity: 0.38; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-help  { background: var(--panel2); border-color: var(--cell0-bdr); color: var(--blue-mid); }
+  .btn-help:hover { background: white; border-color: var(--blue-soft); }
+  .btn-start { background: var(--blue-deep); color: white; border-color: var(--blue-deep); }
+  .btn-start:hover { background: #083585; }
+  .btn-back  { background: var(--panel2); border-color: var(--cell0-bdr); color: var(--blue-mid); }
+  .btn-back:hover { background: white; border-color: var(--blue-soft); }
+  .btn-next  { background: var(--active-bg); color: white; border-color: var(--active-bdr); }
+  .btn-next:hover { background: #bf360c; }
+  .btn-run   { background: #1565c0; color: white; border-color: #0d47a1; }
+  .btn-run:hover { background: #0d47a1; }
+  .btn-run.running { background: #6a1b9a; border-color: #4a148c; }
+  .btn-run.running:hover { background: #4a148c; }
+  .btn-reset { background: var(--panel2); border-color: var(--cell0-bdr); color: var(--text2); }
+  .btn-reset:hover { border-color: var(--text2); }
+
+  /* ── HELP MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(5,20,80,0.56);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: white; border-radius: 20px;
+    padding: 32px 36px;
+    max-width: 680px; width: 100%;
+    max-height: 88vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 20px;
+    background: none; border: none;
+    font-size: 1.6rem; cursor: pointer;
+    color: var(--text3); line-height: 1;
+    padding: 4px 8px; border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .modal-close:hover { background: var(--bg); }
+  .modal-box h2 { font-family: var(--ff-display); font-size: 1.9rem; color: var(--blue-deep); font-weight: 700; margin-bottom: 20px; padding-right: 40px; line-height: 1.2; }
+  .modal-box h3 { font-family: var(--ff-display); font-size: 1.25rem; color: var(--blue-mid); font-weight: 600; margin-top: 22px; margin-bottom: 8px; border-bottom: 1px solid var(--bg2); padding-bottom: 4px; }
+  .modal-box p { font-size: 0.97rem; line-height: 1.7; color: var(--text); margin-bottom: 8px; }
+  .modal-box code { font-family: var(--ff-mono); font-size: 0.88rem; background: var(--blue-pale); padding: 1px 6px; border-radius: 4px; color: var(--blue-mid); }
+  .formula-block { background: var(--blue-pale); border-left: 3px solid var(--blue-mid); border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 12px 0; font-family: var(--ff-mono); font-size: 0.9rem; color: var(--blue-deep); line-height: 1.6; }
+  .legend-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
+  .legend-cell { width: 30px; height: 30px; border-radius: 6px; border: 1.5px solid #ccc; display: flex; align-items: center; justify-content: center; font-family: var(--ff-mono); font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+  .lc0 { background: white; color: var(--blue-mid); border-color: var(--bg3); }
+  .lc1 { background: var(--blue-deep); color: var(--cell1-txt); border-color: #0b3d91; }
+  .lca { background: var(--active-bg); color: white; border-color: var(--active-bdr); }
+
+  /* ── TWO-COLUMN LAYOUT ── */
+  #content-wrap {
+    display: flex; gap: 14px;
+    width: 100%; max-width: 960px;
+    align-items: flex-start;
+  }
+  #gen-list-panel {
+    width: 150px; flex-shrink: 0;
+    padding: 16px 14px;
+    max-height: 520px; overflow-y: auto;
+    position: sticky; top: 16px;
+  }
+  #gen-list-panel::-webkit-scrollbar { width: 4px; }
+  #gen-list-panel::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+  #right-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── GENERATOR LIST ── */
+  #gen-list { display: flex; flex-direction: column; gap: 5px; margin-top: 2px; }
+  .gen-empty { font-size: 0.78rem; color: var(--text3); font-style: italic; text-align: center; padding: 8px 0; }
+  .gen-item {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 8px; border-radius: 8px;
+    border: 1.5px solid transparent;
+    transition: all 0.2s; cursor: default;
+    --item-color: #888;
+  }
+  .gen-item.done { background: var(--blue-pale); border-color: var(--cell0-bdr); opacity: 0.72; }
+  .gen-item.current {
+    background: color-mix(in srgb, var(--item-color) 12%, transparent);
+    border-color: color-mix(in srgb, var(--item-color) 55%, transparent);
+    opacity: 1;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--item-color) 20%, transparent);
+  }
+  .gen-step-num { font-family: var(--ff-mono); font-size: 0.65rem; color: var(--text3); min-width: 18px; line-height: 1; }
+  .gen-item.current .gen-step-num { color: var(--item-color); }
+  .gen-sym { font-family: var(--ff-mono); font-size: 0.85rem; font-weight: 700; color: var(--item-color); line-height: 1.2; flex: 1; }
+  .gen-pos { font-family: var(--ff-mono); font-size: 0.6rem; color: var(--text3); line-height: 1; }
+  .gen-item.current .gen-pos { color: color-mix(in srgb, var(--item-color) 70%, transparent); }
+
+  .divider { width: 100%; max-width: 780px; border: none; border-top: 1px dashed var(--bg3); opacity: 0.7; }
+
+  /* ── MODE TOGGLE ── */
+  .mode-toggle {
+    display: flex; background: var(--bg2);
+    border-radius: 10px; padding: 3px;
+    border: 1.5px solid var(--bg3);
+    width: fit-content;
+  }
+  .mode-btn {
+    font-family: var(--ff-ui); font-size: 0.82rem; font-weight: 600;
+    letter-spacing: 0.5px; padding: 7px 20px;
+    border-radius: 7px; border: none; cursor: pointer;
+    background: transparent; color: var(--text3);
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  }
+  .mode-btn.active { background: white; color: var(--blue-deep); box-shadow: 0 2px 8px var(--shadow); }
+  .mode-btn:hover:not(.active) { color: var(--blue-mid); }
+
+  /* ── PARAMS SECTIONS ── */
+  .params-section { display: none; }
+  .params-section.visible { display: flex; flex-direction: column; gap: 12px; }
+  .params-divider { width: 100%; border: none; border-top: 1px dashed var(--bg3); margin: 6px 0; }
+
+  /* ── CUSTOM STRING INPUTS ── */
+  .custom-row { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+  .custom-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 200px; }
+  .custom-field label { font-family: var(--ff-mono); font-size: 0.95rem; font-weight: 700; color: var(--blue-deep); display: flex; align-items: baseline; gap: 6px; }
+  .custom-field label .field-hint { font-family: var(--ff-ui); font-size: 0.72rem; font-weight: 400; color: var(--text3); font-style: italic; }
+  .custom-input {
+    font-family: var(--ff-mono); font-size: 1.05rem; font-weight: 600;
+    color: var(--blue-deep); background: white;
+    border: 1.5px solid var(--cell0-bdr); border-radius: 8px;
+    padding: 9px 12px; outline: none; width: 100%;
+    letter-spacing: 2px; transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .custom-input:focus { border-color: var(--blue-soft); box-shadow: 0 0 0 3px rgba(21,101,192,0.18); }
+  .custom-input.error { border-color: #e53935; box-shadow: 0 0 0 3px rgba(229,57,53,0.15); }
+  .custom-input.ok   { border-color: #1565c0; box-shadow: 0 0 0 3px rgba(21,101,192,0.15); }
+  .custom-error { font-size: 0.78rem; color: #c62828; font-style: italic; min-height: 1.1em; font-family: var(--ff-ui); }
+  .custom-info { font-size: 0.8rem; color: var(--text3); font-family: var(--ff-ui); font-style: italic; }
+  .custom-info.valid { color: var(--blue-mid); font-style: normal; font-weight: 600; }
+
+  .btn-randomize {
+    font-family: var(--ff-ui); font-size: 0.82rem; font-weight: 700;
+    white-space: nowrap; padding: 9px 14px;
+    border-radius: 8px; border: 1.5px solid var(--blue-soft);
+    background: white; color: var(--blue-deep); cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-randomize:hover { background: var(--blue-soft); color: white; box-shadow: 0 2px 8px var(--shadow); }
+  .btn-randomize:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── GRAPH INFO PANEL ── */
+  #graph-info-panel { margin-top: 0; padding: 10px 14px; }
+  #graph-info-panel .panel-title { margin-bottom: 6px; font-size: 0.8rem; }
+  .info-placeholder { font-size: 0.78rem; color: var(--text3); font-style: italic; text-align: center; padding: 4px 0; }
+  .info-grid { display: flex; flex-wrap: wrap; gap: 2px 0; width: 100%; }
+  .info-group { display: flex; flex-wrap: wrap; gap: 2px 16px; width: 100%; align-items: baseline; }
+  .info-group + .info-group { margin-top: 4px; border-top: 1px dashed var(--bg3); padding-top: 4px; }
+  .info-item { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+  .info-item .ik { font-size: 0.75rem; color: var(--text3); font-family: var(--ff-ui); }
+  .info-item .iv { font-family: var(--ff-mono); font-size: 0.82rem; font-weight: 700; color: var(--blue-deep); }
+
+  /* ── NODE FILTER ── */
+  .h-filter-row {
+    display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--bg3);
+  }
+  .h-filter-label { font-size: 0.75rem; color: var(--text3); font-family: var(--ff-ui); white-space: nowrap; }
+  .h-filter-input {
+    font-family: var(--ff-mono); font-size: 0.82rem; font-weight: 700;
+    color: var(--blue-deep); background: white;
+    border: 1.5px solid var(--cell0-bdr); border-radius: 6px;
+    padding: 3px 7px; width: 52px; outline: none; text-align: center;
+    transition: border-color 0.15s;
+  }
+  .h-filter-input:focus { border-color: var(--blue-soft); }
+  .h-filter-input:disabled { opacity: 0.4; cursor: not-allowed; background: var(--bg2); }
+  .btn-show-nodes {
+    font-family: var(--ff-ui); font-size: 0.78rem; font-weight: 700;
+    padding: 4px 12px; border-radius: 7px;
+    border: 1.5px solid var(--blue-soft);
+    background: white; color: var(--blue-deep); cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-show-nodes:hover:not(:disabled) { background: var(--blue-soft); color: white; }
+  .btn-show-nodes:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── NODE LIST PANEL ── */
+  #node-list-panel { display: none; margin-top: 0; max-height: 260px; overflow-y: auto; }
+  #node-list-panel.visible { display: block; }
+  .node-list-header { font-size: 0.74rem; color: var(--text3); font-style: italic; margin-bottom: 6px; }
+  .node-list-header strong { color: var(--blue-deep); font-style: normal; }
+  .node-list-empty { font-size: 0.8rem; color: var(--text3); font-style: italic; text-align: center; padding: 10px 0; }
+  .node-row { display: flex; align-items: center; gap: 8px; padding: 4px 2px; border-bottom: 1px solid var(--bg2); }
+  .node-row:last-child { border-bottom: none; }
+  .node-bits { font-family: var(--ff-mono); font-size: 0.88rem; font-weight: 700; color: var(--blue-deep); letter-spacing: 1.5px; flex: 1; }
+  .node-d { font-family: var(--ff-mono); font-size: 0.75rem; color: var(--text3); white-space: nowrap; }
+  .btn-node-copy, .btn-node-use {
+    font-family: var(--ff-ui); font-size: 0.7rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 5px; cursor: pointer;
+    border: 1.5px solid var(--bg3); white-space: nowrap;
+    transition: background 0.13s, color 0.13s;
+  }
+  .btn-node-copy { background: var(--bg2); color: var(--text2); }
+  .btn-node-copy:hover { background: var(--bg3); color: var(--blue-deep); }
+  .btn-node-copy.copied { background: var(--blue-pale); color: var(--blue-deep); border-color: var(--blue-soft); }
+  .btn-node-use { background: white; color: var(--blue-deep); border-color: var(--blue-soft); }
+  .btn-node-use:hover { background: var(--blue-soft); color: white; }
+
+  /* ── START BUTTON INSIDE PARAMS ── */
+  .btn-start-inline {
+    font-family: var(--ff-ui); font-size: 1rem; font-weight: 700;
+    background: linear-gradient(135deg, var(--blue-soft), var(--blue-deep));
+    color: white; border: none; border-radius: 10px;
+    padding: 10px 28px; cursor: pointer; margin-top: 10px; width: 100%;
+    letter-spacing: 0.3px; transition: opacity 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  .btn-start-inline:hover:not(:disabled) { opacity: 0.88; box-shadow: 0 4px 14px var(--shadow); }
+  .btn-start-inline:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── HOLOGRAPHY / LATTICE WIDGET ── */
+  .string-holo-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 3px 0; }
+  .holo-side {
+    display: flex; flex-direction: row; align-items: center; gap: 6px; flex-shrink: 0;
+    background: var(--bg2); border-radius: 7px; padding: 4px 8px;
+    border: 1px solid var(--bg3);
+  }
+  .holo-svg-wrap { border-radius: 3px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .holo-metrics { display: flex; flex-direction: column; gap: 1px; align-items: flex-start; }
+  .holo-metric { font-family: var(--ff-mono); font-size: 0.7rem; color: var(--blue-deep); white-space: nowrap; line-height: 1.3; }
+  .holo-metric .mval { font-weight: 700; }
+  .holo-name { display: none; }
+
+  /* ── SELECT GENERATORS BUTTON ── */
+  .btn-sel-gen {
+    font-family: var(--ff-ui); font-size: 0.88rem; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 12px 26px; border-radius: 10px;
+    border: 2px solid var(--blue-soft);
+    background: var(--blue-pale); color: var(--blue-deep);
+    cursor: pointer; flex: 1; min-width: 120px; max-width: 180px;
+    transition: all 0.18s;
+  }
+  .btn-sel-gen:hover { background: var(--blue-soft); color: white; transform: translateY(-2px); box-shadow: 0 6px 16px var(--shadow); }
+  .btn-sel-gen:active { transform: translateY(0); }
+  .btn-sel-gen.gen-modified { background: #fff8e1; border-color: #f9a825; color: #5d4037; }
+  .btn-sel-gen.gen-modified:hover { background: #f9a825; color: white; }
+
+  /* ── GENERATOR SELECT MODAL ── */
+  #gen-modal .modal-box { max-width: 480px; }
+  .gen-check-group { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+  .gen-check-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 12px 16px; border-radius: 10px; cursor: pointer;
+    border: 2px solid var(--cell0-bdr); background: var(--blue-pale);
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+  }
+  .gen-check-item:hover { border-color: var(--blue-soft); background: white; }
+  .gen-check-item input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--blue-deep); flex-shrink: 0; cursor: pointer; }
+  .gen-check-item .gen-check-label { flex: 1; }
+  .gen-check-item .gen-check-sym { font-family: var(--ff-mono); font-size: 1.05rem; font-weight: 700; color: var(--blue-deep); display: block; }
+  .gen-check-item .gen-check-desc { font-size: 0.82rem; color: var(--text2); line-height: 1.4; margin-top: 2px; }
+  .gen-check-item .gen-check-decomp { font-family: var(--ff-mono); font-size: 0.74rem; color: var(--text3); margin-top: 3px; }
+  .gen-check-item.checked { border-color: var(--blue-soft); background: white; box-shadow: 0 2px 8px var(--shadow); }
+  .gen-check-item.disabled-item { opacity: 0.4; cursor: not-allowed; }
+  .gen-modal-note { font-size: 0.8rem; color: var(--text3); font-style: italic; border-top: 1px dashed var(--bg3); padding-top: 10px; margin-top: 8px; }
+  .gen-modal-btns { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+  .btn-gen-apply {
+    font-family: var(--ff-ui); font-size: 0.9rem; font-weight: 700;
+    padding: 9px 24px; border-radius: 9px; border: none;
+    background: var(--blue-deep); color: white; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-gen-apply:hover { background: #083585; }
+  .btn-gen-cancel {
+    font-family: var(--ff-ui); font-size: 0.9rem; font-weight: 600;
+    padding: 9px 18px; border-radius: 9px;
+    border: 1.5px solid var(--cell0-bdr); background: white;
+    color: var(--text2); cursor: pointer; transition: border-color 0.15s;
+  }
+  .btn-gen-cancel:hover { border-color: var(--blue-soft); }
+  #gen-active-badge {
+    font-family: var(--ff-mono); font-size: 0.72rem; font-weight: 700;
+    color: var(--blue-deep); background: var(--blue-pale);
+    border: 1.5px solid var(--bg3); border-radius: 6px;
+    padding: 2px 8px; white-space: nowrap;
+  }
+  #gen-active-badge.modified { background: #fff8e1; border-color: #f9a825; color: #5d4037; }
+
+  /* responsive */
+  @media (max-width: 620px) { #content-wrap { flex-direction: column; } #gen-list-panel { width: 100%; max-height: 160px; position: static; } }
+  @media (max-width: 520px) { .cell { width: 34px; height: 34px; font-size: 1rem; } .panel { padding: 16px 14px; } .modal-box { padding: 24px 18px; } }
+  @media (max-width: 380px) { .cell { width: 28px; height: 28px; font-size: 0.88rem; border-radius: 5px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Consecutive <span>4-Cycle</span> Moves</h1>
+  <p class="subtitle">
+    Sort <code>X</code> → <code>Y</code> via generators of the CC4 Schreier graph
+    &ensp;·&ensp; defaults: <code>A = 0<sup>k</sup>1<sup>n−k</sup></code>, <code>A* = 1<sup>n−k</sup>0<sup>k</sup></code>
+  </p>
+</header>
+
+<!-- Parameters -->
+<div class="panel">
+  <div class="panel-title">Parameters</div>
+
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-default">Default (n, k)</button>
+      <button class="mode-btn"        id="mode-custom">Custom (X, Y)</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-left:auto;align-items:center;">
+      <span id="gen-active-badge">σ, σ⁻¹</span>
+      <button class="btn btn-start btn-start-inline" id="btn-start">▶ Start</button>
+      <button class="btn btn-reset" id="btn-reset">↺ Reset</button>
+      <button class="btn btn-help"  id="btn-help">? Help</button>
+    </div>
+  </div>
+
+  <hr class="params-divider">
+
+  <!-- DEFAULT MODE -->
+  <div class="params-section visible" id="section-default">
+    <div class="params-row">
+      <div class="param-group">
+        <label><span class="katex-like">n</span> (length)</label>
+        <div class="spin-wrap">
+          <button class="spin-btn" id="n-dec">−</button>
+          <input class="spin-val" id="n-val" type="number" value="6" min="4" max="14" readonly>
+          <button class="spin-btn" id="n-inc">+</button>
+        </div>
+        <span class="param-constraint">4 ≤ n ≤ 14</span>
+      </div>
+      <div class="param-group">
+        <label><span class="katex-like">k</span> (zeros)</label>
+        <div class="spin-wrap">
+          <button class="spin-btn" id="k-dec">−</button>
+          <input class="spin-val" id="k-val" type="number" value="3" min="1" max="13" readonly>
+          <button class="spin-btn" id="k-inc">+</button>
+        </div>
+        <span class="param-constraint">1 ≤ k ≤ n−1</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM MODE -->
+  <div class="params-section" id="section-custom">
+    <div class="custom-row">
+      <div class="custom-field">
+        <label>X <span class="field-hint">(start string)</span></label>
+        <input class="custom-input" id="x-input" type="text"
+               value="" placeholder="e.g. 000111 or 0,0,0,1,1,1" spellcheck="false" autocomplete="off">
+        <div class="custom-error" id="x-error"></div>
+      </div>
+      <div class="custom-field">
+        <label>Y <span class="field-hint">(target — inferred, or edit / randomize)</span></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="custom-input" id="y-input" type="text"
+                 value="" placeholder="e.g. 111000" spellcheck="false" autocomplete="off" style="flex:1;letter-spacing:2px;">
+          <button class="btn-randomize" id="btn-randomize" title="Pick a random permutation of X's bits">
+            🎲 Randomize Y
+          </button>
+        </div>
+        <div class="custom-error" id="y-error"></div>
+      </div>
+    </div>
+    <div class="custom-info" id="custom-status"></div>
+  </div>
+</div>
+
+<!-- Graph Info panel -->
+<div class="panel" id="graph-info-panel">
+  <div class="panel-title">Graph Info</div>
+  <div id="graph-info-content">
+    <div class="info-placeholder">Click ▶ Start to compute</div>
+  </div>
+  <div class="h-filter-row">
+    <span class="h-filter-label">d₄(A,·) =</span>
+    <input class="h-filter-input" id="h-filter-val" type="number" value="0" step="1" min="0" disabled>
+    <button class="btn-show-nodes" id="btn-show-nodes" disabled>Show nodes</button>
+  </div>
+</div>
+
+<!-- Node list panel -->
+<div class="panel" id="node-list-panel">
+  <div class="panel-title" id="node-list-title">Nodes</div>
+  <div id="node-list-content"></div>
+</div>
+
+<!-- Two-column layout -->
+<div id="content-wrap">
+  <div id="gen-list-panel" class="panel">
+    <div class="panel-title">Generators</div>
+    <div id="gen-list"><div class="gen-empty">Start to see moves</div></div>
+  </div>
+
+  <div id="right-col">
+    <div class="panel" id="main-panel">
+      <div class="panel-title">
+        Transformation
+        <span id="dxy-badge" style="display:none;margin-left:10px;font-family:var(--ff-mono);font-size:0.85rem;font-weight:700;color:var(--blue-soft);background:var(--blue-pale);border:1.5px solid var(--bg3);border-radius:7px;padding:2px 10px;vertical-align:middle;"></span>
+      </div>
+      <div id="string-display-area"></div>
+    </div>
+
+    <div class="panel" id="step-panel">
+      <div class="panel-title">Current Move</div>
+      <div id="step-info-panel">
+        <div class="move-description" id="move-desc">Press <strong>START</strong> to compute the shortest path and begin.</div>
+      </div>
+      <div id="progress-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation row -->
+<div class="btn-row">
+  <button class="btn btn-back" id="btn-back" disabled>← Back</button>
+  <button class="btn btn-next" id="btn-next" disabled>→ Next Step</button>
+  <button class="btn btn-run"  id="btn-run"  disabled>⏩ Run All</button>
+  <button class="btn btn-sel-gen" id="btn-sel-gen">⚙ Generators</button>
+</div>
+
+<!-- Generator Select Modal -->
+<div class="modal-overlay" id="gen-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="gen-modal-close">×</button>
+    <h2>Select Generators</h2>
+    <p style="font-size:0.95rem;color:var(--text2);line-height:1.6;">
+      Choose which CC4 generator types are active. For a string of length <em>n</em>,
+      each type contributes <em>n</em>&minus;3 generator instances
+      (positions <em>i</em> = 0, …, <em>n</em>&minus;4).
+      At least two types must remain active.
+    </p>
+
+    <div class="gen-check-group">
+
+      <label class="gen-check-item checked" id="item-right">
+        <input type="checkbox" id="chk-right" checked>
+        <div class="gen-check-label">
+          <span class="gen-check-sym">σ<sub>i</sub> &nbsp;— right-rotate</span>
+          <div class="gen-check-desc">(a, b, c, d) &nbsp;↦&nbsp; (d, a, b, c)</div>
+          <div class="gen-check-decomp">Decomp: τ<sub>i,i+1</sub> ∘ τ<sub>i+1,i+2</sub> ∘ τ<sub>i+2,i+3</sub> &nbsp;(≤ 3 eff. swaps) &nbsp;🔴</div>
+        </div>
+      </label>
+
+      <label class="gen-check-item" id="item-double">
+        <input type="checkbox" id="chk-double">
+        <div class="gen-check-label">
+          <span class="gen-check-sym">σ<sub>i</sub>² &nbsp;— half-rotate</span>
+          <div class="gen-check-desc">(a, b, c, d) &nbsp;↦&nbsp; (c, d, a, b)</div>
+          <div class="gen-check-decomp">Decomp: τ<sub>i,i+2</sub> ⊕ τ<sub>i+1,i+3</sub> &nbsp;(≤ 2 eff. swaps) &nbsp;🟢</div>
+        </div>
+      </label>
+
+      <label class="gen-check-item checked" id="item-left">
+        <input type="checkbox" id="chk-left" checked>
+        <div class="gen-check-label">
+          <span class="gen-check-sym">σ<sub>i</sub><sup>−1</sup> &nbsp;— left-rotate</span>
+          <div class="gen-check-desc">(a, b, c, d) &nbsp;↦&nbsp; (b, c, d, a)</div>
+          <div class="gen-check-decomp">Decomp: τ<sub>i+2,i+3</sub> ∘ τ<sub>i+1,i+2</sub> ∘ τ<sub>i,i+1</sub> &nbsp;(≤ 3 eff. swaps) &nbsp;🔴</div>
+        </div>
+      </label>
+
+    </div>
+
+    <div class="gen-modal-note">
+      <strong>Note:</strong> Removing generators changes the graph structure —
+      paths may be longer or some pairs may become unreachable.
+      BFS always finds the shortest path in the <em>selected</em> generator set.
+      Default (v12): σ<sub>i</sub> and σ<sub>i</sub><sup>−1</sup>.
+    </div>
+
+    <div class="gen-modal-btns">
+      <button class="btn-gen-cancel" id="gen-modal-cancel">Cancel</button>
+      <button class="btn-gen-apply"  id="gen-modal-apply">Apply &amp; Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Help modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close">×</button>
+    <h2>Consecutive 4-Cycle Moves</h2>
+
+    <h3>Custom Strings (X / Y Mode)</h3>
+    <p>
+      Switch to <strong>Custom (X, Y)</strong> and type your start string <strong>X</strong>.
+      Y is automatically inferred as the canonical sort target (all 1s before all 0s).
+      Use <strong>🎲 Randomize Y</strong> for a random permutation of X's bits.
+      Accepted formats: <code>000111</code>, <code>0,0,0,1,1,1</code>, or space-separated.
+      X must have length 4–14 with at least one 0 and one 1.
+    </p>
+
+    <h3>The Problem</h3>
+    <p>
+      Find the shortest sequence of consecutive 4-cycle generators transforming
+      <em>X</em> into <em>Y</em> in the Schreier coset graph
+      G₄(k, n) = S<sub>n</sub> / (S<sub>k</sub> × S<sub>n−k</sub>).
+      BFS guarantees the minimum-length path.
+    </p>
+    <div class="formula-block">
+A  = 0<sup>k</sup>1<sup>n−k</sup> (default start) &ensp; A* = 1<sup>n−k</sup>0<sup>k</sup> (default target)
+    </div>
+
+    <h3>Generators</h3>
+    <p>
+      σ<sub>i</sub> is a cyclic permutation acting on the 4-window at positions
+      <em>i, i+1, i+2, i+3</em>. Since σ<sub>i</sub> has order 4, its three non-identity
+      powers serve as generators of the Schreier coset graph G₄(k, n):
+    </p>
+    <div class="formula-block">
+σ<sub>i</sub>    (right-rotate): (a,b,c,d) ↦ (d,a,b,c)<br>
+σ<sub>i</sub>²   (half-rotate):  (a,b,c,d) ↦ (c,d,a,b)<br>
+σ<sub>i</sub>⁻¹  (left-rotate):  (a,b,c,d) ↦ (b,c,d,a)
+    </div>
+    <p>
+      For a string of length <em>n</em>, the position index runs
+      <em>i</em> = 0, …, <em>n</em>&minus;4, giving <strong>3(n&minus;3)</strong>
+      total generator instances (n&minus;3 per type).
+      Together they connect all C(n, k) binary strings of the same Hamming weight.
+    </p>
+    <p>
+      Use the <strong>⚙ Generators</strong> button to choose which types are active.
+      Default (v12): σ<sub>i</sub> and σ<sub>i</sub><sup>−1</sup> only.
+      Removing a type changes the graph structure and may increase path lengths
+      or make some pairs unreachable.
+    </p>
+
+    <h3>Decomposition &amp; Colors</h3>
+    <div class="formula-block">
+Right-rotate = τ<sub>i,i+1</sub> ∘ τ<sub>i+1,i+2</sub> ∘ τ<sub>i+2,i+3</sub>  (≤ 3 eff. swaps)<br>
+Left-rotate  = τ<sub>i+2,i+3</sub> ∘ τ<sub>i+1,i+2</sub> ∘ τ<sub>i,i+1</sub>  (≤ 3 eff. swaps)<br>
+Half-rotate  ≡ τ<sub>i,i+2</sub> ⊕ τ<sub>i+1,i+3</sub>                         (≤ 2 eff. swaps)
+    </div>
+    <div class="legend-row">
+      <div class="legend-item"><div class="legend-cell" style="background:#fdecea;border-color:#e53935;color:#e53935;">3</div><span><strong style="color:#e53935">Red</strong> — 3 eff. swaps</span></div>
+      <div class="legend-item"><div class="legend-cell" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;">2</div><span><strong style="color:#2e7d32">Green</strong> — 2 eff. swaps</span></div>
+      <div class="legend-item"><div class="legend-cell" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;">1</div><span><strong style="color:#1565c0">Blue</strong> — 1 eff. swap</span></div>
+    </div>
+
+    <h3>Lattice Path &amp; U Metric</h3>
+    <p>Each binary string maps to a lattice path: step right for '0', step up for '1'. The shaded area beneath the path equals <strong>U = I(B)</strong>, the Mann-Whitney U statistic — it counts inversions between 0-positions and 1-positions. The lattice path updates at every step, reflecting the current string.</p>
+
+    <h3>Graph Info</h3>
+    <p>After Start, the panel shows: |V| = C(n,k), |E| (counted exactly), graph diameter (computed for small graphs), d₄(X,Y) (BFS path length), d₄(A,X), d₄(A,Y) (BFS from canonical A), and N<sub>o</sub>(X,Y) (number of shortest paths).</p>
+    <p>The <strong>d₄(A,·) filter</strong> lists all nodes at a given BFS distance from A, with Copy and "Use as Y" buttons.</p>
+
+    <h3>Controls</h3>
+    <p><strong>Next Step / Back</strong> — step forward or back through the path.</p>
+    <p><strong>Run All</strong> — auto-play at 900 ms per step (click again to stop).</p>
+    <p><strong>Reset</strong> — return to X and clear the log.</p>
+    <p style="margin-top:10px;font-size:0.85rem;color:var(--text3)">Keyboard: <code>→</code> or <code>Space</code> = Next Step &ensp;·&ensp; <code>←</code> = Back &ensp;·&ensp; <code>Esc</code> = close Help</p>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CORE MATH — CC4 generators
+// ═══════════════════════════════════════════
+
+function applyRight(s, i) {
+  // σ_i : (a,b,c,d) → (d,a,b,c)  right-rotate by 1
+  const a = s.split('');
+  const tmp = a[i+3];
+  a[i+3] = a[i+2]; a[i+2] = a[i+1]; a[i+1] = a[i]; a[i] = tmp;
+  return a.join('');
+}
+function applyDouble(s, i) {
+  // σ_i² : (a,b,c,d) → (c,d,a,b)  half-rotate / swap pairs
+  const a = s.split('');
+  let t = a[i]; a[i] = a[i+2]; a[i+2] = t;
+  t = a[i+1]; a[i+1] = a[i+3]; a[i+3] = t;
+  return a.join('');
+}
+function applyLeft(s, i) {
+  // σ_i⁻¹ : (a,b,c,d) → (b,c,d,a)  left-rotate by 1
+  const a = s.split('');
+  const tmp = a[i];
+  a[i] = a[i+1]; a[i+1] = a[i+2]; a[i+2] = a[i+3]; a[i+3] = tmp;
+  return a.join('');
+}
+
+const GEN_ALL = [['right', applyRight], ['double', applyDouble], ['left', applyLeft]];
+
+// ── Active generator selection (default: σ and σ⁻¹, no double) ──
+const activeGens = { right: true, double: false, left: true };
+
+function getActiveFns() {
+  return GEN_ALL.filter(([type]) => activeGens[type]);
+}
+
+function bfsPath(start, target, n) {
+  if (start === target) return [{ s: start, pos: -1, type: '' }];
+  const visited = new Map([[start, null]]);
+  const queue = [start];
+  outer: while (queue.length) {
+    const curr = queue.shift();
+    for (let i = 0; i <= n - 4; i++) {
+      for (const [type, fn] of getActiveFns()) {
+        const nx = fn(curr, i);
+        if (!visited.has(nx)) {
+          visited.set(nx, { prev: curr, pos: i, type });
+          if (nx === target) break outer;
+          queue.push(nx);
+        }
+      }
+    }
+  }
+  const steps = [];
+  let cur = target;
+  while (visited.get(cur) !== null) {
+    const info = visited.get(cur);
+    steps.unshift({ s: cur, pos: info.pos, type: info.type });
+    cur = info.prev;
+  }
+  steps.unshift({ s: start, pos: -1, type: '' });
+  return steps;
+}
+
+// Effective adjacent transpositions on binary string
+// Right: apply τ_{i+2,i+3}, τ_{i+1,i+2}, τ_{i,i+1}  (rightmost first)
+// Left:  apply τ_{i,i+1},   τ_{i+1,i+2}, τ_{i+2,i+3} (leftmost first)
+// Double: independent τ_{i,i+2} and τ_{i+1,i+3}
+function countEffectiveSwaps(s, pos, type) {
+  let a = s[pos], b = s[pos+1], c = s[pos+2], d = s[pos+3];
+  let count = 0;
+  if (type === 'right') {
+    if (c !== d) { const t = c; c = d; d = t; count++; }
+    if (b !== c) { const t = b; b = c; c = t; count++; }
+    if (a !== b) { count++; }
+  } else if (type === 'left') {
+    if (a !== b) { const t = a; a = b; b = t; count++; }
+    if (b !== c) { const t = b; b = c; c = t; count++; }
+    if (c !== d) { count++; }
+  } else { // double
+    if (a !== c) count++;
+    if (b !== d) count++;
+  }
+  return count;
+}
+
+function moveColor(swaps) {
+  if (swaps >= 3) return '#e53935';  // red
+  if (swaps === 2) return '#2e7d32'; // green
+  if (swaps === 1) return '#1565c0'; // blue
+  return '#9e9e9e';
+}
+
+function genSymHTML(type, pos) {
+  if (type === 'right')  return `σ<sub>${pos}</sub>`;
+  if (type === 'double') return `σ²<sub>${pos}</sub>`;
+  return `σ⁻¹<sub>${pos}</sub>`;
+}
+function genArrowSym(type) {
+  return type === 'right' ? '↻' : type === 'double' ? '⇄' : '↺';
+}
+function genRotLabel(type) {
+  if (type === 'right')  return '(a,b,c,d) → (d,a,b,c) [right-rotate]';
+  if (type === 'double') return '(a,b,c,d) → (c,d,a,b) [half-rotate]';
+  return '(a,b,c,d) → (b,c,d,a) [left-rotate]';
+}
+
+// ═══════════════════════════════════════════
+//  GRAPH MATH
+// ═══════════════════════════════════════════
+
+function binomial(n, k) {
+  if (k < 0 || k > n) return 0;
+  if (k === 0 || k === n) return 1;
+  k = Math.min(k, n - k);
+  let r = 1;
+  for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
+  return Math.round(r);
+}
+
+// U(B) = Σ(z_i − i) where z_i are 1-based positions of 0-bits
+function computeU(s) {
+  let U = 0, zi = 0;
+  for (let p = 0; p < s.length; p++) {
+    if (s[p] === '0') { zi++; U += (p + 1) - zi; }
+  }
+  return U;
+}
+
+function generateAllVertices(n, k) {
+  const result = [];
+  (function gen(pos, z, o, cur) {
+    if (z === 0 && o === 0) { result.push(cur); return; }
+    if (z > 0) gen(pos + 1, z - 1, o, cur + '0');
+    if (o > 0) gen(pos + 1, z, o - 1, cur + '1');
+  })(0, k, n - k, '');
+  return result;
+}
+
+// BFS from src, return Map of distances to all reachable vertices
+function bfsAllDist(src, n) {
+  const dist = new Map([[src, 0]]);
+  const q = [src];
+  let qi = 0;
+  while (qi < q.length) {
+    const curr = q[qi++];
+    const dc = dist.get(curr);
+    for (let i = 0; i <= n - 4; i++) {
+      for (const [, fn] of getActiveFns()) {
+        const nx = fn(curr, i);
+        if (!dist.has(nx)) { dist.set(nx, dc + 1); q.push(nx); }
+      }
+    }
+  }
+  return dist;
+}
+
+function countShortestPaths(start, target, n) {
+  if (start === target) return 1;
+  const d   = new Map([[start, 0]]);
+  const cnt = new Map([[start, 1]]);
+  const q = [start];
+  let qi = 0;
+  while (qi < q.length) {
+    const curr = q[qi++];
+    const dc = d.get(curr);
+    if (d.has(target) && dc > d.get(target)) break;
+    for (let i = 0; i <= n - 4; i++) {
+      for (const [, fn] of getActiveFns()) {
+        const nx = fn(curr, i);
+        if (!d.has(nx)) {
+          d.set(nx, dc + 1);
+          cnt.set(nx, cnt.get(curr));
+          q.push(nx);
+        } else if (d.get(nx) === dc + 1) {
+          cnt.set(nx, cnt.get(nx) + cnt.get(curr));
+        }
+      }
+    }
+  }
+  return cnt.get(target) || 0;
+}
+
+function computeGraphInfo(n, k, start, target) {
+  const V = binomial(n, k);
+  const vertices = generateAllVertices(n, k);
+
+  // |E|
+  const edgeSet = new Set();
+  for (const v of vertices) {
+    for (let i = 0; i <= n - 4; i++) {
+      for (const [, fn] of getActiveFns()) {
+        const w = fn(v, i);
+        if (w !== v) { const key = v < w ? v + '|' + w : w + '|' + v; edgeSet.add(key); }
+      }
+    }
+  }
+  const E = edgeSet.size;
+
+  // diameter (all-pairs BFS for small graphs)
+  let diam = '?';
+  if (V <= 250) {
+    let mx = 0;
+    for (const src of vertices) {
+      const dist = new Map([[src, 0]]);
+      const q = [src];
+      let qi = 0;
+      while (qi < q.length) {
+        const curr = q[qi++];
+        const dc = dist.get(curr);
+        for (let i = 0; i <= n - 4; i++) {
+          for (const [, fn] of getActiveFns()) {
+            const nx = fn(curr, i);
+            if (!dist.has(nx)) { dist.set(nx, dc + 1); q.push(nx); }
+          }
+        }
+      }
+      dist.forEach(d => { if (d > mx) mx = d; });
+    }
+    diam = mx;
+  }
+
+  const dXY  = path.length - 1;
+  const A    = '0'.repeat(k) + '1'.repeat(n - k);
+  const distA = bfsAllDist(A, n);  // reuse for d(A,X), d(A,Y), and node filter
+  allDistFromA = distA;
+
+  const dAX = distA.get(start)  ?? '∞';
+  const dAY = distA.get(target) ?? '∞';
+  const No  = countShortestPaths(start, target, n);
+
+  return { V, E, diam, dXY, dAX, dAY, No };
+}
+
+function updateGraphInfoPanel(info) {
+  const el = document.getElementById('graph-info-content');
+  if (!el) return;
+  if (!info) { el.innerHTML = '<div class="info-placeholder">Click ▶ Start to compute</div>'; return; }
+  const { V, E, diam, dXY, dAX, dAY, No } = info;
+  const cell = (k, v) =>
+    `<span class="info-item"><span class="ik">${k}</span><span class="iv">${v}</span></span>`;
+
+  // Derive n,k from current state (may be custom)
+  const nn = makeStart().length;
+  const kk = [...makeStart()].filter(b => b === '0').length;
+
+  el.innerHTML = `<div class="info-grid">
+    <div class="info-group">
+      ${cell('G =', `G₄(${kk},${nn})`)}
+      ${cell('|V| =', V.toLocaleString())}
+      ${cell('|E| =', E.toLocaleString())}
+      ${cell('diam =', diam)}
+    </div>
+    <div class="info-group">
+      ${cell('d₄(X,Y) =', dXY)}
+      ${cell('d₄(A,X) =', dAX)}
+      ${cell('d₄(A,Y) =', dAY)}
+      ${cell('Nₒ(X,Y) =', No.toLocaleString())}
+    </div>
+  </div>`;
+}
+
+function setFilterEnabled(on) {
+  document.getElementById('h-filter-val').disabled   = !on;
+  document.getElementById('btn-show-nodes').disabled = !on;
+  if (!on) document.getElementById('node-list-panel').classList.remove('visible');
+}
+
+function showMatchingNodes() {
+  const dTarget = parseInt(document.getElementById('h-filter-val').value, 10);
+  if (isNaN(dTarget) || !allDistFromA) return;
+
+  const start   = makeStart();
+  const vertices = generateAllVertices(makeStart().length, [...makeStart()].filter(b=>b==='0').length);
+  const matches  = vertices.filter(v => (allDistFromA.get(v) ?? Infinity) === dTarget);
+
+  const panel   = document.getElementById('node-list-panel');
+  const title   = document.getElementById('node-list-title');
+  const content = document.getElementById('node-list-content');
+
+  const nn = makeStart().length, kk = [...makeStart()].filter(b=>b==='0').length;
+  title.textContent = `Nodes with d₄(A,·) = ${dTarget}  (${matches.length} of ${binomial(nn,kk)})`;
+  panel.classList.add('visible');
+
+  if (!matches.length) { content.innerHTML = '<div class="node-list-empty">No nodes found.</div>'; return; }
+  content.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'node-list-header';
+  header.innerHTML = `<strong>${matches.length}</strong> node${matches.length !== 1 ? 's' : ''} — click <em>Use as Y</em> to set as target in Custom mode`;
+  content.appendChild(header);
+
+  for (const v of matches) {
+    const Uv = computeU(v);
+    const dv = allDistFromA.get(v) ?? '?';
+
+    const row = document.createElement('div');
+    row.className = 'node-row';
+
+    const bits = document.createElement('span');
+    bits.className = 'node-bits';
+    bits.textContent = v;
+
+    const dSpan = document.createElement('span');
+    dSpan.className = 'node-d';
+    dSpan.textContent = `d₄=${dv}  U=${Uv}`;
+
+    const btnCopy = document.createElement('button');
+    btnCopy.className = 'btn-node-copy';
+    btnCopy.textContent = 'Copy';
+    btnCopy.addEventListener('click', () => {
+      navigator.clipboard.writeText(v).then(() => {
+        btnCopy.textContent = '✓ Copied';
+        btnCopy.classList.add('copied');
+        setTimeout(() => { btnCopy.textContent = 'Copy'; btnCopy.classList.remove('copied'); }, 1400);
+      });
+    });
+
+    const btnUse = document.createElement('button');
+    btnUse.className = 'btn-node-use';
+    btnUse.textContent = 'Use as Y';
+    btnUse.addEventListener('click', () => {
+      if (!customMode) switchMode(true);
+      const xIn = document.getElementById('x-input');
+      if (!xIn.value || parseBitString(xIn.value)?.length !== v.length) {
+        xIn.value = start.length === v.length ? start : v;
+      }
+      document.getElementById('y-input').value = v;
+      applyCustomValidationUI();
+      handleReset();
+      document.querySelector('.panel').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    row.appendChild(bits); row.appendChild(dSpan);
+    row.appendChild(btnCopy); row.appendChild(btnUse);
+    content.appendChild(row);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  LATTICE PATH VISUALIZATION
+// ═══════════════════════════════════════════
+
+function buildLatticeSVG(bitStr) {
+  const k  = [...bitStr].filter(b => b === '0').length;
+  const nk = bitStr.length - k;
+  if (k === 0 || nk === 0) return null;
+  const maxDim = Math.max(k, nk);
+  const cs = Math.max(5, Math.min(12, Math.floor(72 / maxDim)));
+  const W = k * cs, H = nk * cs;
+  const NS = 'http://www.w3.org/2000/svg';
+
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('width', W + 2);
+  svg.setAttribute('height', H + 2);
+  svg.setAttribute('viewBox', `-1 -1 ${W + 2} ${H + 2}`);
+  svg.style.display = 'block';
+
+  const bg = document.createElementNS(NS, 'rect');
+  bg.setAttribute('x', 0); bg.setAttribute('y', 0);
+  bg.setAttribute('width', W); bg.setAttribute('height', H);
+  bg.setAttribute('fill', '#ffffff');
+  svg.appendChild(bg);
+
+  // Pink area below lattice path
+  let col = 0, mathH = 0;
+  for (const b of bitStr) {
+    if (b === '1') { mathH++; }
+    else {
+      for (let r = 0; r < mathH; r++) {
+        const rect = document.createElementNS(NS, 'rect');
+        rect.setAttribute('x', col * cs);
+        rect.setAttribute('y', (nk - 1 - r) * cs);
+        rect.setAttribute('width', cs);
+        rect.setAttribute('height', cs);
+        rect.setAttribute('fill', '#c7e1fb');
+        svg.appendChild(rect);
+      }
+      col++;
+    }
+  }
+
+  // Grid
+  for (let c = 0; c <= k; c++) {
+    const l = document.createElementNS(NS, 'line');
+    l.setAttribute('x1', c*cs); l.setAttribute('y1', 0);
+    l.setAttribute('x2', c*cs); l.setAttribute('y2', H);
+    l.setAttribute('stroke', '#cbd5e1'); l.setAttribute('stroke-width', '0.5');
+    svg.appendChild(l);
+  }
+  for (let r = 0; r <= nk; r++) {
+    const l = document.createElementNS(NS, 'line');
+    l.setAttribute('x1', 0); l.setAttribute('y1', r*cs);
+    l.setAttribute('x2', W); l.setAttribute('y2', r*cs);
+    l.setAttribute('stroke', '#cbd5e1'); l.setAttribute('stroke-width', '0.5');
+    svg.appendChild(l);
+  }
+
+  // Path
+  let px = 0, py = H;
+  const pts = [`${px},${py}`];
+  for (const b of bitStr) {
+    if (b === '0') px += cs; else py -= cs;
+    pts.push(`${px},${py}`);
+  }
+  const pl = document.createElementNS(NS, 'polyline');
+  pl.setAttribute('points', pts.join(' '));
+  pl.setAttribute('fill', 'none');
+  pl.setAttribute('stroke', '#1565c0');
+  pl.setAttribute('stroke-width', Math.max(1.5, cs / 7));
+  pl.setAttribute('stroke-linecap', 'round');
+  pl.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(pl);
+
+  const brd = document.createElementNS(NS, 'rect');
+  brd.setAttribute('x', 0); brd.setAttribute('y', 0);
+  brd.setAttribute('width', W); brd.setAttribute('height', H);
+  brd.setAttribute('fill', 'none'); brd.setAttribute('stroke', '#94a3b8');
+  brd.setAttribute('stroke-width', '1');
+  svg.appendChild(brd);
+
+  return svg;
+}
+
+function buildHoloWidget(bitStr, name) {
+  const U = computeU(bitStr);
+  const wrap = document.createElement('div');
+  wrap.className = 'holo-side';
+
+  const svgWrap = document.createElement('div');
+  svgWrap.className = 'holo-svg-wrap';
+  const svgEl = buildLatticeSVG(bitStr);
+  if (svgEl) svgWrap.appendChild(svgEl);
+  else { svgWrap.textContent = '—'; svgWrap.style.cssText = 'font-size:0.8rem;color:var(--text3);padding:4px'; }
+  wrap.appendChild(svgWrap);
+
+  const metrics = document.createElement('div');
+  metrics.className = 'holo-metrics';
+
+  const m1 = document.createElement('div');
+  m1.className = 'holo-metric';
+  m1.innerHTML = `I(${name}) = <span class="mval">${U}</span>`;
+  metrics.appendChild(m1);
+
+  wrap.appendChild(metrics);
+  return wrap;
+}
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+
+let N = 6, K = 3;
+let path = [], step = 0;
+let started = false, animating = false;
+let runTimer = null;
+let customMode = false;
+let customX = '0'.repeat(K) + '1'.repeat(N - K);
+let customY = '1'.repeat(N - K) + '0'.repeat(K);
+let allDistFromA = null;  // populated by computeGraphInfo
+
+function makeStart()  { return customMode ? customX : '0'.repeat(K) + '1'.repeat(N - K); }
+function makeTarget() { return customMode ? customY : '1'.repeat(N - K) + '0'.repeat(K); }
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+
+function makeCellEl(val, idx, activeStart, small) {
+  const col = document.createElement('div');
+  col.className = 'cell-col';
+  const cell = document.createElement('div');
+  // CC4: active window is 4 wide
+  const isActive = (activeStart >= 0) && (idx >= activeStart && idx <= activeStart + 3);
+  cell.className = `cell ${val==='1'?'c1':'c0'}${isActive?' active':''}${small?' small':''}`;
+  cell.id = small ? '' : `cell-${idx}`;
+  cell.textContent = val;
+  if (!small) {
+    const pos = document.createElement('div');
+    pos.className = `cell-pos${isActive?' pos-active':''}`;
+    pos.textContent = idx;
+    col.appendChild(cell); col.appendChild(pos);
+  } else { col.appendChild(cell); }
+  return col;
+}
+
+function renderStringRow(s, activeStart, rowId, labelText) {
+  const wrap = document.createElement('div');
+  wrap.className = 'string-row';
+  wrap.id = rowId;
+  if (labelText) {
+    const lbl = document.createElement('span');
+    lbl.className = 'row-label';
+    lbl.innerHTML = labelText;
+    wrap.appendChild(lbl);
+  }
+  const inner = document.createElement('div');
+  inner.style.position = 'relative';
+  inner.style.display = 'flex';
+  inner.style.gap = '4px';
+  inner.style.paddingTop = '72px'; // space above cells for arrows + bracket
+
+  const bracketLabel = document.createElement('div');
+  bracketLabel.className = 'bracket-label';
+  bracketLabel.id = rowId + '-bracket-label';
+  inner.appendChild(bracketLabel);
+
+  const bracketBar = document.createElement('div');
+  bracketBar.className = 'bracket-bar';
+  bracketBar.id = rowId + '-bracket-bar';
+  inner.appendChild(bracketBar);
+
+  for (let i = 0; i < s.length; i++) inner.appendChild(makeCellEl(s[i], i, activeStart, false));
+  wrap.appendChild(inner);
+  return wrap;
+}
+
+function getArea() { return document.getElementById('string-display-area'); }
+
+function renderInitial() {
+  const area = getArea();
+  area.innerHTML = '';
+  const start = makeStart(), target = makeTarget();
+
+  // X row + lattice widget
+  const xWrap = document.createElement('div');
+  xWrap.className = 'string-holo-wrap';
+  xWrap.appendChild(renderStringRow(start, -1, 'current-row', 'X'));
+  xWrap.appendChild(buildHoloWidget(start, 'X'));
+  area.appendChild(xWrap);
+
+  const sep = document.createElement('div');
+  sep.style.cssText = 'width:100%;border-top:1px dashed #90caf9;margin:3px 0;opacity:.6;';
+  area.appendChild(sep);
+
+  const tlabel = document.createElement('div');
+  tlabel.className = 'target-label';
+  tlabel.textContent = `Target Y: ${target}`;
+  tlabel.style.cssText = 'text-align:center;margin-bottom:4px;';
+  area.appendChild(tlabel);
+
+  // Y row + lattice widget
+  const yWrap = document.createElement('div');
+  yWrap.className = 'string-holo-wrap';
+  const tRow = renderStringRow(target, -1, 'target-row', 'Y');
+  tRow.style.opacity = '0.6';
+  yWrap.appendChild(tRow);
+  yWrap.appendChild(buildHoloWidget(target, 'Y'));
+  area.appendChild(yWrap);
+
+  setMoveDesc(`<span class="move-description">X = <strong class="mono">${start}</strong> → Y = <strong class="mono">${target}</strong>. Press <strong>START</strong> to find the shortest 4-cycle path.</span>`);
+  updateProgress(0, 0);
+}
+
+function renderStep(stepIdx, doAnimate) {
+  if (!path.length) return;
+  const info = path[stepIdx];
+  const s    = info.s;
+  const activePos = stepIdx > 0 ? path[stepIdx].pos : -1;
+
+  updateCurrentRow(s, activePos, doAnimate);
+  updateHoloWidget(s);
+
+  if (stepIdx === 0) {
+    const xs = makeStart();
+    setMoveDesc(`<span class="move-description">Start: <strong class="mono">${xs}</strong>. Press <strong>NEXT STEP</strong> to begin.</span>`);
+  } else if (stepIdx === path.length - 1) {
+    const ys = makeTarget();
+    let red = 0, green = 0, blue = 0;
+    for (let i = 1; i < path.length; i++) {
+      const sw = countEffectiveSwaps(path[i-1].s, path[i].pos, path[i].type);
+      if (sw >= 3) red++; else if (sw === 2) green++; else blue++;
+    }
+    const total  = path.length - 1;
+    const plural = total === 1 ? '' : 's';
+    const parts  = [];
+    if (red)   parts.push(`<span style="color:#e53935;font-weight:700">${red} red</span>`);
+    if (green) parts.push(`<span style="color:#2e7d32;font-weight:700">${green} green</span>`);
+    if (blue)  parts.push(`<span style="color:#1565c0;font-weight:700">${blue} blue</span>`);
+    const breakdown = parts.join(' <span style="color:var(--text3)">+</span> ');
+    setMoveDesc(`<div class="done-msg">✓ Reached <strong class="mono">${ys}</strong> in ${total} move${plural}! &ensp;${breakdown}</div>`);
+  } else {
+    const { pos, type } = info;
+    const prevStr    = path[stepIdx - 1].s;
+    const quad_before = prevStr.slice(pos, pos + 4);
+    const quad_after  = s.slice(pos, pos + 4);
+    setMoveDesc(`
+      <div class="step-badge">Step ${stepIdx} of ${path.length - 1}</div>
+      <div class="move-description">
+        Applied <span class="mono">${genSymHTML(type, pos)}</span>
+        at positions <span class="orange">${pos}, ${pos+1}, ${pos+2}, ${pos+3}</span>
+        <br><small>${genRotLabel(type)}</small>
+      </div>
+      <div class="transformation-arrow">
+        <div class="quad-val">${quadHtml(quad_before, false)}</div>
+        <span class="arr">⟶</span>
+        <div class="quad-val">${quadHtml(quad_after, true)}</div>
+      </div>
+    `);
+  }
+
+  updateProgress(stepIdx, path.length - 1);
+  updateBracket(activePos, 'current-row', stepIdx > 0 && stepIdx < path.length - 1 ? info : null);
+  updateGenList();
+}
+
+function quadHtml(quad, highlight) {
+  return quad.split('').map(b =>
+    `<div class="cell small ${b==='1'?'c1':'c0'}${highlight?' just-changed':''}">${b}</div>`
+  ).join('');
+}
+
+// Live-update the X row's lattice widget as current string evolves
+function updateHoloWidget(s) {
+  const area = getArea();
+  const xWrap = area?.firstElementChild;
+  if (!xWrap || !xWrap.classList.contains('string-holo-wrap')) return;
+  const oldWidget = xWrap.querySelector('.holo-side');
+  if (oldWidget) oldWidget.replaceWith(buildHoloWidget(s, 'X'));
+}
+
+function updateCurrentRow(s, activePos, doAnimate) {
+  const row = document.getElementById('current-row');
+  if (!row) return;
+  const inner   = row.lastElementChild;
+  const cellCols = Array.from(inner.children).slice(2);
+  for (let i = 0; i < s.length; i++) {
+    const col  = cellCols[i];
+    if (!col) continue;
+    const cell  = col.querySelector('.cell');
+    const posEl = col.querySelector('.cell-pos');
+    const val   = s[i];
+    // CC4: active window spans 4 cells
+    const isActive = (activePos >= 0) && (i >= activePos && i <= activePos + 3);
+    cell.className = `cell ${val==='1'?'c1':'c0'}${isActive?' active':''}`;
+    if (doAnimate && isActive) {
+      cell.classList.add('just-changed');
+      setTimeout(() => cell.classList.remove('just-changed'), 600);
+    }
+    if (posEl) posEl.className = `cell-pos${isActive?' pos-active':''}`;
+    cell.textContent = val;
+  }
+}
+
+function updateBracket(activePos, rowId, info) {
+  const lbl = document.getElementById(rowId + '-bracket-label');
+  const bar = document.getElementById(rowId + '-bracket-bar');
+  if (!lbl || !bar) return;
+  if (activePos < 0 || !info) {
+    lbl.classList.remove('visible'); bar.classList.remove('visible'); return;
+  }
+  lbl.innerHTML = `${genArrowSym(info.type)} ${genSymHTML(info.type, activePos)}`;
+  lbl.classList.add('visible'); bar.classList.add('visible');
+
+  // Position underbar over the 4-cell window
+  const inner = document.getElementById('current-row')?.lastElementChild;
+  if (!inner) return;
+  const cols = Array.from(inner.children).slice(2);
+  if (cols.length <= activePos + 3) return;
+  const c1 = cols[activePos], c4 = cols[activePos + 3];
+  const pR = inner.getBoundingClientRect();
+  const r1 = c1.getBoundingClientRect(), r4 = c4.getBoundingClientRect();
+  bar.style.left  = (r1.left - pR.left) + 'px';
+  bar.style.right = (pR.right - r4.right) + 'px';
+  bar.style.width = '';
+}
+
+function setMoveDesc(html) { document.getElementById('step-info-panel').innerHTML = html; }
+
+function updateProgress(cur, total) {
+  const pct = total > 0 ? (cur / total) * 100 : 0;
+  const container = document.getElementById('progress-container');
+  if (!container) return;
+  let fill = document.getElementById('progress-fill');
+  let txt  = document.getElementById('progress-text');
+  if (!fill) {
+    const wrap = document.createElement('div'); wrap.className = 'progress-wrap';
+    const track = document.createElement('div'); track.className = 'progress-track';
+    fill = document.createElement('div'); fill.className = 'progress-fill'; fill.id = 'progress-fill';
+    track.appendChild(fill);
+    txt = document.createElement('div'); txt.className = 'progress-text'; txt.id = 'progress-text';
+    wrap.appendChild(track); wrap.appendChild(txt); container.appendChild(wrap);
+  }
+  fill.style.width = pct + '%';
+  txt.textContent  = total > 0 ? `Step ${cur} / ${total}` : 'Not started';
+}
+
+// ═══════════════════════════════════════════
+//  GENERATOR LIST
+// ═══════════════════════════════════════════
+
+function updateGenList() {
+  const list = document.getElementById('gen-list');
+  if (!list) return;
+  if (!started || !path.length) { list.innerHTML = '<div class="gen-empty">Start to see moves</div>'; return; }
+  list.innerHTML = '';
+  for (let i = 1; i <= step; i++) {
+    const info      = path[i];
+    const prevStr   = path[i - 1].s;
+    const swaps     = countEffectiveSwaps(prevStr, info.pos, info.type);
+    const isCurrent = (i === step);
+    const col       = moveColor(swaps);
+    const item = document.createElement('div');
+    item.className = `gen-item ${isCurrent ? 'current' : 'done'}`;
+    item.style.setProperty('--item-color', col);
+    item.innerHTML =
+      `<span class="gen-step-num">${i}</span>` +
+      `<span class="gen-sym">${genSymHTML(info.type, info.pos)}</span>` +
+      `<span class="gen-pos">(${info.pos},${info.pos+1},${info.pos+2},${info.pos+3})</span>`;
+    list.appendChild(item);
+  }
+  if (step === 0) list.innerHTML = '<div class="gen-empty">Press Next Step</div>';
+  list.scrollTop = list.scrollHeight;
+}
+
+// ═══════════════════════════════════════════
+//  CURVED ARROWS (preview next move)
+// ═══════════════════════════════════════════
+
+function drawNextStepArrows() {
+  const old = document.getElementById('arrows-svg');
+  if (old) old.remove();
+  if (!started || !path.length || step >= path.length - 1) return;
+
+  const nextInfo = path[step + 1];
+  const pos = nextInfo.pos, type = nextInfo.type;
+
+  const row = document.getElementById('current-row');
+  if (!row) return;
+  const inner    = row.lastElementChild;
+  const cellCols = Array.from(inner.children).slice(2);
+  const cellEls  = [pos, pos+1, pos+2, pos+3].map(j => cellCols[j]?.querySelector('.cell'));
+  if (cellEls.some(c => !c)) return;
+
+  const innerRect = inner.getBoundingClientRect();
+  function pt(el) {
+    const r = el.getBoundingClientRect();
+    return { cx: r.left - innerRect.left + r.width / 2, top: r.top - innerRect.top };
+  }
+  const [p0, p1, p2, p3] = cellEls.map(pt);
+
+  const swaps = countEffectiveSwaps(path[step].s, pos, type);
+  const COLOR = moveColor(swaps);
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'arrows-svg';
+  svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:20;';
+
+  const defs   = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'arr4');
+  marker.setAttribute('markerWidth', '9'); marker.setAttribute('markerHeight', '7');
+  marker.setAttribute('refX', '4.5');      marker.setAttribute('refY', '3.5');
+  marker.setAttribute('orient', 'auto');
+  const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  poly.setAttribute('points', '0 0, 9 3.5, 0 7');
+  poly.setAttribute('fill', COLOR);
+  marker.appendChild(poly); defs.appendChild(marker); svg.appendChild(defs);
+
+  const SW = 2.2, GAP = 6, SHALLOW = 26, DEEP = 62, CA = 36, CB = 58;
+
+  function addArc(d) {
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', d); p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', COLOR); p.setAttribute('stroke-width', SW);
+    p.setAttribute('stroke-linecap', 'round'); p.setAttribute('marker-mid', 'url(#arr4)');
+    svg.appendChild(p);
+  }
+
+  // Quadratic Bézier with De Casteljau midpoint for marker-mid
+  function quadArc(src, dst, H) {
+    const x0 = src.cx, y0 = src.top - 3;
+    const x1 = dst.cx, y1 = dst.top - GAP;
+    const cpx = (x0 + x1) / 2, cpy = Math.min(y0, y1) - H;
+    const q0x = (x0+cpx)/2, q0y = (y0+cpy)/2;
+    const q1x = (cpx+x1)/2, q1y = (cpy+y1)/2;
+    const mx  = (q0x+q1x)/2, my  = (q0y+q1y)/2;
+    addArc(`M ${x0} ${y0} Q ${q0x} ${q0y} ${mx} ${my} Q ${q1x} ${q1y} ${x1} ${y1}`);
+  }
+
+  // Cubic Bézier for long spanning arc
+  function cubicArc(src, dst, H) {
+    const x0 = src.cx, y0 = src.top - 3;
+    const x1 = dst.cx, y1 = dst.top - GAP;
+    const cy = Math.min(y0, y1) - H;
+    const q0x = x0,          q0y = (y0+cy)/2;
+    const q1x = (x0+x1)/2,   q1y = cy;
+    const q2x = x1,           q2y = (cy+y1)/2;
+    const r0x = (q0x+q1x)/2, r0y = (q0y+q1y)/2;
+    const r1x = (q1x+q2x)/2, r1y = (q1y+q2y)/2;
+    const mx  = (r0x+r1x)/2, my  = (r0y+r1y)/2;
+    addArc(`M ${x0} ${y0} C ${q0x} ${q0y} ${r0x} ${r0y} ${mx} ${my} C ${r1x} ${r1y} ${q2x} ${q2y} ${x1} ${y1}`);
+  }
+
+  if (type === 'right') {
+    // (a,b,c,d) → (d,a,b,c)
+    quadArc(p0, p1, SHALLOW);  // a → i+1
+    quadArc(p1, p2, SHALLOW);  // b → i+2
+    quadArc(p2, p3, SHALLOW);  // c → i+3
+    cubicArc(p3, p0, DEEP);    // d → i (long arc)
+  } else if (type === 'left') {
+    // (a,b,c,d) → (b,c,d,a)
+    quadArc(p3, p2, SHALLOW);  // d → i+2
+    quadArc(p2, p1, SHALLOW);  // c → i+1
+    quadArc(p1, p0, SHALLOW);  // b → i
+    cubicArc(p0, p3, DEEP);    // a → i+3 (long arc)
+  } else {
+    // double: (a,b,c,d) → (c,d,a,b) — crossing arcs at two heights
+    quadArc(p0, p2, CA);       // a → i+2
+    quadArc(p1, p3, CB);       // b → i+3
+    quadArc(p2, p0, CA);       // c → i   (crosses p0→p2)
+    quadArc(p3, p1, CB);       // d → i+1 (crosses p1→p3)
+  }
+
+  inner.appendChild(svg);
+}
+
+// ═══════════════════════════════════════════
+//  SYNC
+// ═══════════════════════════════════════════
+
+function syncBracket() {
+  if (!started || !path.length) return;
+  const info = (step > 0 && step < path.length) ? path[step] : null;
+  const activePos = info ? info.pos : -1;
+  updateBracket(activePos, 'current-row', info && step < path.length - 1 ? info : null);
+  requestAnimationFrame(drawNextStepArrows);
+}
+
+// ═══════════════════════════════════════════
+//  HANDLERS
+// ═══════════════════════════════════════════
+
+function handleStart() {
+  if (animating) return;
+  const start = makeStart(), target = makeTarget();
+  if (start === target) {
+    setMoveDesc('<div class="done-msg">⚠ X equals Y — try different parameters.</div>');
+    return;
+  }
+  setMoveDesc('<span class="move-description" style="color:var(--text3)">Computing shortest path and graph statistics…</span>');
+  updateGraphInfoPanel(null);
+  setTimeout(() => {
+    path    = bfsPath(start, target, start.length);
+    step    = 0;
+    started = true;
+
+    const badge = document.getElementById('dxy-badge');
+    if (badge) { badge.textContent = `d₄(X,Y) = ${path.length - 1}`; badge.style.display = 'inline'; }
+
+    const info = computeGraphInfo(start.length, [...start].filter(b=>b==='0').length, start, target);
+    updateGraphInfoPanel(info);
+    setFilterEnabled(true);
+
+    renderInitial();
+    renderStep(0, false);
+    document.getElementById('btn-next').disabled  = false;
+    document.getElementById('btn-back').disabled  = true;
+    document.getElementById('btn-run').disabled   = false;
+    document.getElementById('btn-start').disabled = true;
+    syncBracket();
+    requestAnimationFrame(drawNextStepArrows);
+  }, 30);
+}
+
+function handleBack() {
+  if (!started || animating || step <= 0) return;
+  if (runTimer !== null) {
+    clearInterval(runTimer); runTimer = null;
+    document.getElementById('btn-run').textContent = '⏩ Run All';
+    document.getElementById('btn-run').classList.remove('running');
+  }
+  animating = true;
+  step--;
+  renderStep(step, false);
+  setTimeout(() => {
+    syncBracket(); animating = false;
+    document.getElementById('btn-back').disabled = step <= 0;
+    document.getElementById('btn-next').disabled = false;
+    document.getElementById('btn-run').disabled  = false;
+  }, 150);
+}
+
+function handleRunAll() {
+  const btn = document.getElementById('btn-run');
+  if (runTimer !== null) {
+    clearInterval(runTimer); runTimer = null;
+    btn.textContent = '⏩ Run All'; btn.classList.remove('running');
+    setRunAllButtonsState(); return;
+  }
+  if (!started || step >= path.length - 1) return;
+  btn.textContent = '⏹ Stop'; btn.classList.add('running');
+  document.getElementById('btn-next').disabled = true;
+  document.getElementById('btn-back').disabled = true;
+  runTimer = setInterval(() => {
+    if (step >= path.length - 1) {
+      clearInterval(runTimer); runTimer = null;
+      btn.textContent = '⏩ Run All'; btn.classList.remove('running');
+      animating = false; setRunAllButtonsState(); return;
+    }
+    animating = true; step++;
+    renderStep(step, true);
+    setTimeout(() => { syncBracket(); animating = false; }, 150);
+  }, 900);
+}
+
+function setRunAllButtonsState() {
+  const done = step >= path.length - 1;
+  document.getElementById('btn-next').disabled = done || !started;
+  document.getElementById('btn-back').disabled = step <= 0 || !started;
+  document.getElementById('btn-run').disabled  = done || !started;
+}
+
+function handleNextStep() {
+  if (!started || animating) return;
+  if (step >= path.length - 1) return;
+  if (runTimer !== null) {
+    clearInterval(runTimer); runTimer = null;
+    document.getElementById('btn-run').textContent = '⏩ Run All';
+    document.getElementById('btn-run').classList.remove('running');
+  }
+  animating = true; step++;
+  renderStep(step, true);
+  setTimeout(() => {
+    syncBracket(); animating = false;
+    document.getElementById('btn-back').disabled = false;
+    const done = step >= path.length - 1;
+    document.getElementById('btn-next').disabled = done;
+    document.getElementById('btn-run').disabled  = done;
+  }, 150);
+}
+
+function handleReset() {
+  if (runTimer !== null) { clearInterval(runTimer); runTimer = null; }
+  path = []; step = 0; started = false; animating = false; allDistFromA = null;
+  const old = document.getElementById('arrows-svg');
+  if (old) old.remove();
+  const badge = document.getElementById('dxy-badge');
+  if (badge) badge.style.display = 'none';
+  updateGraphInfoPanel(null);
+  setFilterEnabled(false);
+  renderInitial();
+  updateGenList();
+  document.getElementById('btn-back').disabled  = true;
+  document.getElementById('btn-run').disabled   = true;
+  document.getElementById('btn-run').textContent = '⏩ Run All';
+  document.getElementById('btn-run').classList.remove('running');
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-next').disabled  = true;
+}
+
+// ═══════════════════════════════════════════
+//  PARAM CONTROLS
+// ═══════════════════════════════════════════
+
+function setN(v) {
+  N = Math.max(4, Math.min(14, v));  // CC4 needs n ≥ 4
+  K = Math.max(1, Math.min(N - 1, K));
+  document.getElementById('n-val').value = N;
+  document.getElementById('k-val').value = K;
+  customX = '0'.repeat(K) + '1'.repeat(N - K);
+  customY = '1'.repeat(N - K) + '0'.repeat(K);
+  handleReset();
+}
+function setK(v) {
+  K = Math.max(1, Math.min(N - 1, v));
+  document.getElementById('k-val').value = K;
+  customX = '0'.repeat(K) + '1'.repeat(N - K);
+  customY = '1'.repeat(N - K) + '0'.repeat(K);
+  handleReset();
+}
+
+document.getElementById('n-dec').addEventListener('click', () => setN(N - 1));
+document.getElementById('n-inc').addEventListener('click', () => setN(N + 1));
+document.getElementById('k-dec').addEventListener('click', () => setK(K - 1));
+document.getElementById('k-inc').addEventListener('click', () => setK(K + 1));
+
+// ── Mode toggle ──
+function switchMode(toCustom) {
+  customMode = toCustom;
+  document.getElementById('mode-default').classList.toggle('active', !toCustom);
+  document.getElementById('mode-custom').classList.toggle('active',   toCustom);
+  document.getElementById('section-default').classList.toggle('visible', !toCustom);
+  document.getElementById('section-custom').classList.toggle('visible',   toCustom);
+  if (toCustom) {
+    const defX = '0'.repeat(K) + '1'.repeat(N - K);
+    const defY = '1'.repeat(N - K) + '0'.repeat(K);
+    document.getElementById('x-input').value = defX;
+    document.getElementById('y-input').value = defY;
+    customX = defX; customY = defY;
+    applyCustomValidationUI();
+  }
+  handleReset();
+}
+document.getElementById('mode-default').addEventListener('click', () => switchMode(false));
+document.getElementById('mode-custom').addEventListener('click',  () => switchMode(true));
+
+// ── Custom input parsing & validation ──
+function parseBitString(raw) {
+  if (!raw) return null;
+  const clean = raw.replace(/[\s,]+/g, '');
+  if (!/^[01]+$/.test(clean)) return null;
+  return clean;
+}
+function inferY(sx) {
+  const ones  = [...sx].filter(b => b === '1').length;
+  const zeros = sx.length - ones;
+  return '1'.repeat(ones) + '0'.repeat(zeros);
+}
+function randomY(sx) {
+  const arr = sx.split('');
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  const t = arr.join('');
+  return t === sx ? randomY(sx) : t;
+}
+
+function validateCustomInputs() {
+  const rawX = document.getElementById('x-input').value;
+  const rawY = document.getElementById('y-input').value;
+  const sx = parseBitString(rawX);
+  let xOk = false, yOk = false, xErr = '', yErr = '', statusMsg = '', sy = '';
+  if (!sx)                        xErr = 'Must be binary digits (0/1), optionally comma/space separated.';
+  else if (sx.length < 4)         xErr = 'X must have length ≥ 4 (CC4 needs at least one 4-window).';
+  else if (sx.length > 14)        xErr = 'X must have length ≤ 14.';
+  else if (!/0/.test(sx))         xErr = 'X must contain at least one 0.';
+  else if (!/1/.test(sx))         xErr = 'X must contain at least one 1.';
+  else                            xOk  = true;
+
+  if (xOk) {
+    const ryStr = document.getElementById('y-input').value;
+    sy = parseBitString(ryStr) || inferY(sx);
+    if (!sy)                                    yErr = 'Must be binary digits.';
+    else if (sy.length !== sx.length)           yErr = `Y must have same length as X (${sx.length}).`;
+    else if ([...sy].filter(b=>b==='0').length !== [...sx].filter(b=>b==='0').length)
+                                                yErr = 'Y must have the same number of 0s as X.';
+    else if (sy === sx)                         yErr = 'Y must differ from X.';
+    else                                        yOk  = true;
+
+    if (xOk && yOk) statusMsg = `✓ X = ${sx}  →  Y = ${sy}  |  n=${sx.length}, k=${[...sx].filter(b=>b==='0').length}`;
+    else if (!ryStr.trim()) statusMsg = xOk ? `X valid (n=${sx.length}, k=${[...sx].filter(b=>b==='0').length}) — enter or randomize Y` : '';
+  }
+  return { xOk, yOk, xErr, yErr, statusMsg, sx, sy };
+}
+
+function applyCustomValidationUI() {
+  const { xOk, yOk, xErr, yErr, statusMsg, sx, sy } = validateCustomInputs();
+  const xi = document.getElementById('x-input');
+  const yi = document.getElementById('y-input');
+  xi.classList.toggle('ok',    xOk);
+  xi.classList.toggle('error', !xOk);
+  const yHasContent = yi.value.trim().length > 0;
+  yi.classList.toggle('ok',    yOk && yHasContent);
+  yi.classList.toggle('error', !yOk && yHasContent);
+  document.getElementById('x-error').textContent = xErr;
+  document.getElementById('y-error').textContent = yErr;
+  document.getElementById('btn-randomize').disabled = !xOk;
+  const st = document.getElementById('custom-status');
+  st.textContent = statusMsg;
+  st.className = 'custom-info' + (statusMsg.startsWith('✓') ? ' valid' : '');
+  if (xOk && yOk) { customX = sx; customY = sy; return true; }
+  return false;
+}
+
+function onCustomInput() {
+  const rawX = document.getElementById('x-input').value;
+  const sx   = parseBitString(rawX);
+  if (sx && sx.length >= 4 && sx.length <= 14 && /0/.test(sx) && /1/.test(sx)) {
+    document.getElementById('y-input').value = inferY(sx);
+  }
+  applyCustomValidationUI();
+  handleReset();
+}
+document.getElementById('x-input').addEventListener('input', onCustomInput);
+document.getElementById('y-input').addEventListener('input', () => { applyCustomValidationUI(); handleReset(); });
+
+document.getElementById('btn-randomize').addEventListener('click', () => {
+  const sx = parseBitString(document.getElementById('x-input').value);
+  if (!sx) return;
+  document.getElementById('y-input').value = randomY(sx);
+  applyCustomValidationUI();
+  handleReset();
+});
+
+// Override btn-start to validate custom mode first
+document.getElementById('btn-start').addEventListener('click', () => {
+  if (customMode) {
+    const ok = applyCustomValidationUI();
+    if (!ok) return;
+    N = customX.length;
+    K = [...customX].filter(b => b === '0').length;
+  }
+  handleStart();
+});
+
+document.getElementById('btn-help').addEventListener('click', () =>
+  document.getElementById('modal').classList.add('open'));
+document.getElementById('modal-close').addEventListener('click', () =>
+  document.getElementById('modal').classList.remove('open'));
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal'))
+    document.getElementById('modal').classList.remove('open');
+});
+
+document.getElementById('btn-back').addEventListener('click',  handleBack);
+document.getElementById('btn-run').addEventListener('click',   handleRunAll);
+document.getElementById('btn-next').addEventListener('click',  handleNextStep);
+document.getElementById('btn-reset').addEventListener('click', handleReset);
+document.getElementById('btn-show-nodes').addEventListener('click', showMatchingNodes);
+
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); handleNextStep(); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); handleBack(); }
+  if (e.key === 'Escape') document.getElementById('modal').classList.remove('open');
+});
+
+// ═══════════════════════════════════════════
+//  GENERATOR SELECT MODAL
+// ═══════════════════════════════════════════
+
+function genBadgeText() {
+  const parts = [];
+  if (activeGens.right)  parts.push('σ');
+  if (activeGens.double) parts.push('σ²');
+  if (activeGens.left)   parts.push('σ⁻¹');
+  return parts.join(', ');
+}
+
+function updateGenBadge() {
+  const badge = document.getElementById('gen-active-badge');
+  if (!badge) return;
+  const isDefault = activeGens.right && !activeGens.double && activeGens.left;
+  badge.textContent = genBadgeText();
+  badge.classList.toggle('modified', !isDefault);
+  const selBtn = document.getElementById('btn-sel-gen');
+  if (selBtn) selBtn.classList.toggle('gen-modified', !isDefault);
+}
+
+function syncCheckUI() {
+  ['right','double','left'].forEach(t => {
+    const chk  = document.getElementById('chk-' + t);
+    const item = document.getElementById('item-' + t);
+    if (chk)  chk.checked = activeGens[t];
+    if (item) item.classList.toggle('checked', activeGens[t]);
+  });
+  // enforce minimum-2 rule: disable unchecked if only 2 remain checked
+  ['right','double','left'].forEach(t => {
+    const chk = document.getElementById('chk-' + t);
+    const item = document.getElementById('item-' + t);
+    if (!chk || !item) return;
+    const checkedCount = Object.values(activeGens).filter(Boolean).length;
+    const canUncheck = activeGens[t] ? checkedCount > 2 : true;
+    chk.disabled  = !canUncheck && activeGens[t];
+    item.classList.toggle('disabled-item', !canUncheck && activeGens[t]);
+  });
+}
+
+function openGenModal() {
+  // Snapshot current state into checkboxes
+  syncCheckUI();
+  document.getElementById('gen-modal').classList.add('open');
+}
+
+['right','double','left'].forEach(t => {
+  document.getElementById('chk-' + t)?.addEventListener('change', function() {
+    // Count what would be checked after this change
+    const snapshot = { right: document.getElementById('chk-right').checked,
+                       double: document.getElementById('chk-double').checked,
+                       left:   document.getElementById('chk-left').checked };
+    const cnt = Object.values(snapshot).filter(Boolean).length;
+    if (cnt < 2) { this.checked = !this.checked; return; } // revert
+    document.getElementById('item-' + t)?.classList.toggle('checked', this.checked);
+    syncCheckUI();
+  });
+});
+
+document.getElementById('btn-sel-gen').addEventListener('click', openGenModal);
+
+document.getElementById('gen-modal-close').addEventListener('click', () =>
+  document.getElementById('gen-modal').classList.remove('open'));
+document.getElementById('gen-modal-cancel').addEventListener('click', () =>
+  document.getElementById('gen-modal').classList.remove('open'));
+document.getElementById('gen-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('gen-modal'))
+    document.getElementById('gen-modal').classList.remove('open');
+});
+
+document.getElementById('gen-modal-apply').addEventListener('click', () => {
+  activeGens.right  = document.getElementById('chk-right').checked;
+  activeGens.double = document.getElementById('chk-double').checked;
+  activeGens.left   = document.getElementById('chk-left').checked;
+  document.getElementById('gen-modal').classList.remove('open');
+  updateGenBadge();
+  handleReset();
+});
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+renderInitial();
+updateGenBadge();
+</script>
+</body>
+</html>
