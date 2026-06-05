@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Dn Schreier Graph k=2 · v4</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+  :root {
+    --bg:#e8f5e2; --panel:#f3faf0; --ink:#1a2e14; --ink2:#3a5430;
+    --accent:#2d6a1f; --accent2:#4a9e32;
+    --nodeA:#2563eb; --nodeB:#f97316; --nodePath:#fee2e2;
+    --edgeSpec:#c84b0a; --edgePath:#e03030;
+    --colA:#2563eb; --colB:#f97316;
+    --colArea:#c43a78; --colOK:#0f766e; --colFail:#b91c1c;
+    --shadow:0 4px 20px rgba(20,50,10,0.13);
+    --radius:14px; --mono:'JetBrains Mono',monospace; --serif:'Libre Baskerville',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);min-height:100vh;}
+
+  header{padding:10px 20px 8px;border-bottom:2px solid #b8d9a8;background:#f0f8eb;
+    position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(20,50,10,0.09);}
+  .top-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+  h1{font-family:var(--serif);font-style:italic;font-size:clamp(15px,1.8vw,22px);color:var(--accent);flex-shrink:0;}
+  .ctrl-group{display:flex;align-items:center;gap:6px;background:#e0f0d4;
+    border:1.5px solid #a8d090;border-radius:9px;padding:4px 10px;font-size:13px;color:var(--ink2);font-weight:600;}
+  select{font:inherit;font-size:13px;border:1.5px solid #a8d090;background:#f4faf0;
+    color:var(--ink);border-radius:6px;padding:3px 7px;outline:none;cursor:pointer;}
+  select:focus{border-color:var(--accent);}
+  button{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:0.03em;
+    border:2px solid;border-radius:9px;padding:5px 14px;cursor:pointer;transition:all 0.13s;}
+  .btn-start{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn-start:hover{background:#1e4f14;}
+  .btn-reset{background:#fff3;color:var(--ink2);border-color:#a8d090;}
+  .btn-reset:hover{background:#d4edcc;}
+  .btn-rand{background:#f0f8eb;color:#1a5c3a;border-color:#5aaa70;}
+  .btn-rand:hover{background:#d4f0e0;border-color:#2d8a50;}
+  .btn-table{background:#f0eef8;color:#3a2070;border-color:#9a80d0;}
+  .btn-table:hover{background:#e0d8f8;border-color:#6a50b0;}
+  .btn-help{background:#fff8e8;color:#8a5a00;border-color:#e8c870;}
+  .btn-help:hover{background:#ffefc0;}
+  button:active{transform:translateY(1px);}
+
+  .gen-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:2px 0;}
+  .gen-bar-label{font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:0.08em;text-transform:uppercase;margin-right:4px;}
+  .gen-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;
+    border-radius:7px;padding:3px 9px;border:1.5px solid;cursor:pointer;user-select:none;transition:all 0.12s;}
+  .gen-chip.reg{background:#e0f0d4;border-color:#a8d090;color:var(--ink2);}
+  .gen-chip.reg:hover{background:#c8e0b8;}
+  .gen-chip.spec{background:#fff0e8;border-color:#e8a070;color:#8a3800;}
+  .gen-chip.spec:hover{background:#ffe0cc;}
+  .gen-chip.dimmed{opacity:0.4;}
+  .gen-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+  /* ── MAIN LAYOUT: graph | lattice | side ── */
+  .layout{display:grid;grid-template-columns:1fr 1fr 280px;gap:12px;padding:12px;align-items:start;}
+  @media(max-width:1100px){.layout{grid-template-columns:1fr 1fr;}}
+  @media(max-width:700px){.layout{grid-template-columns:1fr;}}
+
+  .canvas-panel{background:var(--panel);border:1.5px solid #b8d9a8;border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;position:relative;min-height:500px;}
+  #gc{width:100%;height:100%;display:block;cursor:crosshair;}
+  .drag-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    font-size:10px;color:#8aaa78;letter-spacing:0.06em;pointer-events:none;}
+  #tip{position:absolute;background:rgba(15,35,10,0.90);color:#e8f5e2;border-radius:7px;
+    padding:5px 11px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:50;display:none;}
+
+  /* ── LATTICE PANEL ── */
+  .lattice-panel{background:var(--panel);border:1.5px solid #b8d9a8;border-radius:var(--radius);
+    box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:500px;}
+  .lattice-header{padding:10px 14px 8px;border-bottom:1.5px solid #c8e0b8;flex-shrink:0;}
+  .lattice-title{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--accent);margin-bottom:2px;}
+  .lattice-sub{font-size:10px;color:var(--ink2);}
+  #latCanvas{display:block;width:100%;flex:1;}
+  .lattice-footer{padding:8px 14px;border-top:1.5px solid #c8e0b8;font-size:11px;min-height:36px;}
+  .eq-ok{color:var(--colOK);font-weight:700;}
+  .eq-fail{color:var(--colFail);font-weight:700;}
+
+  /* ── SIDE ── */
+  .side{display:flex;flex-direction:column;gap:10px;}
+  .card{background:var(--panel);border:1.5px solid #b8d9a8;border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:12px;}
+  .card-title{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--ink2);border-bottom:1.5px solid #c8e0b8;padding-bottom:6px;margin-bottom:8px;}
+  .stat-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;
+    color:var(--ink2);border-bottom:1px dotted #c8e0b8;}
+  .stat-row:last-child{border-bottom:none;}
+  .stat-val{font-weight:700;color:var(--ink);}
+  .legend{display:flex;flex-direction:column;gap:5px;font-size:12px;}
+  .leg-row{display:flex;align-items:center;gap:8px;color:var(--ink2);}
+  .leg-sw{width:16px;height:16px;border-radius:50%;border:2px solid #888;flex-shrink:0;}
+  .leg-ln{width:24px;height:3px;border-radius:2px;flex-shrink:0;}
+  .pair-display{font-size:12px;line-height:1.8;color:var(--ink);min-height:50px;}
+  .plabel{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink2);font-weight:700;}
+  .va{color:var(--colA);font-weight:700;font-size:14px;}
+  .vb{color:var(--colB);font-weight:700;font-size:14px;}
+  .vd{color:var(--accent);font-weight:700;font-size:13px;}
+
+  /* ── PAIRS TABLE ── */
+  .table-section{padding:0 12px 20px;display:none;}
+  .table-section.visible{display:block;}
+  .table-wrap{background:var(--panel);border:1.5px solid #b8d9a8;border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:14px 16px;}
+  .table-hdr{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+  .table-hdr-title{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--accent);}
+  .table-hdr-sub{font-size:11px;color:var(--ink2);}
+  table.pairs{width:100%;border-collapse:collapse;font-size:12px;}
+  table.pairs th{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+    color:var(--ink2);border-bottom:2px solid #b8d9a8;padding:4px 8px;text-align:left;background:#eaf5e4;}
+  table.pairs td{padding:5px 8px;border-bottom:1px solid #d8ecd0;vertical-align:middle;font-family:var(--mono);}
+  table.pairs tr:last-child td{border-bottom:none;}
+  table.pairs tr:hover td{background:#f0faea;}
+  table.pairs tr.clickable{cursor:pointer;}
+  .td-node{font-weight:700;font-size:13px;}
+  .td-a{color:var(--colA);}
+  .td-b{color:var(--colB);}
+  .td-bin{font-size:11px;letter-spacing:0.06em;color:var(--ink2);}
+  .td-num{text-align:center;font-weight:700;}
+  .td-ok{color:var(--colOK);text-align:center;font-weight:700;}
+  .td-fail{color:var(--colFail);text-align:center;font-weight:700;}
+  .td-zero{color:#aaa;text-align:center;}
+  tr.off-pos td{background:#fff0f0;}
+  tr.off-neg td{background:#f0f4ff;}
+  tr.off-pos:hover td{background:#ffe0e0;}
+  tr.off-neg:hover td{background:#e0e8ff;}
+  .td-off-pos{color:#b91c1c;text-align:center;font-weight:700;}
+  .td-off-neg{color:#1d4ed8;text-align:center;font-weight:700;}
+
+  .overlay{display:none;position:fixed;inset:0;background:rgba(5,20,2,0.55);z-index:100;align-items:center;justify-content:center;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--panel);border:2px solid #b8d9a8;border-radius:18px;
+    box-shadow:0 8px 48px rgba(5,20,2,0.25);padding:26px 28px;max-width:520px;width:92vw;
+    max-height:85vh;overflow-y:auto;font-size:13px;line-height:1.7;color:var(--ink2);position:relative;}
+  .modal h2{font-family:var(--serif);font-size:19px;color:var(--accent);margin-bottom:12px;font-style:italic;}
+  .modal h3{font-size:13px;font-weight:700;color:var(--ink);margin:10px 0 4px;}
+  .modal p{margin-bottom:9px;}
+  .modal code{background:#e0f0d4;border-radius:4px;padding:1px 5px;font-size:11px;color:var(--ink);}
+  .mcl{position:absolute;top:12px;right:14px;background:none;border:none;font-size:19px;cursor:pointer;color:var(--ink2);}
+  .mcl:hover{color:var(--ink);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top-row">
+    <h1>Dn Schreier Graph · k=2</h1>
+    <div class="ctrl-group">
+      <label>n =</label>
+      <select id="nSel">
+        <option value="4">4</option><option value="5">5</option>
+        <option value="6" selected>6</option><option value="7">7</option>
+        <option value="8">8</option><option value="9">9</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <button class="btn-start" id="startBtn">▶ START</button>
+    <button class="btn-reset" id="resetBtn">↺ RESET</button>
+    <button class="btn-rand" id="randBtn">⚄ RANDOM PAIR</button>
+    <div class="ctrl-group">
+      <label>offset =</label>
+      <select id="offSel">
+        <option value="any">any</option>
+        <option value="0">0</option>
+        <option value="1">+1</option>
+        <option value="-1">−1</option>
+      </select>
+    </div>
+    <button class="btn-table" id="tableBtn">⊞ RANDOM TABLE</button>
+    <button class="btn-help" id="helpBtn">? HELP</button>
+  </div>
+  <div class="gen-bar" id="genBar"><span class="gen-bar-label">Generators:</span></div>
+  <div id="shortcutNote" style="font-size:12px;font-weight:700;min-height:18px;padding:1px 0 3px;visibility:hidden;"></div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: Schreier graph -->
+  <div class="canvas-panel">
+    <canvas id="gc"></canvas>
+    <div class="drag-hint">drag nodes · click to select A then B</div>
+    <div id="tip"></div>
+  </div>
+
+  <!-- MIDDLE: Lattice path holography -->
+  <div class="lattice-panel">
+    <div class="lattice-header">
+      <div class="lattice-title">Lattice Path Holography</div>
+      <div class="lattice-sub">Binary string → path in k×(n−k) rectangle &nbsp;·&nbsp; 1=↑, 0=→</div>
+    </div>
+    <canvas id="latCanvas"></canvas>
+    <div class="lattice-footer" id="latFooter">
+      <span style="color:#8aaa78">Select a vertex on the graph to see its lattice path.</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: side panel -->
+  <div class="side">
+    <div class="card">
+      <div class="card-title">Graph Statistics</div>
+      <div class="stat-row"><span>n</span><span class="stat-val" id="stN">6</span></div>
+      <div class="stat-row"><span>k</span><span class="stat-val">2</span></div>
+      <div class="stat-row"><span>Vertices C(n,2)</span><span class="stat-val" id="stV">15</span></div>
+      <div class="stat-row"><span>Edges</span><span class="stat-val" id="stE">—</span></div>
+      <div class="stat-row"><span>Diameter</span><span class="stat-val" id="stD">—</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Selected Pair</div>
+      <div class="pair-display" id="pairDisp">
+        <span style="color:#8aaa78;font-size:11px">Click a vertex → A (blue)<br>Click another → B (orange)</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Legend — Graph</div>
+      <div class="legend">
+        <div class="leg-row"><div class="leg-sw" style="background:#c8e6b8;border-color:#2d6a1f"></div>Normal vertex</div>
+        <div class="leg-row"><div class="leg-sw" style="background:#c8e6b8;border-color:#2d6a1f;border-radius:3px"></div>Square = vertex (i,n)</div>
+        <div class="leg-row"><div class="leg-sw" style="background:#2563eb;border-color:#1040a0"></div>Selected A</div>
+        <div class="leg-row"><div class="leg-sw" style="background:#f97316;border-color:#c05000"></div>Selected B</div>
+        <div class="leg-row"><div class="leg-sw" style="background:#fee2e2;border-color:#e03030"></div>On shortest path</div>
+        <div class="leg-row"><div class="leg-ln" style="background:#7aaa60"></div>Regular edge</div>
+        <div class="leg-row"><div class="leg-ln" style="background:#c84b0a"></div>Special edge (n−2,n)</div>
+        <div class="leg-row"><div class="leg-ln" style="background:#e03030"></div>Shortest path</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Legend — Lattice</div>
+      <div class="legend">
+        <div class="leg-row"><div class="leg-ln" style="background:#2563eb;height:2px"></div>Path A</div>
+        <div class="leg-row"><div class="leg-ln" style="background:#f97316;height:2px"></div>Path B</div>
+        <div class="leg-row"><div class="leg-ln" style="background:#c43a78;height:8px;border-radius:2px;opacity:0.3"></div>Area between</div>
+        <div class="leg-row"><span style="color:var(--colOK);font-size:11px;font-weight:700">✓</span>&nbsp;Area = d (holography holds)</div>
+        <div class="leg-row"><span style="color:var(--colFail);font-size:11px;font-weight:700">✗</span>&nbsp;Area > d (special shortcut)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAIRS TABLE -->
+<div class="table-section" id="tableSection">
+  <div class="table-wrap">
+    <div class="table-hdr">
+      <span class="table-hdr-title">Random Pairs Table</span>
+      <span class="table-hdr-sub" id="tableSubtitle">n=6 · 10 pairs · click a row to select that pair on the graph</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="pairs" id="pairsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>A</th>
+            <th>bin(A)</th>
+            <th>B</th>
+            <th>bin(B)</th>
+            <th style="text-align:center">d</th>
+            <th style="text-align:center">Area</th>
+            <th style="text-align:center">Offset</th>
+            <th style="text-align:center">✓/✗</th>
+          </tr>
+        </thead>
+        <tbody id="pairsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal">
+    <button class="mcl" id="closeHelp">✕</button>
+    <h2>How to use — v2</h2>
+    <h3>Graph (left panel)</h3>
+    <p>Vertices are 2-element subsets <code>{i,j}</code> of <code>{1,…,n}</code>. Generators:
+    regular <code>(t, t+1)</code> for t=1,…,n−2 and special <code>(n−2, n)</code> (orange-red dashed).
+    Click a vertex → A (blue); click another → B (orange) with shortest BFS path highlighted.</p>
+    <h3>Lattice path panel (middle)</h3>
+    <p>Each vertex <code>{i,j}</code> maps to a binary string of length n: position t is <code>1</code> if t∈{i,j}, else <code>0</code>.
+    Reading left to right: <code>1=↑</code>, <code>0=→</code> gives a lattice path in the k×(n−k) rectangle.</p>
+    <p><strong>Area between paths</strong> = Σ |y_A(x) − y_B(x)| over all right-steps x.
+    For the standard A<sub>n−1</sub> generators <code>(1,2),(2,3),…,(n−1,n)</code> this always equals the graph distance — the holography is exact.</p>
+    <h3>The special generator &amp; shortcuts</h3>
+    <p>Our generating set replaces <code>(n−1,n)</code> with the <em>non-adjacent</em> transposition <code>(n−2,n)</code>.
+    This swaps positions n−2 and n in the binary string, skipping position n−1.
+    One application moves two steps' worth of lattice-path displacement in a single graph step,
+    so it acts as a <strong>shortcut</strong>: it costs distance 1 but reduces the area by 2.</p>
+    <p><strong>Example (n=6):</strong> A=(4,5) → <code>000110</code>, B=(5,6) → <code>000011</code>.
+    Area between paths = 2, but generator (4,6) connects them directly, so d(A,B) = 1.
+    Result: Area − d = 1.</p>
+    <p>Whenever the footer shows <span style="color:#b91c1c;font-weight:700">✗ Area &gt; d</span>,
+    the shortest path used the special generator at least once.
+    The difference Area − d counts how many "free steps" the shortcut provided.
+    This deviation is the signature of the D<sub>n</sub> branching — it vanishes for all pairs
+    when the full standard A<sub>n−1</sub> generators are used instead.</p>
+    <h3>Claim: exact characterization of the offset (verified for n = 5–9)</h3>
+    <p>Let A = {i,j} and B = {k,l}. Define: <em>xor-n</em> = exactly one of A, B contains n;
+    <em>xor-(n−1)</em> = exactly one of A, B contains n−1. Then:</p>
+    <p>
+    <span style="color:#b91c1c;font-weight:700">Offset = +1</span>
+    &nbsp;⟺&nbsp; xor-n holds, <strong>and</strong> it is <em>not</em> the case that one vertex contains n−1 (but not n) while the other contains n (but not n−1).<br>
+    In other words: exactly one of {A,B} contains n, and the vertex containing n also contains n−1, <em>or</em> neither vertex contains n−1.
+    </p>
+    <p>
+    <span style="color:#1d4ed8;font-weight:700">Offset = −1</span>
+    &nbsp;⟺&nbsp; xor-n holds, <strong>and</strong> one vertex contains n but not n−1, while the other contains n−1 but not n.
+    Equivalently: {A,B} = {(i,n), (j,n−1)} for some i ≠ j with neither equal to the other's partner.
+    </p>
+    <p>
+    <span style="color:var(--colOK);font-weight:700">Offset = 0</span>
+    &nbsp;⟺&nbsp; neither or both of {A,B} contain n (the special generator is irrelevant to the shortest path).
+    </p>
+    <h3>Interaction</h3>
+    <p>• Click vertex → A; click another → B; third click → new selection<br>
+    • Drag nodes to rearrange · hover for label + distance from A<br>
+    • Click a generator chip to dim its edges<br>
+    • START rebuilds for chosen n · RESET clears layout</p>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ── CANVAS REFS ──
+const canvas = document.getElementById("gc");
+const ctx    = canvas.getContext("2d");
+const latCv  = document.getElementById("latCanvas");
+const latCtx = latCv.getContext("2d");
+const tip    = document.getElementById("tip");
+
+// ── STATE ──
+let N=6, gens=[], verts=[], vmap=new Map(), adj=new Map(),
+    edgeList=[], eGen=new Map(), pos=new Map(),
+    selA=null, selB=null, pathN=new Set(), pathE=new Set(),
+    drag=null, dox=0, doy=0, hov=null, hiddenGen=new Set();
+
+const GCOLS=["#2d7a1f","#1e7a6e","#0066cc","#884ea0","#1a7040","#2060a0","#806020","#600050","#005060","#800000"];
+const SCOL="#c84b0a";
+
+// ── HELPERS ──
+function keyOf(a,b){return a<b?a+","+b:b+","+a;}
+function ekey(a,b){const[x,y]=a<b?[a,b]:[b,a];return x+"|"+y;}
+function tuple(a,b){return a<b?[a,b]:[b,a];}
+
+// Binary string for vertex key: position t=1 if t in pair, else 0
+function toBin(k){
+  const[i,j]=vmap.get(k);
+  let s="";for(let t=1;t<=N;t++)s+=(t===i||t===j)?"1":"0";
+  return s;
+}
+
+// Lattice path points from binary string: {x,y} at each step
+function binToPath(bin){
+  const pts=[{x:0,y:0}]; let x=0,y=0;
+  for(const c of bin){if(c==="1")y++;else x++;pts.push({x,y});}
+  return pts;
+}
+
+// y value at each right-step column x (length = n-k+1)
+function yAtX(bin){
+  const ys=[0]; let y=0;
+  for(const c of bin){if(c==="1")y++;else ys.push(y);}
+  return ys;
+}
+
+// Area between two lattice paths
+function areaBetween(k1,k2){
+  const y1=yAtX(toBin(k1)), y2=yAtX(toBin(k2));
+  let a=0;for(let i=0;i<y1.length;i++)a+=Math.abs(y1[i]-y2[i]);
+  return a;
+}
+
+// ── BUILD ──
+function build(){
+  verts=[]; vmap.clear(); adj.clear(); edgeList=[]; eGen.clear();
+  gens=[];
+  for(let t=1;t<=N-2;t++) gens.push([t,t+1]);
+  gens.push([N-2,N]);
+
+  for(let i=1;i<=N;i++)for(let j=i+1;j<=N;j++){
+    const k=keyOf(i,j); verts.push(k); vmap.set(k,[i,j]); adj.set(k,new Set());
+  }
+
+  for(let gi=0;gi<gens.length;gi++){
+    const[p,q]=gens[gi];
+    for(const vk of verts){
+      const pair=vmap.get(vk);
+      for(let sl=0;sl<2;sl++){
+        const x=pair[sl];
+        const y=x===p?q:x===q?p:null;
+        if(y===null)continue;
+        const oth=pair[1-sl];
+        if(y===oth)continue;
+        const np=tuple(y,oth);
+        const nk=keyOf(np[0],np[1]);
+        if(!vmap.has(nk))continue;
+        adj.get(vk).add(nk);adj.get(nk).add(vk);
+        const ek=ekey(vk,nk);
+        if(!eGen.has(ek)){eGen.set(ek,gi);edgeList.push([vk,nk]);}
+      }
+    }
+  }
+  hiddenGen.clear();
+  layout(); updateStats(); renderGenBar();
+  selA=selB=null; pathN=new Set(); pathE=new Set();
+}
+
+// ── LAYOUT ──
+function layout(){
+  pos.clear();
+  const W=canvas.clientWidth||700, H=canvas.clientHeight||500;
+  const rows=N-1, cols=N-1;
+  const pad=52;
+  const colW=(W-2*pad)/cols;
+  const rowH=(H-2*pad)/(rows-1||1);
+  for(const k of verts){
+    const[i,j]=vmap.get(k);
+    const row=j-2;
+    const xShift=(j===N)?colW*0.5:0;
+    const x=pad+(i-1)*colW+xShift;
+    const y=H-pad-row*rowH;
+    pos.set(k,{x,y});
+  }
+}
+
+// ── BFS ──
+function bfsPath(s,g){
+  if(!s||!g||s===g)return[];
+  const prev=new Map([[s,null]]),q=[s];
+  for(let h=0;h<q.length;h++){
+    const u=q[h];if(u===g)break;
+    for(const v of adj.get(u)){if(!prev.has(v)){prev.set(v,u);q.push(v);}}
+  }
+  if(!prev.has(g))return[];
+  const p=[];for(let c=g;c!==null;c=prev.get(c))p.push(c);
+  return p.reverse();
+}
+function bfsDist(s,g){const p=bfsPath(s,g);return p.length?p.length-1:Infinity;}
+function diameter(){let d=0;for(let i=0;i<verts.length;i++)for(let j=i+1;j<verts.length;j++)d=Math.max(d,bfsDist(verts[i],verts[j]));return d;}
+
+// ── STATS ──
+function updateStats(){
+  document.getElementById("stN").textContent=N;
+  document.getElementById("stV").textContent=verts.length;
+  document.getElementById("stE").textContent=edgeList.length;
+  document.getElementById("stD").textContent="…";
+  setTimeout(()=>document.getElementById("stD").textContent=diameter(),30);
+}
+
+// ── GEN BAR ──
+function renderGenBar(){
+  const bar=document.getElementById("genBar");
+  bar.innerHTML='<span class="gen-bar-label">Generators:</span>';
+  const SI=gens.length-1;
+  gens.forEach(([p,q],gi)=>{
+    const spec=gi===SI;
+    const chip=document.createElement("span");
+    chip.className="gen-chip "+(spec?"spec":"reg");
+    const dot=document.createElement("span");
+    dot.className="gen-dot";
+    dot.style.background=spec?SCOL:GCOLS[gi%GCOLS.length];
+    chip.appendChild(dot);
+    chip.appendChild(document.createTextNode(`(${p},${q})`));
+    chip.title=spec?"Special boundary generator":"Regular adjacent transposition";
+    chip.addEventListener("click",()=>{
+      if(hiddenGen.has(gi))hiddenGen.delete(gi); else hiddenGen.add(gi);
+      chip.classList.toggle("dimmed"); draw();
+    });
+    bar.appendChild(chip);
+  });
+}
+
+// ── SELECTION ──
+function select(k){
+  if(!selA){selA=k;selB=null;pathN=new Set();pathE=new Set();}
+  else if(!selB&&k!==selA){
+    selB=k;
+    const path=bfsPath(selA,selB);
+    pathN=new Set(path);pathE=new Set();
+    for(let i=1;i<path.length;i++)pathE.add(ekey(path[i-1],path[i]));
+  } else {selA=k;selB=null;pathN=new Set();pathE=new Set();}
+  updatePair();
+  drawLattice();
+}
+
+function updateShortcutNote(){
+  const el=document.getElementById("shortcutNote");
+  if(!el) return;
+  if(selA&&selB){
+    const d=bfsDist(selA,selB);
+    const ar=areaBetween(selA,selB);
+    el.style.visibility="visible";
+    if(ar===d){
+      el.style.color="var(--colOK)";
+      el.textContent=`✓ Area = d = ${d}`;
+    } else {
+      el.style.color="var(--colFail)";
+      el.textContent=`✗ Area=${ar}, d=${d}, Area−d=${ar-d} — shortcut via (${N-2},${N})`;
+    }
+  } else {
+    el.style.visibility="hidden";
+    el.textContent="";
+  }
+}
+
+function updatePair(){
+  const el=document.getElementById("pairDisp");
+  if(!selA){
+    el.innerHTML='<span style="color:#8aaa78;font-size:11px">Click a vertex → A (blue)<br>Click another → B (orange)</span>';
+    return;
+  }
+  const fmt=k=>{const[a,b]=vmap.get(k);return`(${a},${b})`;};
+  const bin=k=>`<span style="font-size:10px;letter-spacing:0.05em">${toBin(k)}</span>`;
+  let h=`<span class="plabel">A</span> <span class="va">${fmt(selA)}</span> ${bin(selA)}`;
+  if(selB){
+    const d=bfsDist(selA,selB);
+    const ar=areaBetween(selA,selB);
+    const eq=ar===d;
+    h+=`<br><span class="plabel">B</span> <span class="vb">${fmt(selB)}</span> ${bin(selB)}`;
+    h+=`<br><span class="plabel">d(A,B)</span> <span class="vd">${d===Infinity?"∞":d}</span>`;
+    h+=`<br><span class="plabel">Area</span> <span style="color:var(--colArea);font-weight:700">${ar}</span>`;
+  }
+  el.innerHTML=h;
+  updateShortcutNote();
+}
+
+// ── GRAPH DRAW ──
+function nodeR(){return Math.max(16,Math.min(26,280/Math.max(verts.length,8)));}
+function nodeFill(k){
+  if(k===selA&&k===selB)return"#8b5cf6";
+  if(k===selA)return"#2563eb";
+  if(k===selB)return"#f97316";
+  if(pathN.has(k))return"#fee2e2";
+  return"#c8e6b8";
+}
+function nodeStr(k){
+  if(k===selA||k===selB)return"#0f172a";
+  if(pathN.has(k))return"#e03030";
+  if(k===hov)return"#1a2e14";
+  return"#2d6a1f";
+}
+function edgeCol(ek){
+  if(pathE.has(ek))return"#e03030";
+  const gi=eGen.get(ek);
+  if(gi===gens.length-1)return SCOL;
+  return GCOLS[gi%GCOLS.length];
+}
+function edgeW(ek){return pathE.has(ek)?5:(eGen.get(ek)===gens.length-1?2.5:1.8);}
+function edgeAlpha(ek){
+  if(hiddenGen.has(eGen.get(ek)))return 0.07;
+  return pathE.has(ek)?0.95:0.68;
+}
+
+function draw(){
+  const W=canvas.width/(devicePixelRatio||1),H=canvas.height/(devicePixelRatio||1);
+  ctx.clearRect(0,0,W,H);
+  for(const[ak,bk]of edgeList){
+    const a=pos.get(ak),b=pos.get(bk);if(!a||!b)continue;
+    const ek=ekey(ak,bk);
+    ctx.save();
+    ctx.globalAlpha=edgeAlpha(ek);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle=edgeCol(ek);ctx.lineWidth=edgeW(ek);
+    if(eGen.get(ek)===gens.length-1&&!pathE.has(ek))ctx.setLineDash([5,3]);
+    ctx.stroke();ctx.setLineDash([]);
+    ctx.restore();
+  }
+  const R=nodeR();
+  for(const k of verts){
+    const p=pos.get(k);if(!p)continue;
+    const[i,j]=vmap.get(k);
+    const isSquare=(j===N);
+    const S=R*1.72; // square side so visual size matches circle
+    ctx.save();
+    ctx.shadowColor="rgba(20,50,10,0.18)";ctx.shadowBlur=7;
+    ctx.fillStyle=nodeFill(k);
+    ctx.beginPath();
+    if(isSquare){ctx.roundRect(p.x-S/2,p.y-S/2,S,S,4);}
+    else{ctx.arc(p.x,p.y,R,0,Math.PI*2);}
+    ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.strokeStyle=nodeStr(k);
+    ctx.lineWidth=(k===selA||k===selB||pathN.has(k))?2.5:1.8;
+    ctx.beginPath();
+    if(isSquare){ctx.roundRect(p.x-S/2,p.y-S/2,S,S,4);}
+    else{ctx.arc(p.x,p.y,R,0,Math.PI*2);}
+    ctx.stroke();
+    ctx.fillStyle=(k===selA||k===selB)?"#fff":"#1a2e14";
+    const fs=Math.max(9,R*0.52);
+    ctx.font=`700 ${fs}px 'JetBrains Mono',monospace`;
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(`${i},${j}`,p.x,p.y);
+    ctx.restore();
+  }
+}
+
+// ── LATTICE DRAW ──
+function drawLattice(){
+  const dpr=devicePixelRatio||1;
+  const parent=latCv.parentElement;
+  const W=parent.clientWidth;
+  // Height: fill the panel minus header/footer
+  const headerH=parent.querySelector(".lattice-header").offsetHeight||60;
+  const footerH=parent.querySelector(".lattice-footer").offsetHeight||36;
+  const H=Math.max(parent.clientHeight-headerH-footerH, 300);
+
+  latCv.width=W*dpr; latCv.height=H*dpr;
+  latCv.style.width=W+"px"; latCv.style.height=H+"px";
+  latCtx.setTransform(dpr,0,0,dpr,0,0);
+  latCtx.clearRect(0,0,W,H);
+
+  if(!selA&&!selB){
+    latCtx.font=`13px 'Libre Baskerville',serif`;
+    latCtx.fillStyle="#8aaa78";latCtx.textAlign="center";latCtx.textBaseline="middle";
+    latCtx.fillText("Select a vertex on the graph",W/2,H/2);
+    document.getElementById("latFooter").innerHTML=
+      '<span style="color:#8aaa78">Select a vertex on the graph to see its lattice path.</span>';
+    return;
+  }
+
+  const K=2, NK=N-K;
+  const padL=44,padR=20,padT=36,padB=36;
+  const gridW=W-padL-padR;
+  const gridH=H-padT-padB;
+  const cellW=gridW/NK;
+  const cellH=gridH/K;
+  const ox=padL, oy=padT+gridH; // bottom-left origin
+
+  // ── Grid ──
+  latCtx.strokeStyle="#b8d9a8"; latCtx.lineWidth=1;
+  for(let x=0;x<=NK;x++){
+    latCtx.beginPath();latCtx.moveTo(ox+x*cellW,oy);latCtx.lineTo(ox+x*cellW,oy-gridH);latCtx.stroke();
+  }
+  for(let y=0;y<=K;y++){
+    latCtx.beginPath();latCtx.moveTo(ox,oy-y*cellH);latCtx.lineTo(ox+gridW,oy-y*cellH);latCtx.stroke();
+  }
+
+  // Axis labels
+  latCtx.font=`10px 'JetBrains Mono',monospace`;
+  latCtx.fillStyle="#8aaa78"; latCtx.textAlign="center";
+  for(let x=0;x<=NK;x++) latCtx.fillText(x,ox+x*cellW,oy+14);
+  latCtx.textAlign="right";
+  for(let y=0;y<=K;y++) latCtx.fillText(y,ox-6,oy-y*cellH+4);
+
+  // Rectangle label
+  latCtx.font=`11px 'JetBrains Mono',monospace`;
+  latCtx.fillStyle="#a8d090"; latCtx.textAlign="center"; latCtx.globalAlpha=0.6;
+  latCtx.fillText(`${K}×${NK}`,ox+gridW/2,oy-gridH/2);
+  latCtx.globalAlpha=1;
+
+  function drawPath(vk, color, lineW, alpha){
+    const bin=toBin(vk);
+    const pts=binToPath(bin);
+    latCtx.save();
+    latCtx.globalAlpha=alpha;
+    // path line
+    latCtx.beginPath();
+    latCtx.moveTo(ox+pts[0].x*cellW, oy-pts[0].y*cellH);
+    for(let i=1;i<pts.length;i++) latCtx.lineTo(ox+pts[i].x*cellW, oy-pts[i].y*cellH);
+    latCtx.strokeStyle=color; latCtx.lineWidth=lineW; latCtx.lineJoin="round";
+    latCtx.stroke();
+    // dots at each vertex
+    for(const pt of pts){
+      latCtx.beginPath();
+      latCtx.arc(ox+pt.x*cellW, oy-pt.y*cellH, 3.5, 0, Math.PI*2);
+      latCtx.fillStyle=color; latCtx.fill();
+    }
+    // step arrows (↑ or →) along path
+    latCtx.font=`bold ${Math.max(10,Math.min(14,cellW*0.55))}px 'JetBrains Mono',monospace`;
+    latCtx.textAlign="center"; latCtx.textBaseline="middle"; latCtx.fillStyle=color;
+    let px=0,py=0;
+    for(const c of bin){
+      const nx=c==="0"?px+1:px, ny=c==="1"?py+1:py;
+      const mx=(px+nx)/2, my=(py+ny)/2;
+      const label=c==="1"?"↑":"→";
+      const offX=c==="1"?-(Math.min(cellW,cellH)*0.28):0;
+      const offY=c==="0"?-(Math.min(cellW,cellH)*0.22):0;
+      latCtx.fillText(label, ox+mx*cellW+offX, oy-my*cellH+offY);
+      px=nx; py=ny;
+    }
+    latCtx.restore();
+  }
+
+  // ── Area shading (when both selected) ──
+  if(selA&&selB){
+    const y1=yAtX(toBin(selA)), y2=yAtX(toBin(selB));
+    // Shade column by column
+    for(let x=0;x<NK;x++){
+      const lo=Math.min(y1[x],y2[x]), hi=Math.max(y1[x],y2[x]);
+      if(hi===lo) continue;
+      latCtx.fillStyle="rgba(196,58,120,0.18)";
+      latCtx.fillRect(ox+x*cellW, oy-hi*cellH, cellW, (hi-lo)*cellH);
+      // diagonal hatch inside each column
+      const rW=cellW, rH=(hi-lo)*cellH;
+      const rx=ox+x*cellW, ry=oy-hi*cellH;
+      latCtx.save();
+      latCtx.beginPath();latCtx.rect(rx,ry,rW,rH);latCtx.clip();
+      latCtx.strokeStyle="rgba(196,58,120,0.35)";latCtx.lineWidth=1;
+      for(let d=-rH;d<rW+rH;d+=7){
+        latCtx.beginPath();latCtx.moveTo(rx+d,ry);latCtx.lineTo(rx+d+rH,ry+rH);latCtx.stroke();
+      }
+      latCtx.restore();
+    }
+  }
+
+  // Draw paths: if only A selected, draw A; if both, draw both
+  if(selA&&!selB){
+    drawPath(selA,"#2563eb",2.5,1);
+  } else if(selA&&selB){
+    // Draw both; selected one (last click = selB) on top
+    drawPath(selA,"#2563eb",2.5,0.9);
+    drawPath(selB,"#f97316",2.5,0.9);
+  }
+
+  // ── Binary string label above rectangle ──
+  if(selA||selB){
+    latCtx.font=`12px 'JetBrains Mono',monospace`;
+    latCtx.textAlign="center";
+    if(selA){
+      latCtx.fillStyle="#2563eb";
+      const[ai,aj]=vmap.get(selA);
+      latCtx.fillText(`A=(${ai},${aj}) → ${toBin(selA)}`, ox+gridW*0.35, padT*0.55);
+    }
+    if(selB){
+      latCtx.fillStyle="#f97316";
+      const[bi,bj]=vmap.get(selB);
+      latCtx.fillText(`B=(${bi},${bj}) → ${toBin(selB)}`, ox+gridW*0.35, padT*0.55+(selA?14:0));
+    }
+  }
+
+  // ── Footer ──
+  const footer=document.getElementById("latFooter");
+  if(selA&&selB){
+    const d=bfsDist(selA,selB);
+    const ar=areaBetween(selA,selB);
+    const eq=ar===d;
+    if(eq){
+      footer.innerHTML=`<span class="eq-ok">✓ Area = d = ${d}</span>`;
+    } else {
+      footer.innerHTML=`<span class="eq-fail">✗ Area = ${ar} &nbsp;·&nbsp; d = ${d} &nbsp;·&nbsp; Area−d = ${ar-d}</span>`;
+    }
+  } else if(selA){
+    const[ai,aj]=vmap.get(selA);
+    const ar=areaBetween?0:0;
+    const auc=yAtX(toBin(selA)).reduce((s,y)=>s+y,0)-yAtX(toBin(selA))[0];
+    // AUC = area under path = sum of y at each right step (excluding x=0)
+    const aucVal=yAtX(toBin(selA)).slice(1).reduce((s,y)=>s+y,0);
+    footer.innerHTML=`A = (${ai},${aj}) &nbsp; binary: <b>${toBin(selA)}</b> &nbsp; AUC = ${aucVal} &nbsp;—&nbsp; <span style="color:#8aaa78">click another vertex for B</span>`;
+  }
+}
+
+// ── HIT TEST ──
+function hit(mx,my){
+  const R=nodeR()+4;
+  for(const k of verts){
+    const p=pos.get(k);if(!p)continue;
+    if((mx-p.x)**2+(my-p.y)**2<=R*R)return k;
+  }
+  return null;
+}
+function evPos(e){
+  const r=canvas.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  return[t.clientX-r.left,t.clientY-r.top];
+}
+
+// ── EVENTS ──
+let dragMoved=false;
+canvas.addEventListener("mousedown",e=>{
+  const[mx,my]=evPos(e),h=hit(mx,my);
+  if(h){drag=h;const p=pos.get(h);dox=mx-p.x;doy=my-p.y;dragMoved=false;}
+});
+canvas.addEventListener("mousemove",e=>{
+  const[mx,my]=evPos(e);
+  hov=hit(mx,my);
+  if(drag){
+    const p=pos.get(drag);
+    const nx=mx-dox,ny=my-doy;
+    if(Math.abs(nx-p.x)+Math.abs(ny-p.y)>3)dragMoved=true;
+    p.x=nx;p.y=ny;
+  }
+  if(hov){
+    const[a,b]=vmap.get(hov);
+    let txt=`{${a},${b}}  ${toBin(keyOf(a,b))}`;
+    if(selA&&hov!==selA){const d=bfsDist(selA,hov);if(d<Infinity)txt+=`  d=${d}`;}
+    tip.style.display="block";
+    tip.style.left=(e.clientX-canvas.getBoundingClientRect().left+14)+"px";
+    tip.style.top=(e.clientY-canvas.getBoundingClientRect().top-10)+"px";
+    tip.textContent=txt;
+  } else tip.style.display="none";
+  draw();
+});
+canvas.addEventListener("mouseup",e=>{
+  if(drag){
+    if(!dragMoved){const[mx,my]=evPos(e);const h=hit(mx,my);if(h===drag)select(drag);}
+    drag=null;draw();
+  }
+});
+canvas.addEventListener("mouseleave",()=>{drag=null;hov=null;tip.style.display="none";draw();});
+
+canvas.addEventListener("touchstart",e=>{e.preventDefault();const[mx,my]=evPos(e),h=hit(mx,my);if(h){drag=h;const p=pos.get(h);dox=mx-p.x;doy=my-p.y;dragMoved=false;}},{passive:false});
+canvas.addEventListener("touchmove",e=>{e.preventDefault();if(!drag)return;const[mx,my]=evPos(e);const p=pos.get(drag);if(Math.abs(mx-dox-p.x)+Math.abs(my-doy-p.y)>5)dragMoved=true;p.x=mx-dox;p.y=my-doy;draw();},{passive:false});
+canvas.addEventListener("touchend",e=>{if(drag){if(!dragMoved)select(drag);drag=null;draw();}});
+
+document.getElementById("tableBtn").addEventListener("click",()=>{
+  buildTable();
+  document.getElementById("tableSection").classList.add("visible");
+  document.getElementById("tableSection").scrollIntoView({behavior:"smooth",block:"start"});
+});
+
+function buildTable(M=10){
+  const tbody=document.getElementById("pairsTbody");
+  tbody.innerHTML="";
+
+  const offVal=document.getElementById("offSel").value;
+  const offFilter=offVal==="any"?null:parseInt(offVal);
+
+  // Pre-compute all valid pairs matching the offset filter
+  const pool=[];
+  for(let ai=0;ai<verts.length;ai++){
+    for(let bi=ai+1;bi<verts.length;bi++){
+      if(offFilter!==null){
+        const ar=areaBetween(verts[ai],verts[bi]);
+        const d=bfsDist(verts[ai],verts[bi]);
+        if(ar-d!==offFilter) continue;
+      }
+      pool.push([ai,bi]);
+    }
+  }
+
+  // Shuffle pool and take up to M
+  for(let i=pool.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+  const rows=pool.slice(0,M).map(([ai,bi])=>{
+    const ka=verts[ai], kb=verts[bi];
+    const[ai2,aj2]=vmap.get(ka);
+    const[bi2,bj2]=vmap.get(kb);
+    // lex order: compare first element, then second
+    const aLessB=(ai2<bi2)||(ai2===bi2&&aj2<bj2);
+    return aLessB?[ka,kb]:[kb,ka];
+  });
+
+  const offLabel=offFilter===null?"any offset":offFilter===0?"offset=0":offFilter>0?`offset=+${offFilter}`:`offset=${offFilter}`;
+  document.getElementById("tableSubtitle").textContent=
+    `n=${N} · ${rows.length} pairs · ${offLabel} · click a row to select on graph`;
+
+  if(rows.length===0){
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td colspan="9" style="text-align:center;color:#8aaa78;padding:12px">No pairs with ${offLabel} for n=${N}</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  rows.forEach(([ka,kb],idx)=>{
+    const[ai,aj]=vmap.get(ka);
+    const[bi,bj]=vmap.get(kb);
+    const ba=toBin(ka), bb=toBin(kb);
+    const d=bfsDist(ka,kb);
+    const ar=areaBetween(ka,kb);
+    const off=ar-d;
+    const eq=off===0;
+
+    const tr=document.createElement("tr");
+    const rowCls=off===0?"clickable":off>0?"clickable off-pos":"clickable off-neg";
+    tr.className=rowCls;
+    tr.title=`Click to select A=(${ai},${aj}), B=(${bi},${bj})`;
+    tr.addEventListener("click",()=>{
+      selA=null;selB=null;pathN=new Set();pathE=new Set();
+      select(ka);select(kb);
+      draw();drawLattice();
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+
+    const offCls=off===0?"td-zero":off>0?"td-off-pos":"td-off-neg";
+    tr.innerHTML=
+      `<td style="color:var(--ink2)">${idx+1}</td>`+
+      `<td class="td-node td-a">(${ai},${aj})</td>`+
+      `<td class="td-bin">${ba}</td>`+
+      `<td class="td-node td-b">(${bi},${bj})</td>`+
+      `<td class="td-bin">${bb}</td>`+
+      `<td class="td-num">${d}</td>`+
+      `<td class="td-num">${ar}</td>`+
+      `<td class="${offCls}">${off===0?"0":off>0?"+"+off:off}</td>`+
+      `<td class="${eq?"td-ok":"td-fail"}">${eq?"✓":"✗"}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById("randBtn").addEventListener("click",()=>{
+  if(verts.length<2) return;
+  const a=verts[Math.floor(Math.random()*verts.length)];
+  let b;
+  do { b=verts[Math.floor(Math.random()*verts.length)]; } while(b===a);
+  selA=null; selB=null; pathN=new Set(); pathE=new Set();
+  select(a); select(b);
+  draw(); drawLattice();
+});
+document.getElementById("startBtn").addEventListener("click",()=>{
+  N=parseInt(document.getElementById("nSel").value);
+  build();updatePair();draw();drawLattice();
+  if(document.getElementById("tableSection").classList.contains("visible")) buildTable();
+});
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  selA=selB=null;pathN=new Set();pathE=new Set();
+  layout();updatePair();draw();drawLattice();
+});
+document.getElementById("helpBtn").addEventListener("click",()=>document.getElementById("helpOverlay").classList.add("open"));
+document.getElementById("closeHelp").addEventListener("click",()=>document.getElementById("helpOverlay").classList.remove("open"));
+document.getElementById("helpOverlay").addEventListener("click",e=>{if(e.target===document.getElementById("helpOverlay"))document.getElementById("helpOverlay").classList.remove("open");});
+
+// ── RESIZE ──
+function resize(){
+  const pan=canvas.parentElement;
+  const dpr=devicePixelRatio||1;
+  const W=pan.clientWidth, H=Math.max(pan.clientHeight,500);
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.width=W+"px";canvas.style.height=H+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(verts.length)layout();
+  drawLattice();
+}
+window.addEventListener("resize",()=>{resize();draw();});
+
+// ── INIT ──
+resize();build();
+(function loop(){draw();requestAnimationFrame(loop);})();
+
+})();
+</script>
+</body>
+</html>
