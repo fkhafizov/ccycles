@@ -294,22 +294,34 @@
     The difference Area − d counts how many "free steps" the shortcut provided.
     This deviation is the signature of the D<sub>n</sub> branching — it vanishes for all pairs
     when the full standard A<sub>n−1</sub> generators are used instead.</p>
-    <h3>Claim: exact characterization of the offset (verified for n = 5–9)</h3>
-    <p>Let A = {i,j} and B = {k,l}. Define: <em>xor-n</em> = exactly one of A, B contains n;
-    <em>xor-(n−1)</em> = exactly one of A, B contains n−1. Then:</p>
+    <h3>Claim: exact offset rules assuming A &lt; B lexicographically (verified for n = 5–9)</h3>
+    <p>Write A = {a₁,a₂} and B = {b₁,b₂} with a₁&lt;a₂, b₁&lt;b₂, A&lt;B lex.
+    Define two conditions:</p>
+    <p>
+    <strong>xor-n</strong>: exactly one of A, B contains n.<br>
+    <strong>cross</strong>: one of {A,B} contains n−1 but not n, and the other contains n but not n−1
+    — i.e. the two vertices "swap" the roles of n−1 and n exclusively.
+    </p>
     <p>
     <span style="color:#b91c1c;font-weight:700">Offset = +1</span>
-    &nbsp;⟺&nbsp; xor-n holds, <strong>and</strong> it is <em>not</em> the case that one vertex contains n−1 (but not n) while the other contains n (but not n−1).<br>
-    In other words: exactly one of {A,B} contains n, and the vertex containing n also contains n−1, <em>or</em> neither vertex contains n−1.
+    &nbsp;⟺&nbsp; <strong>xor-n</strong> holds AND <strong>cross</strong> does NOT hold.<br>
+    <em>Plain language:</em> exactly one vertex contains n, but they do NOT form a
+    "{n−1, n} swap" pair. This happens in two sub-cases:
+    (a) B contains n, and A does not contain n−1; or B contains both n and n−1; or
+    (b) A contains n (so A = (i,n) with i&lt;b₁), and B contains neither n−1 nor n.
     </p>
     <p>
     <span style="color:#1d4ed8;font-weight:700">Offset = −1</span>
-    &nbsp;⟺&nbsp; xor-n holds, <strong>and</strong> one vertex contains n but not n−1, while the other contains n−1 but not n.
-    Equivalently: {A,B} = {(i,n), (j,n−1)} for some i ≠ j with neither equal to the other's partner.
+    &nbsp;⟺&nbsp; <strong>cross</strong> holds.<br>
+    <em>Plain language:</em> one vertex is of the form (i, n−1) and the other is (j, n),
+    with neither containing the other's "partner" element.
+    Since A&lt;B lex, this means either A=(i,n−1), B=(j,n) with i&lt;j,
+    or A=(i,n), B=(j,n−1) with i&lt;j.
     </p>
     <p>
     <span style="color:var(--colOK);font-weight:700">Offset = 0</span>
-    &nbsp;⟺&nbsp; neither or both of {A,B} contain n (the special generator is irrelevant to the shortest path).
+    &nbsp;⟺&nbsp; <strong>xor-n</strong> does NOT hold — neither or both of {A,B} contain n.
+    The special generator plays no role in the shortest path.
     </p>
     <h3>Interaction</h3>
     <p>• Click vertex → A; click another → B; third click → new selection<br>
