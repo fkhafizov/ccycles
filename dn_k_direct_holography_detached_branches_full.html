@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>D_n,k direct holography — detached branch cells</title>
+<style>
+  :root{
+    --bg:#f6f3ec;
+    --panel:#fffdf8;
+    --ink:#1f1b16;
+    --muted:#7a7167;
+    --grid:#86bfff;
+    --grid2:#cfe5ff;
+    --edge:#bdb6ad;
+    --node:#2f79bd;
+    --node-stroke:#ffffff;
+    --a:#d53b3b;
+    --b:#2f6fda;
+    --both:#c8c0b8;
+    --aFill:rgba(213,59,59,.32);
+    --bFill:rgba(47,111,218,.30);
+    --bothFill:rgba(96,96,96,.18);
+    --diffFill:rgba(250,169,35,.35);
+    --ok:#166534;
+    --bad:#9f1239;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  header{
+    padding:18px 22px 12px;
+    border-bottom:1px solid #ded6cc;
+    background:#fbf8f1;
+  }
+  h1{
+    margin:0 0 8px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size:24px;
+    line-height:1.15;
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.45;
+    max-width:1220px;
+  }
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 14px;
+    align-items:end;
+    margin-top:14px;
+  }
+  label{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    font-size:12px;
+    color:#4f463d;
+  }
+  input[type="number"], select{
+    height:34px;
+    border:1px solid #cfc6bb;
+    background:#fff;
+    border-radius:5px;
+    padding:4px 8px;
+    font:14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color:#1f1b16;
+  }
+  input[type="checkbox"]{transform:translateY(2px)}
+  button{
+    height:34px;
+    padding:0 12px;
+    border:1px solid #2176bd;
+    background:#fff;
+    color:#1165aa;
+    border-radius:5px;
+    letter-spacing:.08em;
+    font-size:12px;
+    cursor:pointer;
+  }
+  button:hover{background:#eef7ff}
+  .checkrow{
+    height:34px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    color:#4f463d;
+    font-size:12px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:8px;
+    padding:8px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid #ded6cc;
+    min-width:0;
+  }
+  .panelHead{
+    min-height:54px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    padding:12px 16px 10px;
+    border-bottom:1px solid #ded6cc;
+  }
+  .panelTitle{
+    font-family: Georgia, "Times New Roman", serif;
+    font-size:22px;
+    font-weight:bold;
+    line-height:1.1;
+  }
+  .panelSub{
+    margin-top:4px;
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.25;
+  }
+  svg{
+    display:block;
+    width:100%;
+    height:auto;
+    background:#fffefa;
+  }
+  #graphSvg{height:570px; min-height:570px;}
+  #holoSvg{height:570px; min-height:570px;}
+  .details{
+    display:grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap:8px;
+    padding:0 8px 8px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid #ded6cc;
+    padding:14px 16px;
+    font-size:13px;
+    line-height:1.45;
+    min-width:0;
+  }
+  .card h2{
+    margin:0 0 8px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size:19px;
+  }
+  code, .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+  .formula{
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  .statusOK{color:var(--ok); font-weight:bold}
+  .statusBad{color:var(--bad); font-weight:bold}
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 16px;
+    margin-top:8px;
+    color:#4f463d;
+  }
+  .swatch{
+    display:inline-block;
+    width:13px;
+    height:13px;
+    margin-right:5px;
+    border:1px solid #8c837a;
+    transform:translateY(2px);
+  }
+  .small{font-size:12px; color:var(--muted)}
+  .svgText{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill:#6c6258;}
+  .nodeLabel{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight:bold; fill:#2d2721; paint-order:stroke; stroke:#fffefa; stroke-width:4px; stroke-linejoin:round;}
+  .edgeLine{stroke:var(--edge); stroke-width:2.2; stroke-linecap:round; opacity:.82;}
+  .pathEdge{stroke:var(--a); stroke-width:4.2; opacity:.92;}
+  .nodeCircle{fill:var(--node); stroke:var(--node-stroke); stroke-width:2; cursor:pointer; filter: drop-shadow(0 1px 1px rgba(0,0,0,.16));}
+  .nodeCircle:hover{stroke:#111; stroke-width:2.5;}
+  .nodeA{fill:var(--a);}
+  .nodeB{fill:var(--b);}
+  .nodePath{stroke:#f2b544; stroke-width:4;}
+  .gridLine{stroke:var(--grid); stroke-width:2; fill:none;}
+  .cellBase{fill:#fffefa; stroke:var(--grid2); stroke-width:1;}
+  .cellA{fill:var(--aFill); stroke:var(--grid); stroke-width:1;}
+  .cellB{fill:var(--bFill); stroke:var(--grid); stroke-width:1;}
+  .cellBoth{fill:var(--bothFill); stroke:var(--grid); stroke-width:1;}
+  .cellDiff{fill:var(--diffFill); stroke:var(--grid); stroke-width:1;}
+  .curveA{fill:none; stroke:var(--a); stroke-width:4.5; stroke-linecap:round; stroke-linejoin:round;}
+  .curveB{fill:none; stroke:var(--b); stroke-width:4.5; stroke-linecap:round; stroke-linejoin:round;}
+  .thinA{stroke:var(--a); fill:var(--a);}
+  .thinB{stroke:var(--b); fill:var(--b);}
+  .treeEdge{stroke:#887f75; stroke-width:2.2; stroke-linecap:round;}
+  .treeNode{fill:#fffefa; stroke:#887f75; stroke-width:2;}
+  .treeRoot{fill:#f5d4a5;}
+  @media(max-width:1050px){
+    .grid,.details{grid-template-columns:1fr;}
+    #graphSvg,#holoSvg{height:520px; min-height:520px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Прямая голография для Schreier-графа типа D<sub>n</sub>, k</h1>
+  <div class="subtitle">
+    Состояние <code>x₁…xₙ</code> с <code>k</code> единицами само задаёт правую диаграмму высот. Левый граф используется только для кликов и BFS-проверки.
+  </div>
+  <div class="controls">
+    <label>n
+      <input id="nInput" type="number" min="4" max="10" value="6" />
+    </label>
+    <label>k
+      <input id="kInput" type="number" min="1" max="9" value="2" />
+    </label>
+    <button id="applyBtn">APPLY</button>
+    <button id="clearBtn">CLEAR SELECTION</button>
+    <label>A state
+      <select id="selectA"></select>
+    </label>
+    <label>B state
+      <select id="selectB"></select>
+    </label>
+    <div class="checkrow"><label style="flex-direction:row;align-items:center;gap:6px"><input id="labelToggle" type="checkbox" checked />labels</label></div>
+    <div class="checkrow"><label style="flex-direction:row;align-items:center;gap:6px"><input id="diffToggle" type="checkbox" checked />highlight area</label></div>
+  </div>
+</header>
+
+<div class="grid">
+  <section class="panel">
+    <div class="panelHead">
+      <div>
+        <div class="panelTitle">Schreier Graph (CFT-Side)</div>
+        <div class="panelSub">Первый клик: A. Второй клик: B. Вершины: k-подмножества {1,…,n}.</div>
+      </div>
+      <div id="graphStats" class="panelSub" style="text-align:right"></div>
+    </div>
+    <svg id="graphSvg" viewBox="0 0 760 570" role="img" aria-label="Schreier graph"></svg>
+  </section>
+
+  <section class="panel">
+    <div class="panelHead">
+      <div>
+        <div class="panelTitle">D<sub>n</sub> Holographic Strip (ADS-Side)</div>
+        <div class="panelSub">Правая сторона строится из битстроки: без поиска пути на левом графе.</div>
+      </div>
+      <div id="holoStats" class="panelSub" style="text-align:right"></div>
+    </div>
+    <svg id="holoSvg" viewBox="0 0 760 570" role="img" aria-label="Direct holographic diagram"></svg>
+  </section>
+</div>
+
+<div class="details">
+  <section class="card">
+    <h2>Правило построения правой картинки</h2>
+    <div id="ruleBox" class="formula"></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--aFill)"></span>A-заполнение</span>
+      <span><span class="swatch" style="background:var(--bFill)"></span>B-заполнение</span>
+      <span><span class="swatch" style="background:var(--diffFill)"></span>|h(A)-h(B)| area</span>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Проверка</h2>
+    <div id="checkBox"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const W = 760, H = 570;
+  const MAX_NODES = 252; // max over n <= 10 is C(10,5)=252
+
+  const els = {
+    nInput: document.getElementById('nInput'),
+    kInput: document.getElementById('kInput'),
+    applyBtn: document.getElementById('applyBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    selectA: document.getElementById('selectA'),
+    selectB: document.getElementById('selectB'),
+    labelToggle: document.getElementById('labelToggle'),
+    diffToggle: document.getElementById('diffToggle'),
+    graphSvg: document.getElementById('graphSvg'),
+    holoSvg: document.getElementById('holoSvg'),
+    graphStats: document.getElementById('graphStats'),
+    holoStats: document.getElementById('holoStats'),
+    ruleBox: document.getElementById('ruleBox'),
+    checkBox: document.getElementById('checkBox')
+  };
+
+  let model = null;
+  let selectedA = null;
+  let selectedB = null;
+
+  function svgEl(name, attrs = {}, text = null) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', name);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    if (text !== null) el.textContent = text;
+    return el;
+  }
+
+  function clearSvg(svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+
+  function comb(n, k) {
+    if (k < 0 || k > n) return 0;
+    k = Math.min(k, n-k);
+    let r = 1;
+    for (let i = 1; i <= k; i++) r = r * (n - k + i) / i;
+    return Math.round(r);
+  }
+
+  function bitCount(bits) {
+    let s = 0;
+    for (const c of bits) if (c === '1') s++;
+    return s;
+  }
+
+  function stateNodes(bits) {
+    const a = [];
+    for (let i = 0; i < bits.length; i++) if (bits[i] === '1') a.push(i+1);
+    return a;
+  }
+
+  function generateStates(n, k) {
+    const out = [];
+    function rec(pos, left, arr) {
+      if (pos === n) {
+        if (left === 0) out.push(arr.join(''));
+        return;
+      }
+      if (left > n - pos) return;
+      if (left > 0) {
+        arr.push('1');
+        rec(pos + 1, left - 1, arr);
+        arr.pop();
+      }
+      arr.push('0');
+      rec(pos + 1, left, arr);
+      arr.pop();
+    }
+    rec(0, k, []);
+    return out;
+  }
+
+  function dynkinEdges(n) {
+    const edges = [];
+    for (let i = 1; i <= n - 3; i++) edges.push({u:i, v:i+1, label:`${i}-${i+1}`, kind:'trunk'});
+    edges.push({u:n-2, v:n-1, label:`${n-2}-${n-1}`, kind:'branchA'});
+    edges.push({u:n-2, v:n, label:`${n-2}-${n}`, kind:'branchB'});
+    return edges;
+  }
+
+  function hVector(bits, n) {
+    const x = [0];
+    for (const c of bits) x.push(c === '1' ? 1 : 0); // 1-indexed
+    const h = [];
+    for (let i = 1; i <= n - 3; i++) {
+      let s = 0;
+      for (let r = i + 1; r <= n; r++) s += x[r];
+      h.push(s);
+    }
+    h.push(x[n-1]);
+    h.push(x[n]);
+    return h;
+  }
+
+  function areaDistByH(h1, h2) {
+    let s = 0;
+    for (let i = 0; i < h1.length; i++) s += Math.abs(h1[i] - h2[i]);
+    return s;
+  }
+
+  function edgeKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
+
+  function moveToken(bits, u, v) {
+    const arr = bits.split('');
+    const iu = u - 1, iv = v - 1;
+    if (arr[iu] === arr[iv]) return null;
+    arr[iu] = bits[iv];
+    arr[iv] = bits[iu];
+    return arr.join('');
+  }
+
+  function bitsFromSet(nodes, n) {
+    const arr = Array(n).fill('0');
+    for (const v of nodes) arr[v-1] = '1';
+    return arr.join('');
+  }
+
+  function pairFromBits(bits) {
+    const a = [];
+    for (let i = 0; i < bits.length; i++) if (bits[i] === '1') a.push(i+1);
+    return a.length === 2 ? [a[0], a[1]] : null;
+  }
+
+  function supportFromBits(bits, useComplement = false) {
+    const a = [];
+    for (let i = 0; i < bits.length; i++) {
+      const take = useComplement ? bits[i] === '0' : bits[i] === '1';
+      if (take) a.push(i + 1);
+    }
+    return a;
+  }
+
+  function computePositions(n, k, states, treeEdges, baseH, edgePairs) {
+    // Exact low-dimensional layouts first.
+    // k=1 and k=n-1 are D_n itself, with occupied token / missing hole.
+    if (k === 1) return computeDynkinTreePositions(n, states, false);
+    if (k === n - 1) return computeDynkinTreePositions(n, states, true);
+
+    // k=2 and k=n-2 are triangular pair diagrams.
+    // For k=n-2 the same picture is drawn for the two missing vertices.
+    if (k === 2) return computePairTrianglePositions(n, states, false);
+    if (k === n - 2) return computePairTrianglePositions(n, states, true);
+
+    // k=3 and k=n-3 are flattened 3-simplex diagrams: rows are (largest, middle).
+    if (k === 3) return computeTripleLayerPositions(n, states, false);
+    if (k === n - 3) return computeTripleLayerPositions(n, states, true);
+
+    // Middle cases have intrinsic dimension >=4. Use deterministic force projection.
+    return computeSubsetForcePositions(n, k, states, edgePairs, k > n - k);
+  }
+
+  function baseDynkinCoords(n) {
+    const coords = new Map();
+    const trunkCount = n - 2;
+    const step = Math.min(82, (W - 220) / Math.max(1, trunkCount - 1));
+    const trunkW = step * Math.max(0, trunkCount - 1);
+    const x0 = (W - trunkW - step * 0.95) / 2;
+    const y0 = H / 2;
+    for (let i = 1; i <= n - 2; i++) coords.set(i, {x:x0 + (i-1)*step, y:y0});
+    coords.set(n-1, {x:x0 + (n-3)*step + step*0.95, y:y0 - step*0.78});
+    coords.set(n,   {x:x0 + (n-3)*step + step*0.95, y:y0 + step*0.78});
+    return coords;
+  }
+
+  function computeDynkinTreePositions(n, states, useComplement = false) {
+    const pos = new Map();
+    const coords = baseDynkinCoords(n);
+    for (const s of states) {
+      const support = supportFromBits(s.bits, useComplement);
+      pos.set(s.id, coords.get(support[0]));
+    }
+    return pos;
+  }
+
+  function computePairTrianglePositions(n, states, useComplement = false) {
+    // Pair diagram:
+    // support=(a,b), a<b. Row is b, column is a.
+    // For k=n-2 support means the two zero positions.
+    const pos = new Map();
+    const rowGap = Math.min(90, (H - 150) / Math.max(1, n - 2));
+    const colGap = Math.min(115, (W - 190) / Math.max(1, n - 2));
+    const topShift = Math.min(30, colGap * 0.25);
+    const usedW = (n - 1) * colGap;
+    const left = Math.max(74, (W - usedW) / 2);
+    const top = Math.max(68, (H - rowGap * (n - 2)) / 2 - 12);
+    for (const s of states) {
+      const p = supportFromBits(s.bits, useComplement);
+      if (p.length !== 2) continue;
+      const [a, b] = p;
+      const x = left + (a - 1) * colGap + (b === n ? topShift : 0);
+      const y = top + (n - b) * rowGap;
+      pos.set(s.id, {x, y});
+    }
+    return pos;
+  }
+
+  function computeTripleLayerPositions(n, states, useComplement = false) {
+    // Flattened 3-simplex:
+    // support=(a,b,c), a<b<c.
+    // Rows are ordered by c descending, then b descending; columns are a.
+    const pos = new Map();
+    const totalRows = (n - 2) * (n - 1) / 2;
+    const top = 52, bottom = 42;
+    const left = 62, right = 52;
+    const rowGap = totalRows <= 1 ? 0 : (H - top - bottom) / (totalRows - 1);
+    const maxCols = Math.max(1, n - 2);
+    const colGap = (W - left - right) / maxCols;
+
+    const rowOffset = new Map();
+    let row = 0;
+    for (let c = n; c >= 3; c--) {
+      for (let b = c - 1; b >= 2; b--) {
+        rowOffset.set(`${b}|${c}`, row++);
+      }
+    }
+
+    for (const s of states) {
+      const p = supportFromBits(s.bits, useComplement);
+      if (p.length !== 3) continue;
+      const [a, b, c] = p;
+      const r = rowOffset.get(`${b}|${c}`);
+      const rowLen = b - 1;
+      const rowWidth = (rowLen - 1) * colGap;
+      const rowLeft = (W - rowWidth) / 2;
+      const layerShift = (n - c) * Math.min(10, colGap * .12);
+      const x = rowLeft + (a - 1) * colGap + layerShift;
+      const y = top + r * rowGap;
+      pos.set(s.id, {x, y});
+    }
+    return pos;
+  }
+
+  function computeSubsetForcePositions(n, k, states, edgePairs, useComplement = false) {
+    // Deterministic projection for intrinsic dimension >=4.
+    // Initial position = average of coordinates of occupied tokens or holes;
+    // then a small force relaxation improves separation and edge lengths.
+    const base = baseDynkinCoords(n);
+    const raw = new Map();
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const s of states) {
+      const support = supportFromBits(s.bits, useComplement);
+      let x = 0, y = 0;
+      for (const v of support) { x += base.get(v).x; y += base.get(v).y; }
+      x /= support.length; y /= support.length;
+      // Deterministic tiny offsets break exact barycenter collisions.
+      let q2 = 0, q3 = 0;
+      for (const v of support) { q2 += v*v; q3 += v*v*v; }
+      x += ((q2 % 11) - 5) * 2.8;
+      y += ((q3 % 13) - 6) * 2.4;
+      raw.set(s.id, {x, y});
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+    }
+
+    const pos = new Map();
+    const margin = 44;
+    const dx = Math.max(1, maxX - minX), dy = Math.max(1, maxY - minY);
+    for (const s of states) {
+      const p = raw.get(s.id);
+      pos.set(s.id, {
+        x: margin + (p.x - minX) * (W - 2*margin) / dx,
+        y: margin + (p.y - minY) * (H - 2*margin) / dy
+      });
+    }
+
+    const ids = states.map(s => s.id);
+    const area = (W - 2*margin) * (H - 2*margin);
+    const ideal = Math.sqrt(area / Math.max(1, ids.length)) * 0.82;
+    const disp = new Map();
+    const iters = ids.length > 180 ? 140 : 220;
+
+    for (let iter = 0; iter < iters; iter++) {
+      for (const id of ids) disp.set(id, {x:0, y:0});
+
+      for (let i = 0; i < ids.length; i++) {
+        const pi = pos.get(ids[i]);
+        for (let j = i + 1; j < ids.length; j++) {
+          const pj = pos.get(ids[j]);
+          let vx = pi.x - pj.x, vy = pi.y - pj.y;
+          let d = Math.sqrt(vx*vx + vy*vy) || 0.01;
+          const f = (ideal * ideal) / d;
+          vx /= d; vy /= d;
+          disp.get(ids[i]).x += vx * f; disp.get(ids[i]).y += vy * f;
+          disp.get(ids[j]).x -= vx * f; disp.get(ids[j]).y -= vy * f;
+        }
+      }
+
+      for (const [a, b] of edgePairs) {
+        const pa = pos.get(a), pb = pos.get(b);
+        let vx = pa.x - pb.x, vy = pa.y - pb.y;
+        let d = Math.sqrt(vx*vx + vy*vy) || 0.01;
+        const f = (d * d) / ideal * 0.18;
+        vx /= d; vy /= d;
+        disp.get(a).x -= vx * f; disp.get(a).y -= vy * f;
+        disp.get(b).x += vx * f; disp.get(b).y += vy * f;
+      }
+
+      const temp = 26 * (1 - iter / iters) + 2.5;
+      for (const id of ids) {
+        const p = pos.get(id), d = disp.get(id);
+        const len = Math.sqrt(d.x*d.x + d.y*d.y) || 0.01;
+        p.x += (d.x / len) * Math.min(len, temp);
+        p.y += (d.y / len) * Math.min(len, temp);
+        p.x = Math.max(margin, Math.min(W - margin, p.x));
+        p.y = Math.max(margin, Math.min(H - margin, p.y));
+      }
+    }
+    return pos;
+  }
+
+  function buildModel(n, k) {
+    const bitsList = generateStates(n, k);
+    const treeEdges = dynkinEdges(n);
+    const states = bitsList.map(bits => ({ id: bits, bits, nodes: stateNodes(bits), h: hVector(bits, n) }));
+    const byId = new Map(states.map(s => [s.id, s]));
+    const adj = new Map(states.map(s => [s.id, new Set()]));
+    const edgePairs = [];
+    const seen = new Set();
+
+    for (const s of states) {
+      for (const e of treeEdges) {
+        const t = moveToken(s.bits, e.u, e.v);
+        if (t && byId.has(t)) {
+          adj.get(s.id).add(t);
+          adj.get(t).add(s.id);
+          const ek = edgeKey(s.id, t);
+          if (!seen.has(ek)) {
+            seen.add(ek);
+            edgePairs.push([s.id, t]);
+          }
+        }
+      }
+    }
+
+    const baseBits = '1'.repeat(k) + '0'.repeat(n-k);
+    const baseH = hVector(baseBits, n);
+    for (const s of states) s.level = areaDistByH(baseH, s.h);
+    const pos = computePositions(n, k, states, treeEdges, baseH, edgePairs);
+    const test = runAllPairsTest(states, adj);
+    return {n, k, states, byId, treeEdges, adj, edgePairs, baseBits, pos, test};
+  }
+
+  function bfsAll(startId, adj) {
+    const dist = new Map([[startId, 0]]);
+    const q = [startId];
+    let qi = 0;
+    while (qi < q.length) {
+      const u = q[qi++];
+      const du = dist.get(u);
+      for (const v of adj.get(u)) {
+        if (!dist.has(v)) {
+          dist.set(v, du + 1);
+          q.push(v);
+        }
+      }
+    }
+    return dist;
+  }
+
+  function shortestPath(a, b) {
+    if (!a || !b || a === b) return a ? [a] : [];
+    const prev = new Map([[a, null]]);
+    const q = [a];
+    let qi = 0;
+    while (qi < q.length) {
+      const u = q[qi++];
+      if (u === b) break;
+      for (const v of model.adj.get(u)) {
+        if (!prev.has(v)) {
+          prev.set(v, u);
+          q.push(v);
+        }
+      }
+    }
+    if (!prev.has(b)) return [];
+    const path = [];
+    for (let cur = b; cur !== null; cur = prev.get(cur)) path.push(cur);
+    return path.reverse();
+  }
+
+  function shortestPathCount(a, b) {
+    if (!a || !b) return 0;
+    const dist = new Map([[a, 0]]);
+    const count = new Map([[a, 1]]);
+    const q = [a];
+    let qi = 0;
+    while (qi < q.length) {
+      const u = q[qi++];
+      for (const v of model.adj.get(u)) {
+        const nd = dist.get(u) + 1;
+        if (!dist.has(v)) {
+          dist.set(v, nd);
+          count.set(v, count.get(u));
+          q.push(v);
+        } else if (dist.get(v) === nd) {
+          count.set(v, count.get(v) + count.get(u));
+        }
+      }
+    }
+    return count.get(b) || 0;
+  }
+
+  function runAllPairsTest(states, adj) {
+    let checked = 0;
+    let mismatch = null;
+    for (const s of states) {
+      const dist = bfsAll(s.id, adj);
+      for (const t of states) {
+        checked++;
+        const dGraph = dist.get(t.id);
+        const dHolo = areaDistByH(s.h, t.h);
+        if (dGraph !== dHolo) {
+          mismatch = {a:s.id, b:t.id, dGraph, dHolo};
+          return {ok:false, checked, mismatch};
+        }
+      }
+    }
+    return {ok:true, checked, mismatch:null};
+  }
+
+  function renderGraph() {
+    const svg = els.graphSvg;
+    clearSvg(svg);
+    const g = svgEl('g');
+    svg.appendChild(g);
+
+    const path = shortestPath(selectedA, selectedB);
+    const pathNodes = new Set(path);
+    const pathEdges = new Set();
+    for (let i = 0; i + 1 < path.length; i++) pathEdges.add(edgeKey(path[i], path[i+1]));
+
+    for (const [a, b] of model.edgePairs) {
+      const pa = model.pos.get(a), pb = model.pos.get(b);
+      const isPath = pathEdges.has(edgeKey(a,b));
+      g.appendChild(svgEl('line', {
+        x1:pa.x, y1:pa.y, x2:pb.x, y2:pb.y,
+        class:isPath ? 'pathEdge' : 'edgeLine'
+      }));
+    }
+
+    const N = model.states.length;
+    const r = N <= 25 ? 9.5 : N <= 80 ? 7.5 : N <= 160 ? 6 : 4.8;
+    const showLabels = els.labelToggle.checked && N <= 150;
+    const fontSize = N <= 45 ? 13 : N <= 90 ? 10.5 : 8.5;
+
+    for (const s of model.states) {
+      const p = model.pos.get(s.id);
+      let cls = 'nodeCircle';
+      if (pathNodes.has(s.id)) cls += ' nodePath';
+      if (s.id === selectedA) cls += ' nodeA';
+      if (s.id === selectedB) cls += ' nodeB';
+      const c = svgEl('circle', {cx:p.x, cy:p.y, r, class:cls});
+      c.addEventListener('click', ev => { ev.stopPropagation(); handleNodeClick(s.id); });
+      g.appendChild(c);
+      if (showLabels) {
+        const dy = -r - 5;
+        const t = svgEl('text', {x:p.x, y:p.y+dy, 'text-anchor':'middle', 'font-size':fontSize, class:'nodeLabel'}, s.bits);
+        g.appendChild(t);
+      }
+    }
+
+    if (N > 150 && els.labelToggle.checked) {
+      g.appendChild(svgEl('text', {x:W/2, y:H-12, 'text-anchor':'middle', 'font-size':12, class:'svgText'}, 'labels suppressed: too many vertices'));
+    }
+  }
+
+  function hStepPath(h, x0, y0, cell, k) {
+    if (!h || !h.length) return '';
+    const y = v => y0 + k*cell - v*cell;
+    let d = `M ${x0} ${y(h[0])}`;
+    for (let j = 0; j < h.length; j++) {
+      d += ` L ${x0 + (j+1)*cell} ${y(h[j])}`;
+      if (j + 1 < h.length) d += ` L ${x0 + (j+1)*cell} ${y(h[j+1])}`;
+    }
+    return d;
+  }
+
+
+  function renderHologram() {
+    const svg = els.holoSvg;
+    clearSvg(svg);
+    const n = model.n, k = model.k;
+    const cols = model.treeEdges.length;
+    const trunkCols = Math.max(0, n - 3);
+    const hA = selectedA ? model.byId.get(selectedA).h : null;
+    const hB = selectedB ? model.byId.get(selectedB).h : null;
+    const showDiff = els.diffToggle.checked && hA && hB;
+
+    const maxHeight = Math.max(k, 1);
+    const cell = Math.min(54, Math.floor((W - 230) / Math.max(3, trunkCols + 1)), Math.floor((H - 250) / Math.max(2, maxHeight)));
+    const gridW = cell * trunkCols;
+    const gridH = cell * maxHeight;
+    const branchGap = Math.max(34, Math.round(cell * 0.95));
+    const branchCell = Math.max(18, Math.min(cell, 52));
+    const totalW = gridW + branchGap + branchCell;
+    const x0 = Math.round((W - totalW) / 2) + 8;
+    const y0 = 82;
+    const branchX = x0 + gridW + branchGap;
+    const branchY0 = y0 + Math.max(0, Math.round((gridH - 2 * branchCell) / 2));
+
+    const title = selectedA && selectedB ? 'area between A and B' : selectedA ? 'direct image of A' : 'select A and B';
+    svg.appendChild(svgEl('text', {x:W/2, y:34, 'text-anchor':'middle', 'font-size':17, class:'svgText'}, title));
+
+    // Subtitle clarifying the branch cells.
+    svg.appendChild(svgEl('text', {x:W/2, y:54, 'text-anchor':'middle', 'font-size':12, class:'svgText'}, 'main rectangle = trunk edges; detached 2-cell block = the only two branch bits'));
+
+    // Helper for fill selection.
+    function cellClass(inA, inB) {
+      let cls = 'cellBase';
+      if (hA && !hB && inA) cls = 'cellA';
+      if (hA && hB) {
+        if (showDiff && inA !== inB) cls = 'cellDiff';
+        else if (inA && inB) cls = 'cellBoth';
+        else if (inA) cls = 'cellA';
+        else if (inB) cls = 'cellB';
+      }
+      return cls;
+    }
+
+    // Main trunk rectangle.
+    for (let j = 0; j < trunkCols; j++) {
+      for (let r = 0; r < maxHeight; r++) {
+        const x = x0 + j*cell;
+        const y = y0 + (maxHeight-r-1)*cell;
+        const inA = hA && r < hA[j];
+        const inB = hB && r < hB[j];
+        svg.appendChild(svgEl('rect', {x, y, width:cell, height:cell, class:cellClass(inA, inB)}));
+      }
+    }
+
+    // Trunk grid lines.
+    for (let j = 0; j <= trunkCols; j++) {
+      const x = x0 + j*cell;
+      svg.appendChild(svgEl('line', {x1:x, y1:y0, x2:x, y2:y0+gridH, class:'gridLine'}));
+    }
+    for (let r = 0; r <= maxHeight; r++) {
+      const y = y0 + r*cell;
+      svg.appendChild(svgEl('line', {x1:x0, y1:y, x2:x0+gridW, y2:y, class:'gridLine'}));
+    }
+
+    // Detached branch block: exactly two cells, no empty cells above.
+    const branchLabels = [model.treeEdges[trunkCols].label, model.treeEdges[trunkCols+1].label];
+    for (let idx = 0; idx < 2; idx++) {
+      const x = branchX;
+      const y = branchY0 + idx * branchCell;
+      const aVal = hA ? hA[trunkCols + idx] : 0;
+      const bVal = hB ? hB[trunkCols + idx] : 0;
+      const inA = !!aVal;
+      const inB = !!bVal;
+      svg.appendChild(svgEl('rect', {x, y, width:branchCell, height:branchCell, class:cellClass(inA, inB)}));
+      svg.appendChild(svgEl('rect', {x, y, width:branchCell, height:branchCell, class:'gridLine', fill:'none'}));
+      if (hA || hB) {
+        let txt = '';
+        if (selectedA && selectedB) txt = `${aVal}/${bVal}`;
+        else if (selectedA) txt = String(aVal);
+        else if (selectedB) txt = String(bVal);
+        svg.appendChild(svgEl('text', {x:x + branchCell/2, y:y + branchCell/2 + 4, 'text-anchor':'middle', 'font-size':13, class:'svgText'}, txt));
+      }
+      svg.appendChild(svgEl('text', {x:x + branchCell + 12, y:y + branchCell/2 + 4, 'font-size':12, class:'svgText'}, branchLabels[idx]));
+    }
+
+    // Connector arrow from trunk to branch block.
+    const arrowY = branchY0 + branchCell;
+    const ax1 = x0 + gridW + 6;
+    const ax2 = branchX - 12;
+    svg.appendChild(svgEl('line', {x1:ax1, y1:arrowY, x2:ax2, y2:arrowY, class:'treeEdge', 'stroke-dasharray':'5 4'}));
+    svg.appendChild(svgEl('path', {d:`M ${ax2-8} ${arrowY-5} L ${ax2} ${arrowY} L ${ax2-8} ${arrowY+5}`, fill:'none', stroke:'#8b8177', 'stroke-width':'2'}));
+    svg.appendChild(svgEl('text', {x:(ax1+ax2)/2, y:arrowY-8, 'text-anchor':'middle', 'font-size':11, class:'svgText'}, '2 detached branch cells'));
+
+    // y-axis labels for trunk height.
+    for (let r = 0; r <= maxHeight; r++) {
+      const y = y0 + gridH - r*cell + 4;
+      svg.appendChild(svgEl('text', {x:x0-14, y, 'text-anchor':'end', 'font-size':12, class:'svgText'}, String(r)));
+    }
+
+    // Labels under trunk columns.
+    for (let j = 0; j < trunkCols; j++) {
+      const x = x0 + j*cell + cell/2;
+      svg.appendChild(svgEl('text', {x, y:y0+gridH+22, 'text-anchor':'middle', 'font-size':12, class:'svgText'}, model.treeEdges[j].label));
+      svg.appendChild(svgEl('text', {x, y:y0+gridH+38, 'text-anchor':'middle', 'font-size':10, class:'svgText'}, 'trunk'));
+    }
+
+    // Outline of trunk path(s).
+    function hStepPath(h, x0, y0, cell, k) {
+      const hTr = h.slice(0, trunkCols);
+      if (!hTr || !hTr.length) return '';
+      const y = v => y0 + k*cell - v*cell;
+      let d = `M ${x0} ${y(hTr[0])}`;
+      for (let j = 0; j < hTr.length; j++) {
+        d += ` L ${x0 + (j+1)*cell} ${y(hTr[j])}`;
+        if (j + 1 < hTr.length) d += ` L ${x0 + (j+1)*cell} ${y(hTr[j+1])}`;
+      }
+      return d;
+    }
+    if (hA) svg.appendChild(svgEl('path', {d:hStepPath(hA, x0, y0, cell, maxHeight), class:'curveA'}));
+    if (hB) svg.appendChild(svgEl('path', {d:hStepPath(hB, x0, y0, cell, maxHeight), class:'curveB'}));
+
+    function drawDots(h, cls) {
+      for (let j = 0; j < trunkCols; j++) {
+        const cx = x0 + j*cell + cell/2;
+        const cy = y0 + gridH - h[j]*cell;
+        svg.appendChild(svgEl('circle', {cx, cy, r:4, class:cls}));
+      }
+    }
+    if (hA) drawDots(hA, 'thinA');
+    if (hB) drawDots(hB, 'thinB');
+
+    // Small A/B labels near detached branch cells.
+    if (selectedA && !selectedB) svg.appendChild(svgEl('text', {x:branchX - 10, y:branchY0 - 6, 'text-anchor':'end', 'font-size':14, class:'thinA'}, 'A'));
+    if (selectedA && selectedB) {
+      svg.appendChild(svgEl('text', {x:branchX - 10, y:branchY0 - 6, 'text-anchor':'end', 'font-size':14, class:'thinA'}, 'A/B'));
+    }
+
+    // Mini Dynkin tree under the whole picture.
+    const tx0 = x0;
+    const ty = y0 + gridH + 72;
+    const step = Math.min(46, Math.max(24, gridW / Math.max(1, n-2)));
+    const trunkStartX = Math.max(70, W/2 - (n-3)*step/2 - step);
+    const coords = new Map();
+    for (let i = 1; i <= n - 2; i++) coords.set(i, {x:trunkStartX + (i-1)*step, y:ty});
+    coords.set(n-1, {x:trunkStartX + (n-3)*step + step*.85, y:ty - step*.75});
+    coords.set(n, {x:trunkStartX + (n-3)*step + step*.85, y:ty + step*.75});
+    for (const e of model.treeEdges) {
+      const a = coords.get(e.u), b = coords.get(e.v);
+      svg.appendChild(svgEl('line', {x1:a.x, y1:a.y, x2:b.x, y2:b.y, class:'treeEdge'}));
+    }
+    for (let i = 1; i <= n; i++) {
+      const p = coords.get(i);
+      svg.appendChild(svgEl('circle', {cx:p.x, cy:p.y, r:9, class:i===1 ? 'treeNode treeRoot' : 'treeNode'}));
+      svg.appendChild(svgEl('text', {x:p.x, y:p.y+4, 'text-anchor':'middle', 'font-size':10, class:'svgText'}, String(i)));
+    }
+    svg.appendChild(svgEl('text', {x:W/2, y:H-14, 'text-anchor':'middle', 'font-size':12, class:'svgText'}, 'main trunk columns encode cumulative counts; detached branch cells encode x_(n-1), x_n ∈ {0,1}'));
+  }
+
+
+  function updateStatsAndText() {
+    const n = model.n, k = model.k;
+    const V = model.states.length;
+    const E = model.edgePairs.length;
+    els.graphStats.innerHTML = `D<sub>${n}</sub>, k=${k}<br>states=${V}, edges=${E}`;
+
+    let holoText = `columns=${model.treeEdges.length}<br>height=${k}`;
+    if (selectedA && selectedB) {
+      const A = model.byId.get(selectedA), B = model.byId.get(selectedB);
+      const area = areaDistByH(A.h, B.h);
+      const path = shortestPath(selectedA, selectedB);
+      holoText += `<br>area=${area}<br>BFS=${Math.max(0, path.length-1)}`;
+    }
+    els.holoStats.innerHTML = holoText;
+
+    const trunkFormula = n === 4
+      ? `h_{1,2}=x_2+x_3+x_4`
+      : `h_{i,i+1}=x_{i+1}+x_{i+2}+...+x_n,  i=1,...,${n-3}`;
+    els.ruleBox.innerHTML = `
+      <div>Для состояния <code>x=x₁…xₙ</code>, <code>∑xᵢ=k</code>:</div>
+      <div style="margin-top:6px"><code>${trunkFormula}</code></div>
+      <div><code>h_{${n-2},${n-1}}=x_${n-1}</code></div>
+      <div><code>h_{${n-2},${n}}=x_${n}</code></div>
+      <div style="margin-top:8px">Для двух состояний <code>x,y</code>:</div>
+      <div><code>d(x,y)=Σ_e |h_e(x)-h_e(y)|</code>.</div>
+      <div class="small" style="margin-top:8px">Это cut-count формула для token graph над деревом D<sub>${n}</sub>.</div>
+    `;
+
+    const test = model.test;
+    let selectedBlock = '';
+    if (selectedA) {
+      const A = model.byId.get(selectedA);
+      selectedBlock += `<div><b>A</b>: <code>${A.bits}</code>, h(A)=<code>(${A.h.join(', ')})</code></div>`;
+    } else selectedBlock += `<div><b>A</b>: none</div>`;
+    if (selectedB) {
+      const B = model.byId.get(selectedB);
+      selectedBlock += `<div><b>B</b>: <code>${B.bits}</code>, h(B)=<code>(${B.h.join(', ')})</code></div>`;
+    } else selectedBlock += `<div><b>B</b>: none</div>`;
+
+    if (selectedA && selectedB) {
+      const A = model.byId.get(selectedA), B = model.byId.get(selectedB);
+      const area = areaDistByH(A.h, B.h);
+      const path = shortestPath(selectedA, selectedB);
+      const bfs = Math.max(0, path.length-1);
+      const count = shortestPathCount(selectedA, selectedB);
+      selectedBlock += `<div style="margin-top:8px"><code>Area_ADS(A,B)=${area}</code></div>`;
+      selectedBlock += `<div><code>d_CFT(A,B)=${bfs}</code></div>`;
+      selectedBlock += `<div><code># shortest paths=${count}</code></div>`;
+      selectedBlock += `<div class="small">one highlighted shortest path: <code>${path.join(' → ')}</code></div>`;
+    }
+
+    let testBlock;
+    if (test.ok) {
+      testBlock = `<div class="statusOK">All-pairs test OK: ${test.checked}/${test.checked}</div>`;
+    } else {
+      const m = test.mismatch;
+      testBlock = `<div class="statusBad">Mismatch: ${m.a} → ${m.b}; BFS=${m.dGraph}; ADS=${m.dHolo}</div>`;
+    }
+    els.checkBox.innerHTML = `${selectedBlock}<hr style="border:none;border-top:1px solid #ded6cc;margin:10px 0">${testBlock}`;
+  }
+
+  function populateSelectors() {
+    const opts = ['<option value="">none</option>'].concat(model.states.map(s => `<option value="${s.id}">${s.bits}</option>`));
+    els.selectA.innerHTML = opts.join('');
+    els.selectB.innerHTML = opts.join('');
+    els.selectA.value = selectedA || '';
+    els.selectB.value = selectedB || '';
+  }
+
+  function renderAll() {
+    populateSelectors();
+    renderGraph();
+    renderHologram();
+    updateStatsAndText();
+  }
+
+  function handleNodeClick(id) {
+    if (!selectedA || (selectedA && selectedB)) {
+      selectedA = id;
+      selectedB = null;
+    } else if (selectedA === id) {
+      selectedA = id;
+      selectedB = null;
+    } else {
+      selectedB = id;
+    }
+    renderAll();
+  }
+
+  function rebuild() {
+    let n = parseInt(els.nInput.value, 10);
+    if (!Number.isFinite(n)) n = 6;
+    n = Math.max(4, Math.min(10, n));
+    els.nInput.value = n;
+    els.kInput.max = String(n - 1);
+    let k = parseInt(els.kInput.value, 10);
+    if (!Number.isFinite(k)) k = 2;
+    k = Math.max(1, Math.min(n - 1, k));
+    els.kInput.value = k;
+
+    const c = comb(n, k);
+    if (c > MAX_NODES) {
+      alert(`Too many states: C(${n},${k})=${c}. Current HTML cap is ${MAX_NODES}.`);
+      return;
+    }
+    model = buildModel(n, k);
+    selectedA = model.baseBits;
+    selectedB = null;
+    els.labelToggle.checked = model.states.length <= 120;
+    renderAll();
+  }
+
+  els.applyBtn.addEventListener('click', rebuild);
+  els.clearBtn.addEventListener('click', () => { selectedA = null; selectedB = null; renderAll(); });
+  els.labelToggle.addEventListener('change', renderAll);
+  els.diffToggle.addEventListener('change', renderAll);
+  els.selectA.addEventListener('change', () => { selectedA = els.selectA.value || null; renderAll(); });
+  els.selectB.addEventListener('change', () => { selectedB = els.selectB.value || null; renderAll(); });
+  els.nInput.addEventListener('change', () => {
+    const n = Math.max(4, Math.min(10, parseInt(els.nInput.value, 10) || 6));
+    els.kInput.max = String(n-1);
+    if ((parseInt(els.kInput.value,10)||1) > n-1) els.kInput.value = n-1;
+  });
+
+  rebuild();
+})();
+</script>
+</body>
+</html>
