@@ -132,9 +132,13 @@ dialog h2{margin-top:0}
   <h2>What is shown here</h2>
   <p><b>Graph.</b> Vertices are binary words of length n with k zeros. An edge is a cyclic shift of three adjacent letters (the action of the 3-cycle (i, i+1, i+2)). This is the Schreier graph of S<sub>n</sub> over S<sub>k</sub>×S<sub>n−k</sub> with 3-cycle generators.</p>
   <p><b>Shape.</b> a<sub>i</sub> = number of 1s to the left of the i-th zero; column i has height a<sub>i</sub>. If a(X) ≤ a(Y) componentwise, R(X,Y) is the skew shape between the two staircases (red dashed = X, blue = Y).</p>
+  <p><b>ν(R).</b> The largest number of dominoes that fit inside R without overlapping. A domino covers two cells of R sharing an edge, horizontally or vertically; leftover cells are allowed. Think of the cells as people on a grid who may pair up only with a neighbour beside or directly above them: ν(R) is the largest number of pairs at once. In graph terms it is a maximum matching in the graph of cells of R (edges = shared sides); a chessboard colouring shows ν(R) ≤ min(#black, #white). Examples: a 2×3 rectangle has ν = 3 (perfect tiling), a 3×3 square has ν = 4 (one cell left alone), two cells touching only at a corner have ν = 0. Why it matters: a domino move fills two cells in one step, so with ν(R) dominoes and |R| − 2ν(R) single squares a path needs ν(R) + (|R| − 2ν(R)) = |R| − ν(R) moves.</p>
   <p><b>Moves.</b> The shift 011 ↔ 110 changes one column by 2 (vertical domino), 001 ↔ 100 changes two adjacent columns by 1 (horizontal domino), and the other shifts change a single square.</p>
-  <p><b>Domino tableau.</b> A tiling of R by d pieces (dominoes and single squares), numbered 1, …, d, such that after each step the filled part is again a staircase: cell (i, r) is placed only after the cell below it and the cell to its right (when those are in R). The minimum number of pieces is d = |R| − ν(R), where ν(R) is the maximum number of non-overlapping dominoes in R.</p>
+  <p><b>Domino tableau.</b> A tiling of R by d pieces (dominoes and single squares), numbered 1, …, d, such that after each step the filled part is again a staircase: cell (i, r) is placed only after the cell below it and the cell to its right (when those are in R). The minimum number of pieces is d = |R| − ν(R).</p>
   <p><b>Bijection.</b> Path ↦ tableau: the number of a piece is the step at which the string passes through it. Every geodesic (for a(X) ≤ a(Y)) passes through each cell of R exactly once, so the map is a bijection. The number of tableaux is counted independently here (by filling order ideals of R, without words or the graph) and compared with the number of shortest paths from BFS.</p>
+  <p><b>Range of n and k.</b> Need n ≥ 3 and 1 ≤ k ≤ n − 1, and the graph must have at most C(n,k) ≤ 200,000 vertices. Largest n for each k (same for n − k): k = 2: 632, k = 3: 107, k = 4: 42, k = 5: 27, k = 6: 23, k = 7: 21, k = 8–10: 20. So the balanced case k = n/2 works up to n = 20. The arrows on the n and k boxes stop at 16 and 15, but larger values can be typed.</p>
+  <p><b>n, k versus X, Y.</b> If you edit n or k last, Build uses them and, when X and Y don't fit, sets X = 0<sup>k</sup>1<sup>n−k</sup> and Y = 1<sup>n−k</sup>0<sup>k</sup> (the full rectangle). If you edit X or Y last, n and k are taken from the words.</p>
+  <p><b>Display limits.</b> The graph is not drawn if the interval [X, Y] has more than 260 vertices. The gallery shows the first 120 tableaux; the others are reachable with ← → and Random. Counts are exact up to about 9×10<sup>15</sup>.</p>
   <p><b>Controls.</b> Start/Pause, ◂ ▸ step, Reset, ← → previous/next tableau in the numbering, Random picks a uniformly random one. Click a thumbnail to select a tableau. Keys: space, ← →.</p>
   <button class="primary" id="close">Close</button>
 </dialog>
@@ -203,6 +207,15 @@ function countTableaux(aX,aY,d){ // independent count: numbered tilings of R who
 function msg(t){$("msg").textContent=t||"";}
 function build(){
   stop();msg("");
+  let note="";
+  if(lastEdited==="nk"){ // n or k typed last: use them if X, Y don't already match
+    const n=+$("n").value,k=+$("k").value,X0=$("X").value.trim();
+    if(!(Number.isInteger(n)&&Number.isInteger(k)&&n>=3&&k>=1&&k<n))return msg("Need n ≥ 3 and 1 ≤ k < n.");
+    if(X0.length!==n||[...X0].filter(c=>c==="0").length!==k){
+      $("X").value="0".repeat(k)+"1".repeat(n-k);$("Y").value="1".repeat(n-k)+"0".repeat(k);
+      note=`X and Y set to the full ${n-k}×${k} rectangle for n = ${n}, k = ${k}. Edit X and Y to choose other vertices.`;}
+  }
+  lastEdited=null;
   let X=$("X").value.trim(),Y=$("Y").value.trim();
   if(!/^[01]+$/.test(X)||!/^[01]+$/.test(Y))return msg("X and Y must be words in 0 and 1.");
   if(X.length!==Y.length)return msg("X and Y must have the same length.");
@@ -225,6 +238,7 @@ function build(){
    <span>|R| = <b>${G.R.length}</b></span><span>ν(R) = <b>${G.nu}</b></span><span>d(X,Y) = <b>${G.d}</b> ${G.d===G.R.length-G.nu?'<span class="ok">= |R| − ν(R)</span>':'<span class="no">≠ |R| − ν(R)</span>'}</span>
    <span>shortest paths: <b>${G.N.toLocaleString()}</b></span><span>domino tableaux: <b>${G.T.toLocaleString()}</b> <span class="${same?"ok":"no"}">${same?"match":"mismatch"}</span></span>`;
   select(0);buildGallery();
+  if(note)msg(note);
 }
 
 /* ---------- selection & playback ---------- */
@@ -332,12 +346,16 @@ function buildGallery(){const M=Math.min(G.N,120);let h="";
 
 /* ---------- events ---------- */
 function rw(n,k){const a=[..."0".repeat(k)+"1".repeat(n-k)];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a.join("");}
+let lastEdited=null;
+["n","k"].forEach(id=>$(id).addEventListener("input",()=>{lastEdited="nk";}));
+["X","Y"].forEach(id=>$(id).addEventListener("input",()=>{lastEdited="xy";}));
+["n","k"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")build();}));
 $("build").onclick=build;
 $("rand").onclick=()=>{const n=+$("n").value,k=+$("k").value;if(!(n>=3&&k>=1&&k<n))return msg("Need n ≥ 3 and 1 ≤ k < n.");
-  for(let t=0;t<500;t++){const X=rw(n,k),Y=rw(n,k),a=aVec(X),b=aVec(Y);if(X!==Y&&a.every((v,i)=>v<=b[i])){$("X").value=X;$("Y").value=Y;return build();}}msg("Could not find a comparable pair.");};
-$("pre1").onclick=()=>{$("X").value="00011";$("Y").value="11000";build();};
-$("pre2").onclick=()=>{$("X").value="000111";$("Y").value="111000";build();};
-$("pre3").onclick=()=>{$("X").value="00001111";$("Y").value="11110000";build();};
+  for(let t=0;t<500;t++){const X=rw(n,k),Y=rw(n,k),a=aVec(X),b=aVec(Y);if(X!==Y&&a.every((v,i)=>v<=b[i])){$("X").value=X;$("Y").value=Y;lastEdited=null;return build();}}msg("Could not find a comparable pair.");};
+$("pre1").onclick=()=>{lastEdited=null;$("X").value="00011";$("Y").value="11000";build();};
+$("pre2").onclick=()=>{lastEdited=null;$("X").value="000111";$("Y").value="111000";build();};
+$("pre3").onclick=()=>{lastEdited=null;$("X").value="00001111";$("Y").value="11110000";build();};
 $("start").onclick=()=>G.timer?stop():play();
 $("step").onclick=()=>{stop();if(G.step<G.d){G.step++;G.fresh=true;renderAll();}};
 $("back").onclick=()=>{stop();if(G.step>0){G.step--;renderAll();}};
