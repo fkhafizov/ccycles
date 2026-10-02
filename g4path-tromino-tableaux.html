@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tromino tableaux and geodesics in G₄</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#F7F9FC;--panel:#FFFFFF;--ink:#1E2740;--muted:#5B6478;--grid:#DCE2EC;--region:#E6EEFB;--line:#CBD3E1;
+  --x:#C63D2F;--y:#2448B5;--win:#FFE29A;--vdom:#93D69A;--hdom:#F7BE7E;--single:#F09A9A;--diag:#8ED8E6;--vtro:#C9AEF0;--htro:#A98BE0;
+  --btn:#2448B5;--btnText:#FFFFFF;--warn:#A23B12;--edge:#9AA5BA;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#141925;--panel:#1C2333;--ink:#E6EAF2;--muted:#9AA3B5;--grid:#2E3647;--region:#22304A;--line:#38425A;
+  --x:#F07A6C;--y:#7C9BFF;--win:#6B5A20;--vdom:#4F9A57;--hdom:#B9782F;--single:#B05555;--diag:#3B8C99;--vtro:#7A5AB0;--htro:#6A4E9E;
+  --btn:#7C9BFF;--btnText:#10131B;--warn:#FFAA80;--edge:#56607A;}}
+:root[data-theme="dark"]{
+  --paper:#141925;--panel:#1C2333;--ink:#E6EAF2;--muted:#9AA3B5;--grid:#2E3647;--region:#22304A;--line:#38425A;
+  --x:#F07A6C;--y:#7C9BFF;--win:#6B5A20;--vdom:#4F9A57;--hdom:#B9782F;--single:#B05555;--diag:#3B8C99;--vtro:#7A5AB0;--htro:#6A4E9E;
+  --btn:#7C9BFF;--btnText:#10131B;--warn:#FFAA80;--edge:#56607A;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.6rem;font-weight:600;margin:0 0 4px;line-height:1.2}
+.lead{margin:0 0 16px;color:var(--muted);max-width:76ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.panel h2{font-size:1.05rem;margin:0 0 8px;font-weight:600}
+.top{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:900px){.top{grid-template-columns:1fr}}
+.inputs{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.inputs .f{display:flex;flex-direction:column}
+label{font-size:.88rem;color:var(--muted);margin-bottom:2px}
+input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+input.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.95rem;letter-spacing:.05em;width:13em}
+input.num{width:4.2em}
+button{font:inherit;font-size:.93rem;padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+button.primary{background:var(--btn);color:var(--btnText);border-color:var(--btn);font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible{outline:3px solid var(--y);outline-offset:2px}
+.msg{font-size:.92rem;color:var(--warn);min-height:1.2em;margin-top:8px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.controls .sp{display:flex;align-items:center;gap:6px;font-size:.88rem;color:var(--muted);margin-left:auto}
+.controls .sp input{width:100px}
+svg{display:block;width:100%;height:auto}
+#tab{max-height:52vh}
+#graph{max-height:62vh}
+.caption{color:var(--muted);font-size:.93rem;margin:6px 0 0;text-align:center}
+.stats{display:flex;flex-wrap:wrap;gap:4px 22px;font-size:.95rem;margin-top:8px}
+.stats span b{font-weight:600}
+.ok{color:#1F7A3A}.no{color:var(--warn)}
+.strings{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.strings .snap{width:118px;text-align:center;font-size:.8rem;color:var(--muted)}
+.strings .arr{color:var(--muted)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.gallery button{padding:4px;border-radius:6px;font-size:.78rem;color:var(--muted)}
+.gallery button.sel{outline:3px solid var(--y);outline-offset:1px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.86rem;color:var(--muted);margin-top:8px;justify-content:center}
+.legend i{display:inline-block;width:13px;height:13px;border:1.5px solid var(--ink);border-radius:3px;vertical-align:-2px;margin-right:5px}
+dialog{max-width:680px;width:calc(100% - 32px);border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:20px 22px}
+dialog::backdrop{background:rgba(20,25,40,.35)}
+dialog h2{margin-top:0}
+.fresh{animation:pop .45s ease-out;transform-box:fill-box;transform-origin:center}
+@keyframes pop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.fresh{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Tromino tableaux and shortest paths in the Schreier graph of 4-cycles</h1>
+<p class="lead">The G₄ analogue of the Young and domino tableau pictures. In G₄ (cyclic shifts of four adjacent letters) a move adds or removes one of six pieces of the holographic staircase: a single square, a vertical or horizontal domino, a diagonal pair, or a vertical or horizontal straight tromino. A shortest path that only adds pieces is a numbered tiling of R(X,Y) whose prefixes are staircases (a G₄-tableau). When d = |R|/3 every shortest path is a straight-tromino tableau; in general a few shortest paths also remove cells, and these are marked.</p>
+
+<section class="panel">
+  <div class="inputs">
+    <div class="f"><label for="X">X (smaller shape)</label><input id="X" class="mono" value="000111" spellcheck="false" autocomplete="off"></div>
+    <div class="f"><label for="Y">Y (larger shape)</label><input id="Y" class="mono" value="111000" spellcheck="false" autocomplete="off"></div>
+    <button class="primary" id="build">Build</button>
+    <div class="f"><label for="n">n</label><input id="n" class="num" type="number" min="4" max="16" value="6"></div>
+    <div class="f"><label for="k">k (zeros)</label><input id="k" class="num" type="number" min="1" max="15" value="3"></div>
+    <button id="rand">Random pair X ≤ Y</button>
+    <button id="pre1">3×3</button>
+    <button id="pre2">6×3</button>
+    <button id="pre3">L-shape</button>
+    <button id="pre4">1101 (non-monotone)</button>
+    <button id="help">Help</button>
+  </div>
+  <div class="msg" id="msg" role="status"></div>
+  <div class="stats" id="stats"></div>
+</section>
+
+<div class="top">
+  <section class="panel">
+    <h2>Graph: interval [X, Y] in G₄(k, n), wavy edges = selected path</h2>
+    <svg id="graph" role="img" aria-label="Subgraph of shortest paths"></svg>
+    <p class="caption" id="gcap"></p>
+  </section>
+  <section class="panel">
+    <h2>Tableau of the selected path</h2>
+    <div class="controls">
+      <button class="primary" id="start">Start</button>
+      <button id="back">◂</button><button id="step">▸</button>
+      <button id="reset">Reset</button>
+      <button id="prev">← path</button><button id="next">path →</button>
+      <button id="rnd">Random</button>
+      <span class="sp"><label for="speed" style="margin:0">Speed</label><input id="speed" type="range" min="150" max="2000" step="50" value="900"></span>
+    </div>
+    <svg id="tab" role="img" aria-label="Tableau"></svg>
+    <p class="caption" id="cap"></p>
+    <div class="legend">
+      <span><i style="background:var(--vtro)"></i>vertical tromino (0111↔1110)</span>
+      <span><i style="background:var(--htro)"></i>horizontal tromino (0001↔1000)</span>
+      <span><i style="background:var(--vdom)"></i>vertical domino</span>
+      <span><i style="background:var(--hdom)"></i>horizontal domino</span>
+      <span><i style="background:var(--diag)"></i>diagonal pair</span>
+      <span><i style="background:var(--single)"></i>single square</span>
+      <span><i style="background:transparent;border:1.5px dashed var(--warn)"></i>removed (−t)</span>
+    </div>
+  </section>
+</div>
+
+<section class="panel" style="margin-top:16px">
+  <h2>Motion of the string: positions at times t = 0, …, d</h2>
+  <div class="strings" id="strings"></div>
+</section>
+
+<section class="panel" style="margin-top:16px">
+  <h2 id="galH">All shortest paths</h2>
+  <div class="gallery" id="gallery"></div>
+</section>
+</div>
+
+<dialog id="dlg">
+  <h2>What is shown here</h2>
+  <p><b>Graph.</b> Vertices are binary words of length n with k zeros. An edge is a cyclic shift of four adjacent letters (the action of the 4-cycle (i, i+1, i+2, i+3) or its inverse). G₄(k, n) can be disconnected (for example G₄(2,4)); X and Y must lie in the same component.</p>
+  <p><b>Shape.</b> a<sub>i</sub> = number of 1s to the left of the i-th zero; column i has height a<sub>i</sub>. If a(X) ≤ a(Y) componentwise, R(X,Y) is the skew shape between the two staircases (red dashed = X, blue = Y).</p>
+  <p><b>Moves.</b> Every move either adds or removes one of six pieces. Adding moves: 0111 → 1110 (vertical tromino), 0001 → 1000 (horizontal tromino), 0110 → 1100 and 0011 → 0110 (vertical domino), 0011 → 1001 and 1001 → 1100 (horizontal domino), 0101 → 1010 (diagonal pair), and 0111 → 1011, 1011 → 1101, 1101 → 1110, 0001 → 0010, 0010 → 0100, 0100 → 1000 (single square). The reverse shifts remove the same pieces. Straight trominoes can always be added when the staircase allows them; the other pieces depend on the neighbouring letters.</p>
+  <p><b>Lower bounds.</b> A move changes at most 3 cells, so d ≥ ⌈|R|/3⌉. Colour cell (i, r) by (i + r) mod 3: every piece has at most one cell of each colour, so d ≥ max κ<sub>c</sub>, the largest colour class of R. Neither bound is exact in general.</p>
+  <p><b>Tableau.</b> A G₄-tableau of shape R is a numbering of R by pieces 1, …, s, added one at a time by G₄ moves, so that after each step the filled part is again a staircase. A shortest path that only adds pieces gives a tableau with d pieces, and conversely. If d = |R|/3 (for instance if every a<sub>i</sub> is a multiple of 3 and X = A), every shortest path adds straight trominoes only.</p>
+  <p><b>Non-monotone paths.</b> Unlike G₃, a shortest path in G₄ can remove cells: for X = 0111, Y = 1101 the path 0111 → 1110 → 1101 adds a vertical tromino and then removes a cell. Such paths are marked ↺ and are not tableaux; removed cells are drawn dashed with the label −t. The count of tableaux is computed separately (by adding admissible pieces to staircases) and compared with the number of shortest paths that only add pieces.</p>
+  <p><b>Range.</b> Need n ≥ 4, 1 ≤ k ≤ n − 1 and C(n,k) ≤ 200,000. The graph is not drawn if the interval has more than 260 vertices; the gallery shows the first 120 paths.</p>
+  <p><b>Controls.</b> Start/Pause, ◂ ▸ step, Reset, ← → previous/next path, Random picks a uniformly random shortest path. Click a thumbnail to select it. Keys: space, ← →.</p>
+  <button class="primary" id="close">Close</button>
+</dialog>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const G={X:"",Y:"",n:0,k:0,d:0,R:[],DX:null,DY:null,cnt:null,N:0,idx:0,geo:null,step:0,timer:null,fresh:false};
+
+/* ---------- combinatorics ---------- */
+function binom(n,k){let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return Math.round(r);}
+function aVec(w){const a=[];let o=0;for(const c of w){if(c==="1")o++;else a.push(o);}return a;}
+function nbrs(x){ // cyclic shifts of 4 consecutive letters, fixed order
+  const out=[],seen=new Set();
+  for(let i=0;i+4<=x.length;i++){const w=x.slice(i,i+4);
+    for(const s of [w.slice(1)+w[0],w[3]+w.slice(0,3)]){if(s===w)continue;
+      const y=x.slice(0,i)+s+x.slice(i+4);if(!seen.has(y)){seen.add(y);out.push({y,i,from:w,to:s});}}}
+  return out;
+}
+const sumA=w=>aVec(w).reduce((t,v)=>t+v,0);
+function bfs(src){const D=new Map([[src,0]]),Q=[src];
+  for(let h=0;h<Q.length;h++){const x=Q[h];for(const e of nbrs(x))if(!D.has(e.y)){D.set(e.y,D.get(x)+1);Q.push(e.y);}}
+  return {D,Q};}
+function geoCounts(){ // number of geodesics from w to Y
+  const cnt=new Map(),order=[...G.DY.keys()].filter(w=>G.DX.get(w)+G.DY.get(w)===G.d).sort((u,v)=>G.DY.get(u)-G.DY.get(v));
+  for(const x of order){if(x===G.Y){cnt.set(x,1);continue;}let c=0;
+    for(const e of nbrs(x))if(G.DY.get(e.y)===G.DY.get(x)-1)c+=cnt.get(e.y);cnt.set(x,c);}
+  return {cnt,interval:order};
+}
+function unrank(j){ // j-th geodesic in lexicographic order of moves
+  const words=[G.X],moves=[];let x=G.X;
+  while(x!==G.Y){for(const e of nbrs(x)){if(G.DY.get(e.y)!==G.DY.get(x)-1)continue;
+      const c=G.cnt.get(e.y);if(j<c){moves.push(piece(x,e));words.push(e.y);x=e.y;break;}j-=c;}}
+  return {words,moves};
+}
+function piece(u,e){const au=aVec(u),av=aVec(e.y),cells=[],cols=[];
+  au.forEach((p,i)=>{if(p!==av[i]){cols.push(i);for(let r=Math.min(p,av[i]);r<Math.max(p,av[i]);r++)cells.push([i,r]);}});
+  const add=av.reduce((t,v)=>t+v,0)>au.reduce((t,v)=>t+v,0);
+  let type;
+  if(cells.length===1)type="single";
+  else if(cells.length===2)type=cols.length===1?"vdom":(cells[0][1]===cells[1][1]?"hdom":"diag");
+  else type=cols.length===1?"vtro":"htro";
+  return {...e,cells,type,add,a:av};}
+const PIECE_NAME={single:"single square",vdom:"vertical domino",hdom:"horizontal domino",diag:"diagonal pair",vtro:"vertical tromino",htro:"horizontal tromino"};
+function colourBound(cells){const c=[0,0,0];for(const [i,r] of cells)c[(i+r+2)%3]++;return c;}
+function countTableaux(aX,aY,d,n){ // independent count: chains of d admissible piece additions inside R
+  const k=aX.length,memo=new Map(),key=a=>a.join(",");
+  const word=a=>{let w="",p=0;for(const h of a){w+="1".repeat(h-p)+"0";p=h;}return w+"1".repeat(n-k-p);};
+  const target=key(aY);
+  function f(a,left){const kk=key(a)+"|"+left;if(memo.has(kk))return memo.get(kk);
+    let t=0;
+    if(kk.startsWith(target+"|"))t=left===0?1:0;
+    else if(left>0){const w=word(a),seen=new Set();
+      for(const e of nbrs(w)){const b=aVec(e.y);
+        if(b.every((v,i)=>v>=a[i]&&v<=aY[i])&&!seen.has(e.y)){seen.add(e.y);t+=f(b,left-1);}}}
+    memo.set(kk,t);return t;}
+  return f(aX.slice(),d);
+}
+function monoCount(){ // shortest paths X -> Y that only add pieces
+  const c=new Map(),order=[...G.interval].sort((u,v)=>G.DY.get(u)-G.DY.get(v));
+  for(const x of order){if(x===G.Y){c.set(x,1);continue;}let t=0;
+    for(const e of nbrs(x))if(G.DY.get(e.y)===G.DY.get(x)-1&&sumA(e.y)>sumA(x))t+=c.get(e.y)||0;c.set(x,t);}
+  return c.get(G.X)||0;
+}
+
+/* ---------- build ---------- */
+function msg(t){$("msg").textContent=t||"";}
+function build(){
+  stop();msg("");
+  let note="";
+  if(lastEdited==="nk"){ // n or k typed last: use them if X, Y don't already match
+    const n=+$("n").value,k=+$("k").value,X0=$("X").value.trim();
+    if(!(Number.isInteger(n)&&Number.isInteger(k)&&n>=4&&k>=1&&k<n))return msg("Need n ≥ 4 and 1 ≤ k < n.");
+    if(X0.length!==n||[...X0].filter(c=>c==="0").length!==k){
+      $("X").value="0".repeat(k)+"1".repeat(n-k);$("Y").value="1".repeat(n-k)+"0".repeat(k);
+      note=`X and Y set to the full ${n-k}×${k} rectangle for n = ${n}, k = ${k}. Edit X and Y to choose other vertices.`;}
+  }
+  lastEdited=null;
+  let X=$("X").value.trim(),Y=$("Y").value.trim();
+  if(!/^[01]+$/.test(X)||!/^[01]+$/.test(Y))return msg("X and Y must be words in 0 and 1.");
+  if(X.length!==Y.length)return msg("X and Y must have the same length.");
+  const k=[...X].filter(c=>c==="0").length;
+  if(k!==[...Y].filter(c=>c==="0").length)return msg("X and Y must have the same number of zeros.");
+  if(X.length<4)return msg("Need n ≥ 4.");
+  if(binom(X.length,k)>200000)return msg("Graph too large: keep C(n,k) ≤ 200,000.");
+  let aX=aVec(X),aY=aVec(Y);
+  if(aY.every((v,i)=>v<=aX[i])&&X!==Y){[X,Y]=[Y,X];[aX,aY]=[aY,aX];$("X").value=X;$("Y").value=Y;msg("X and Y were swapped so that a(X) ≤ a(Y).");}
+  else if(!aX.every((v,i)=>v<=aY[i]))return msg(`a(X) = (${aX}) and a(Y) = (${aY}) are not comparable. Tableaux are defined for skew shapes a(X) ≤ a(Y).`);
+  if(X===Y)return msg("X = Y: the path is empty.");
+  G.X=X;G.Y=Y;G.n=X.length;G.k=k;$("n").value=G.n;$("k").value=k;
+  G.DX=bfs(X).D;if(!G.DX.has(Y))return msg(`${Y} is not in the component of ${X} in G₄(${k}, ${X.length}).`);
+  G.DY=bfs(Y).D;G.d=G.DY.get(X);
+  G.R=[];aX.forEach((v,i)=>{for(let r=v;r<aY[i];r++)G.R.push([i,r]);});
+  const gc=geoCounts();G.cnt=gc.cnt;G.interval=gc.interval;G.N=G.cnt.get(X);
+  G.M=monoCount();G.T=countTableaux(aX,aY,G.d,G.n);
+  const kc=colourBound(G.R),cb=Math.max(...kc),ab=Math.ceil(G.R.length/3);
+  layoutGraph();
+  const same=G.T===G.M;
+  $("stats").innerHTML=`<span>G₄(k = ${k}, n = ${G.n})</span><span>a(X) = (${aX.join(", ")})</span><span>a(Y) = (${aY.join(", ")})</span>
+   <span>|R| = <b>${G.R.length}</b></span><span>d(X,Y) = <b>${G.d}</b></span><span>⌈|R|/3⌉ = ${ab}</span><span>(κ₀, κ₁, κ₂) = (${kc.join(", ")})</span>
+   <span>${G.d===G.R.length/3?'<span class="ok">d = |R|/3: straight trominoes only</span>':(G.d===Math.max(ab,cb)?'<span class="ok">d = max of the two lower bounds</span>':'<span class="no">d exceeds both lower bounds</span>')}</span>
+   <span>shortest paths: <b>${G.N.toLocaleString()}</b></span><span>adding pieces only: <b>${G.M.toLocaleString()}</b></span>
+   <span>G₄-tableaux with d pieces: <b>${G.T.toLocaleString()}</b> <span class="${same?"ok":"no"}">${same?"match":"mismatch"}</span></span>
+   ${G.M<G.N?`<span class="no">${(G.N-G.M).toLocaleString()} shortest path(s) remove cells (marked ↺)</span>`:""}`;
+  select(0);buildGallery();
+  if(note)msg(note);
+}
+
+/* ---------- selection & playback ---------- */
+function select(j){stop();G.idx=((j%G.N)+G.N)%G.N;G.geo=unrank(G.idx);G.step=G.d;G.fresh=false;renderAll();
+  document.querySelectorAll(".gallery button").forEach(b=>b.classList.toggle("sel",+b.dataset.i===G.idx));}
+function stop(){if(G.timer){clearInterval(G.timer);G.timer=null;}btns();}
+function play(){if(G.step>=G.d){G.step=0;renderAll();}
+  G.timer=setInterval(()=>{if(G.step<G.d){G.step++;G.fresh=true;renderAll();}if(G.step>=G.d)stop();},+$("speed").value);btns();}
+function btns(){$("start").textContent=G.timer?"Pause":(G.step>=G.d?"Start":(G.step===0?"Start":"Resume"));
+  $("back").disabled=G.step===0;$("step").disabled=G.step>=G.d;}
+const tColor=t=>`hsl(${Math.round(250-250*t/Math.max(1,G.d))},62%,42%)`;
+const TYPE_VAR={vdom:"--vdom",hdom:"--hdom",single:"--single",diag:"--diag",vtro:"--vtro",htro:"--htro"};
+const isMono=geo=>geo.moves.every(m=>m.add);
+
+/* ---------- tableau drawing ---------- */
+function tableauSVG(geo,step,o){ // o: {s, crop, stairs, fresh, cur}
+  const s=o.s,aX=aVec(G.X),aY=aVec(G.Y),k=G.k;
+  const hmax=Math.max(...geo.words.map(w=>Math.max(...aVec(w))));
+  const r0=o.crop?Math.min(...aX):0,r1=o.crop?Math.max(hmax,1):G.n-G.k,rows=Math.max(1,r1-r0);
+  const pL=o.crop?4:24,pB=o.crop?4:22,pT=6,pR=6,W=pL+k*s+pR,H=pT+rows*s+pB;
+  const X0=c=>pL+c*s,Y0=r=>pT+(r1-r)*s,ink=css("--ink");
+  let g="";
+  for(let i=0;i<k;i++)for(let r=r0;r<r1;r++)g+=`<rect x="${X0(i)}" y="${Y0(r+1)}" width="${s}" height="${s}" fill="${css("--panel")}" stroke="${css("--grid")}"/>`;
+  for(const [i,r] of G.R)g+=`<rect x="${X0(i)}" y="${Y0(r+1)}" width="${s}" height="${s}" fill="${css("--region")}" stroke="${css("--grid")}"/>`;
+  const owner=new Map(),ghost=new Map();
+  for(let j=0;j<step;j++){const m=geo.moves[j];
+    for(const c of m.cells){const kk=c.join(",");if(m.add){owner.set(kk,j);ghost.delete(kk);}else{owner.delete(kk);ghost.set(kk,j);}}}
+  for(const [kk,j] of ghost){const [i,r]=kk.split(",").map(Number),ins=Math.max(1.5,s*.08);
+    g+=`<rect x="${X0(i)+ins}" y="${Y0(r+1)+ins}" width="${s-2*ins}" height="${s-2*ins}" fill="none" stroke="${css("--warn")}" stroke-width="${Math.max(1,s*.05)}" stroke-dasharray="${s*.12} ${s*.08}"/>`;
+    g+=`<text x="${X0(i)+s/2}" y="${Y0(r)-s/2}" text-anchor="middle" dominant-baseline="central" font-size="${s*.34}" fill="${css("--warn")}" font-family="Source Serif 4,Georgia,serif">−${j+1}</text>`;}
+  const groups=new Map();for(const [kk,j] of owner){if(!groups.has(j))groups.set(j,[]);groups.get(j).push(kk.split(",").map(Number));}
+  for(const [j,cells] of [...groups].sort((p,q)=>p[0]-q[0])){const m=geo.moves[j],set=new Set(cells.map(c=>c.join(",")));let pg="";
+    for(const [i,r] of cells)pg+=`<rect x="${X0(i)}" y="${Y0(r+1)}" width="${s}" height="${s}" fill="${css(TYPE_VAR[m.type])}" stroke="none"/>`;
+    const ins=Math.max(1.5,s*.07);
+    for(const [i,r] of cells){const L=!set.has(`${i-1},${r}`),Rr=!set.has(`${i+1},${r}`),T=!set.has(`${i},${r+1}`),B=!set.has(`${i},${r-1}`);
+      const xa=X0(i)+(L?ins:0),xb=X0(i+1)-(Rr?ins:0),ya=Y0(r+1)+(T?ins:0),yb=Y0(r)-(B?ins:0);
+      if(L)pg+=`<line x1="${xa}" y1="${ya}" x2="${xa}" y2="${yb}"/>`;if(Rr)pg+=`<line x1="${xb}" y1="${ya}" x2="${xb}" y2="${yb}"/>`;
+      if(T)pg+=`<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${ya}"/>`;if(B)pg+=`<line x1="${xa}" y1="${yb}" x2="${xb}" y2="${yb}"/>`;}
+    if(m.type==="diag"&&cells.length===2){const [p,q]=cells;pg+=`<line x1="${X0(p[0])+s/2}" y1="${Y0(p[1])-s/2}" x2="${X0(q[0])+s/2}" y2="${Y0(q[1])-s/2}" stroke-dasharray="${s*.08} ${s*.08}" stroke-opacity=".6"/>`;}
+    for(const [i,r] of (m.type==="diag"?cells:[cells.reduce((b,c)=>b)])){
+      const cx=m.type==="diag"?X0(i)+s/2:cells.reduce((t,c)=>t+X0(c[0])+s/2,0)/cells.length,cy=m.type==="diag"?Y0(r)-s/2:cells.reduce((t,c)=>t+Y0(c[1])-s/2,0)/cells.length;
+      pg+=`<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="${s*.42}" font-weight="600" fill="${ink}" stroke="none" font-family="Source Serif 4,Georgia,serif">${j+1}</text>`;}
+    g+=`<g class="${o.fresh&&j===step-1?"fresh":""}" stroke="${ink}" stroke-width="${Math.max(1,s*.045)}" stroke-linecap="round">${pg}</g>`;}
+  const stair=a=>{let d=`M${X0(0)},${Y0(Math.max(r0,0))} L${X0(0)},${Y0(a[0])}`;
+    a.forEach((v,i)=>{d+=` L${X0(i+1)},${Y0(v)}`;if(i+1<a.length)d+=` L${X0(i+1)},${Y0(a[i+1])}`;});return d+` L${X0(a.length)},${Y0(r1)}`;};
+  if(o.stairs){
+    g+=`<path d="${stair(aY)}" fill="none" stroke="${css("--y")}" stroke-width="${s*.07}" stroke-linejoin="round"/>`;
+    g+=`<path d="${stair(aX)}" fill="none" stroke="${css("--x")}" stroke-width="${s*.07}" stroke-dasharray="${s*.18} ${s*.12}" stroke-linejoin="round"/>`;
+  }
+  if(o.cur!==undefined)g+=`<path d="${stair(aVec(geo.words[o.cur]))}" fill="none" stroke="${tColor(o.cur)}" stroke-width="${s*.11}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(!o.crop){for(let i=0;i<k;i++)g+=`<text x="${X0(i)+s/2}" y="${H-6}" text-anchor="middle" font-size="13" fill="${css("--muted")}" font-family="Source Serif 4,Georgia,serif">${i+1}</text>`;}
+  return {vb:`0 0 ${W} ${H}`,g};
+}
+function renderAll(){
+  const geo=G.geo,st=G.step;
+  const t=tableauSVG(geo,st,{s:44,stairs:true,cur:st,fresh:G.fresh});G.fresh=false;
+  $("tab").setAttribute("viewBox",t.vb);$("tab").innerHTML=t.g;
+  const m=st>0?geo.moves[st-1]:null;
+  $("cap").innerHTML=`Path ${G.idx+1} of ${G.N.toLocaleString()}${isMono(geo)?" (a G₄-tableau)":" ↺ (removes cells, not a tableau)"}. `+(m?`Step ${st}: ${geo.words[st-1]} → ${geo.words[st]} (${m.from} ↦ ${m.to} at positions ${m.i+1}–${m.i+4}) ${m.add?"adds":"removes"} a ${PIECE_NAME[m.type]}; a = (${m.a.join(", ")}).`:`t = 0: the string is at X.`);
+  renderStrings();drawGraph();btns();
+}
+function renderStrings(){const geo=G.geo;let h="";
+  for(let t=0;t<=G.d;t++){const tb=tableauSVG(geo,G.d,{s:16,crop:true,cur:t});
+    h+=`<div class="snap"><svg viewBox="${tb.vb}" style="${t===G.step?`outline:2px solid ${tColor(t)};outline-offset:2px;border-radius:3px`:""}">${tb.g}</svg>t = ${t}</div>`;
+    if(t<G.d)h+=`<span class="arr">→</span>`;}
+  $("strings").innerHTML=h;}
+
+/* ---------- graph ---------- */
+function layoutGraph(){
+  const L=[];for(const w of G.interval){const t=G.DX.get(w);(L[t]=L[t]||[]).push(w);}
+  L.forEach(l=>l.sort());
+  const pos=new Map();const setPos=()=>L.forEach(l=>l.forEach((w,j)=>pos.set(w,(j+.5)/l.length)));setPos();
+  const adj=w=>nbrs(w).map(e=>e.y).filter(y=>pos.has(y));
+  for(let pass=0;pass<4;pass++){const seq=pass%2?[...L.keys()].reverse():[...L.keys()];
+    for(const t of seq){const ref=pass%2?t+1:t-1;if(!L[ref])continue;
+      const bc=w=>{const ns=adj(w).filter(y=>G.DX.get(y)===ref);return ns.length?ns.reduce((s,y)=>s+pos.get(y),0)/ns.length:pos.get(w);};
+      L[t].sort((u,v)=>bc(u)-bc(v));L[t].forEach((w,j)=>pos.set(w,(j+.5)/L[t].length));}}
+  G.layers=L;G.pos=pos;
+}
+function wavy(x1,y1,x2,y2,amp,wl){const Lh=Math.hypot(x2-x1,y2-y1),ux=(x2-x1)/Lh,uy=(y2-y1)/Lh,nx=-uy,ny=ux;
+  const N=Math.max(4,Math.round(Lh/wl*6));let d=`M${x1},${y1}`;
+  for(let j=1;j<=N;j++){const s=j/N*Lh,o=j<N?amp*Math.sin(2*Math.PI*s/wl):0;d+=` L${(x1+ux*s+nx*o).toFixed(1)},${(y1+uy*s+ny*o).toFixed(1)}`;}return d;}
+function drawGraph(){
+  const L=G.layers,maxW=Math.max(...L.map(l=>l.length));
+  if(G.interval.length>260){$("graph").setAttribute("viewBox","0 0 10 1");$("graph").innerHTML="";
+    $("gcap").textContent=`The interval has ${G.interval.length} vertices, too many to draw.`;return;}
+  const showLab=maxW<=5,W=Math.max(320,maxW*(showLab?110:34)),dy=showLab?70:56,H=40+G.d*dy,rad=6;
+  const P=w=>[30+G.pos.get(w)*(W-60),22+G.DX.get(w)*dy];
+  const onPath=new Map(G.geo.words.map((w,t)=>[w,t]));
+  let g="";
+  for(const w of G.interval){const [x1,y1]=P(w);
+    for(const e of nbrs(w)){if(!G.pos.has(e.y)||G.DX.get(e.y)!==G.DX.get(w)+1)continue;const [x2,y2]=P(e.y);
+      const t=onPath.get(w);
+      if(t!==undefined&&G.geo.words[t+1]===e.y){
+        const Lh=Math.hypot(x2-x1,y2-y1),ux=(x2-x1)/Lh,uy=(y2-y1)/Lh;
+        g+=`<path d="${wavy(x1+ux*rad,y1+uy*rad,x2-ux*(rad+3),y2-uy*(rad+3),3.2,10)}" fill="none" stroke="${css("--ink")}" stroke-width="${t<G.step?2.4:1.4}" stroke-opacity="${t<G.step?1:.55}"/>`;
+        const ax=x2-ux*(rad+1),ay=y2-uy*(rad+1);
+        g+=`<path d="M${ax},${ay} L${ax-ux*8-uy*4},${ay-uy*8+ux*4} L${ax-ux*8+uy*4},${ay-uy*8-ux*4}Z" fill="${css("--ink")}"/>`;
+      } else g+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${css("--edge")}" stroke-width="1.1"/>`;}}
+  for(const w of G.interval){const [x,y]=P(w),t=onPath.get(w);
+    const fill=t!==undefined?tColor(t):css("--panel");
+    g+=`<circle cx="${x}" cy="${y}" r="${t!==undefined?rad+1:rad-1}" fill="${fill}" stroke="${css("--ink")}" stroke-width="${t===G.step?2.5:1}"><title>${w}  a = (${aVec(w).join(", ")})</title></circle>`;
+    if(showLab)g+=`<text x="${x+10}" y="${y-8}" font-size="11.5" fill="${css("--ink")}" font-family="JetBrains Mono,ui-monospace,monospace">(${w})</text>`;}
+  $("graph").setAttribute("viewBox",`0 0 ${W} ${H}`);$("graph").innerHTML=g;
+  $("gcap").textContent=`${G.interval.length} of ${binom(G.n,G.k)} vertices lie on shortest paths; layer t = distance from X. A path vertex has the colour of the string at time t.`;
+}
+
+/* ---------- gallery ---------- */
+function buildGallery(){const M=Math.min(G.N,120);let h="";
+  for(let j=0;j<M;j++){const geo=unrank(j),tb=tableauSVG(geo,G.d,{s:18,crop:true});
+    h+=`<button data-i="${j}" aria-label="Path ${j+1}"><svg viewBox="${tb.vb}">${tb.g}</svg>${j+1}${isMono(geo)?"":" ↺"}</button>`;}
+  $("gallery").innerHTML=h;
+  $("galH").textContent=(G.N<=120?`All ${G.N} shortest paths`:`First 120 of ${G.N.toLocaleString()} shortest paths`)+` (↺ = removes cells; the others are the G₄-tableaux of shape R(X,Y))`;
+  document.querySelectorAll(".gallery button").forEach(b=>{b.onclick=()=>select(+b.dataset.i);b.classList.toggle("sel",+b.dataset.i===G.idx);});
+}
+
+/* ---------- events ---------- */
+function rw(n,k){const a=[..."0".repeat(k)+"1".repeat(n-k)];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a.join("");}
+let lastEdited=null;
+["n","k"].forEach(id=>$(id).addEventListener("input",()=>{lastEdited="nk";}));
+["X","Y"].forEach(id=>$(id).addEventListener("input",()=>{lastEdited="xy";}));
+["n","k"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")build();}));
+$("build").onclick=build;
+$("rand").onclick=()=>{const n=+$("n").value,k=+$("k").value;if(!(n>=4&&k>=1&&k<n))return msg("Need n ≥ 4 and 1 ≤ k < n.");
+  if(binom(n,k)>200000)return msg("Graph too large: keep C(n,k) ≤ 200,000.");
+  for(let t=0;t<200;t++){const X=rw(n,k),Y=rw(n,k),a=aVec(X),b=aVec(Y);if(X!==Y&&a.every((v,i)=>v<=b[i])&&bfs(X).D.has(Y)){$("X").value=X;$("Y").value=Y;lastEdited=null;return build();}}msg("Could not find a comparable pair in one component.");};
+$("pre1").onclick=()=>{lastEdited=null;$("X").value="000111";$("Y").value="111000";build();};
+$("pre2").onclick=()=>{lastEdited=null;$("X").value="000000111";$("Y").value="111000000";build();};
+$("pre3").onclick=()=>{lastEdited=null;$("X").value="00111";$("Y").value="10101";build();};
+$("pre4").onclick=()=>{lastEdited=null;$("X").value="0111";$("Y").value="1101";build();};
+$("start").onclick=()=>G.timer?stop():play();
+$("step").onclick=()=>{stop();if(G.step<G.d){G.step++;G.fresh=true;renderAll();}};
+$("back").onclick=()=>{stop();if(G.step>0){G.step--;renderAll();}};
+$("reset").onclick=()=>{stop();G.step=0;renderAll();};
+$("prev").onclick=()=>select(G.idx-1);
+$("next").onclick=()=>select(G.idx+1);
+$("rnd").onclick=()=>select(Math.floor(Math.random()*G.N));
+$("speed").oninput=()=>{if(G.timer){stop();play();}};
+$("help").onclick=()=>$("dlg").showModal();$("close").onclick=()=>$("dlg").close();
+["X","Y"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")build();}));
+document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA"].includes(document.activeElement.tagName)||$("dlg").open)return;
+  if(e.key===" "){e.preventDefault();$("start").click();}else if(e.key==="ArrowRight")$("step").click();else if(e.key==="ArrowLeft")$("back").click();});
+build();
+</script>
+</body>
+</html>
