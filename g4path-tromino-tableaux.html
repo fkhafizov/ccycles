@@ -11,23 +11,23 @@
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
   --paper:#F7F9FC;--panel:#FFFFFF;--ink:#1E2740;--muted:#5B6478;--grid:#DCE2EC;--region:#E6EEFB;--line:#CBD3E1;
-  --x:#C63D2F;--y:#2448B5;--win:#FFE29A;--vdom:#93D69A;--hdom:#F7BE7E;--single:#F09A9A;--diag:#8ED8E6;--vtro:#C9AEF0;--htro:#A98BE0;
+  --x:#C63D2F;--y:#2448B5;--win:#FFE29A;--vdom:#93D69A;--hdom:#F7BE7E;--single:#F09A9A;--diag:#8ED8E6;--vtro:#C9AEF0;--htro:#A98BE0;--xreg:#D5DBE5;
   --btn:#2448B5;--btnText:#FFFFFF;--warn:#A23B12;--edge:#9AA5BA;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#141925;--panel:#1C2333;--ink:#E6EAF2;--muted:#9AA3B5;--grid:#2E3647;--region:#22304A;--line:#38425A;
-  --x:#F07A6C;--y:#7C9BFF;--win:#6B5A20;--vdom:#4F9A57;--hdom:#B9782F;--single:#B05555;--diag:#3B8C99;--vtro:#7A5AB0;--htro:#6A4E9E;
+  --x:#F07A6C;--y:#7C9BFF;--win:#6B5A20;--vdom:#4F9A57;--hdom:#B9782F;--single:#B05555;--diag:#3B8C99;--vtro:#7A5AB0;--htro:#6A4E9E;--xreg:#2C3447;
   --btn:#7C9BFF;--btnText:#10131B;--warn:#FFAA80;--edge:#56607A;}}
 :root[data-theme="dark"]{
   --paper:#141925;--panel:#1C2333;--ink:#E6EAF2;--muted:#9AA3B5;--grid:#2E3647;--region:#22304A;--line:#38425A;
-  --x:#F07A6C;--y:#7C9BFF;--win:#6B5A20;--vdom:#4F9A57;--hdom:#B9782F;--single:#B05555;--diag:#3B8C99;--vtro:#7A5AB0;--htro:#6A4E9E;
+  --x:#F07A6C;--y:#7C9BFF;--win:#6B5A20;--vdom:#4F9A57;--hdom:#B9782F;--single:#B05555;--diag:#3B8C99;--vtro:#7A5AB0;--htro:#6A4E9E;--xreg:#2C3447;
   --btn:#7C9BFF;--btnText:#10131B;--warn:#FFAA80;--edge:#56607A;}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.55}
 .wrap{max-width:1240px;margin:0 auto;padding:20px 16px 40px}
 h1{font-size:1.6rem;font-weight:600;margin:0 0 4px;line-height:1.2}
-.lead{margin:0 0 16px;color:var(--muted);max-width:76ch}
+.lead{margin:0 0 16px;color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .panel h2{font-size:1.05rem;margin:0 0 8px;font-weight:600}
 .top{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;margin-top:16px}
@@ -117,7 +117,8 @@ dialog h2{margin-top:0}
       <span><i style="background:var(--hdom)"></i>horizontal domino</span>
       <span><i style="background:var(--diag)"></i>diagonal pair</span>
       <span><i style="background:var(--single)"></i>single square</span>
-      <span><i style="background:transparent;border:1.5px dashed var(--warn)"></i>removed (−t)</span>
+      <span><i style="background:transparent;border:1.5px dashed var(--warn)"></i>removed at step t (−t); a small −t tag means the cell was removed and later filled again</span>
+      <span><i style="background:var(--xreg)"></i>cells of X (start)</span>
     </div>
   </section>
 </div>
@@ -142,6 +143,7 @@ dialog h2{margin-top:0}
   <p><b>Tableau.</b> A G₄-tableau of shape R is a numbering of R by pieces 1, …, s, added one at a time by G₄ moves, so that after each step the filled part is again a staircase. A shortest path that only adds pieces gives a tableau with d pieces, and conversely. If d = |R|/3 (for instance if every a<sub>i</sub> is a multiple of 3 and X = A), every shortest path adds straight trominoes only.</p>
   <p><b>Non-monotone paths.</b> Unlike G₃, a shortest path in G₄ can remove cells: for X = 0111, Y = 1101 the path 0111 → 1110 → 1101 adds a vertical tromino and then removes a cell. Such paths are marked ↺ and are not tableaux; removed cells are drawn dashed with the label −t. The count of tableaux is computed separately (by adding admissible pieces to staircases) and compared with the number of shortest paths that only add pieces.</p>
   <p><b>Range.</b> Need n ≥ 4, 1 ≤ k ≤ n − 1 and C(n,k) ≤ 200,000. The graph is not drawn if the interval has more than 260 vertices; the gallery shows the first 120 paths.</p>
+  <p><b>Links.</b> The page reads the address: <code>…/g4path-tromino-tableaux.html?X=1001101&amp;Y=1101001</code> opens that pair; add <code>&amp;path=2</code> to select a path and <code>&amp;step=1</code> to stop after a given move. The address bar is updated as you build and select paths, so it can be copied as a link.</p>
   <p><b>Controls.</b> Start/Pause, ◂ ▸ step, Reset, ← → previous/next path, Random picks a uniformly random shortest path. Click a thumbnail to select it. Keys: space, ← →.</p>
   <button class="primary" id="close">Close</button>
 </dialog>
@@ -252,7 +254,7 @@ function build(){
 }
 
 /* ---------- selection & playback ---------- */
-function select(j){stop();G.idx=((j%G.N)+G.N)%G.N;G.geo=unrank(G.idx);G.step=G.d;G.fresh=false;renderAll();
+function select(j){stop();G.idx=((j%G.N)+G.N)%G.N;G.geo=unrank(G.idx);G.step=G.d;G.fresh=false;renderAll();syncURL();
   document.querySelectorAll(".gallery button").forEach(b=>b.classList.toggle("sel",+b.dataset.i===G.idx));}
 function stop(){if(G.timer){clearInterval(G.timer);G.timer=null;}btns();}
 function play(){if(G.step>=G.d){G.step=0;renderAll();}
@@ -273,9 +275,10 @@ function tableauSVG(geo,step,o){ // o: {s, crop, stairs, fresh, cur}
   let g="";
   for(let i=0;i<k;i++)for(let r=r0;r<r1;r++)g+=`<rect x="${X0(i)}" y="${Y0(r+1)}" width="${s}" height="${s}" fill="${css("--panel")}" stroke="${css("--grid")}"/>`;
   for(const [i,r] of G.R)g+=`<rect x="${X0(i)}" y="${Y0(r+1)}" width="${s}" height="${s}" fill="${css("--region")}" stroke="${css("--grid")}"/>`;
-  const owner=new Map(),ghost=new Map();
+  for(let i=0;i<k;i++)for(let r=Math.max(r0,0);r<aX[i];r++)g+=`<rect x="${X0(i)}" y="${Y0(r+1)}" width="${s}" height="${s}" fill="${css("--xreg")}" stroke="${css("--grid")}"/>`;
+  const owner=new Map(),ghost=new Map(),hist=new Map();
   for(let j=0;j<step;j++){const m=geo.moves[j];
-    for(const c of m.cells){const kk=c.join(",");if(m.add){owner.set(kk,j);ghost.delete(kk);}else{owner.delete(kk);ghost.set(kk,j);}}}
+    for(const c of m.cells){const kk=c.join(",");if(m.add){owner.set(kk,j);ghost.delete(kk);}else{owner.delete(kk);ghost.set(kk,j);if(!hist.has(kk))hist.set(kk,[]);hist.get(kk).push(j);}}}
   for(const [kk,j] of ghost){const [i,r]=kk.split(",").map(Number),ins=Math.max(1.5,s*.08);
     g+=`<rect x="${X0(i)+ins}" y="${Y0(r+1)+ins}" width="${s-2*ins}" height="${s-2*ins}" fill="none" stroke="${css("--warn")}" stroke-width="${Math.max(1,s*.05)}" stroke-dasharray="${s*.12} ${s*.08}"/>`;
     g+=`<text x="${X0(i)+s/2}" y="${Y0(r)-s/2}" text-anchor="middle" dominant-baseline="central" font-size="${s*.34}" fill="${css("--warn")}" font-family="Source Serif 4,Georgia,serif">−${j+1}</text>`;}
@@ -292,6 +295,9 @@ function tableauSVG(geo,step,o){ // o: {s, crop, stairs, fresh, cur}
       const cx=m.type==="diag"?X0(i)+s/2:cells.reduce((t,c)=>t+X0(c[0])+s/2,0)/cells.length,cy=m.type==="diag"?Y0(r)-s/2:cells.reduce((t,c)=>t+Y0(c[1])-s/2,0)/cells.length;
       pg+=`<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="${s*.42}" font-weight="600" fill="${ink}" stroke="none" font-family="Source Serif 4,Georgia,serif">${j+1}</text>`;}
     g+=`<g class="${o.fresh&&j===step-1?"fresh":""}" stroke="${ink}" stroke-width="${Math.max(1,s*.045)}" stroke-linecap="round">${pg}</g>`;}
+  for(const [kk,js] of hist){if(!owner.has(kk))continue;const [i,r]=kk.split(",").map(Number),w=s*.42,h=s*.3;
+    g+=`<rect x="${X0(i)+2}" y="${Y0(r+1)+2}" width="${w}" height="${h}" rx="${s*.06}" fill="${css("--panel")}" stroke="${css("--warn")}" stroke-width="${Math.max(1,s*.03)}" stroke-dasharray="${s*.06} ${s*.04}"/>`;
+    g+=`<text x="${X0(i)+2+w/2}" y="${Y0(r+1)+2+h/2}" text-anchor="middle" dominant-baseline="central" font-size="${s*.22}" fill="${css("--warn")}" font-family="Source Serif 4,Georgia,serif">${js.map(j=>"−"+(j+1)).join(",")}</text>`;}
   const stair=a=>{let d=`M${X0(0)},${Y0(Math.max(r0,0))} L${X0(0)},${Y0(a[0])}`;
     a.forEach((v,i)=>{d+=` L${X0(i+1)},${Y0(v)}`;if(i+1<a.length)d+=` L${X0(i+1)},${Y0(a[i+1])}`;});return d+` L${X0(a.length)},${Y0(r1)}`;};
   if(o.stairs){
@@ -391,7 +397,19 @@ $("help").onclick=()=>$("dlg").showModal();$("close").onclick=()=>$("dlg").close
 ["X","Y"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")build();}));
 document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA"].includes(document.activeElement.tagName)||$("dlg").open)return;
   if(e.key===" "){e.preventDefault();$("start").click();}else if(e.key==="ArrowRight")$("step").click();else if(e.key==="ArrowLeft")$("back").click();});
-build();
+/* ---------- URL parameters: ?X=...&Y=...&path=...&step=... ---------- */
+function syncURL(){try{const q=new URLSearchParams();q.set("X",G.X);q.set("Y",G.Y);
+  if(G.idx>0)q.set("path",G.idx+1);history.replaceState(null,"",location.pathname+"?"+q.toString());}catch(e){}}
+(function(){let q;try{q=new URLSearchParams(location.search);}catch(e){q=new URLSearchParams();}
+  const g=k=>q.get(k)||q.get(k.toLowerCase());
+  const X=g("X"),Y=g("Y");
+  if(X&&Y){$("X").value=X.trim();$("Y").value=Y.trim();lastEdited=null;}
+  build();
+  const P=parseInt(g("path"),10);
+  if(X&&Y&&G.N&&P>=1&&P<=G.N)select(P-1);
+  const S=parseInt(g("step"),10);
+  if(X&&Y&&G.geo&&S>=0&&S<=G.d){G.step=S;renderAll();}
+})();
 </script>
 </body>
 </html>
