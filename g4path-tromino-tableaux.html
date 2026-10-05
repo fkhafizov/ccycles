@@ -66,9 +66,11 @@ svg{display:block;width:100%;height:auto}
 .gallery button.sel{outline:3px solid var(--y);outline-offset:1px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.86rem;color:var(--muted);margin-top:8px;justify-content:center}
 .legend i{display:inline-block;width:13px;height:13px;border:1.5px solid var(--ink);border-radius:3px;vertical-align:-2px;margin-right:5px}
-dialog{max-width:680px;width:calc(100% - 32px);border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:20px 22px}
+dialog{max-width:1180px;width:calc(100% - 32px);max-height:calc(100vh - 48px);border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:20px 22px}
 dialog::backdrop{background:rgba(20,25,40,.35)}
 dialog h2{margin-top:0}
+#dlg p{break-inside:avoid;margin:0 0 10px}
+.dlgbody{columns:2 440px;column-gap:32px;margin-bottom:12px}
 .fresh{animation:pop .45s ease-out;transform-box:fill-box;transform-origin:center}
 @keyframes pop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.fresh{animation:none}}
@@ -142,6 +144,7 @@ dialog h2{margin-top:0}
 
 <dialog id="dlg">
   <h2>What is shown here</h2>
+  <div class="dlgbody">
   <p><b>Graph.</b> Vertices are binary words of length n with k zeros. An edge is a cyclic shift of four adjacent letters (the action of the 4-cycle (i, i+1, i+2, i+3) or its inverse). G₄(k, n) can be disconnected (for example G₄(2,4)); X and Y must lie in the same component.</p>
   <p><b>Shape.</b> a<sub>i</sub> = number of 1s to the left of the i-th zero; column i has height a<sub>i</sub>. If a(X) ≤ a(Y) componentwise, R(X,Y) is the skew shape between the two staircases (red dashed = X, blue = Y).</p>
   <p><b>Moves.</b> Every move either adds or removes one of six pieces. Adding moves: 0111 → 1110 (vertical tromino), 0001 → 1000 (horizontal tromino), 0110 → 1100 and 0011 → 0110 (vertical domino), 0011 → 1001 and 1001 → 1100 (horizontal domino), 0101 → 1010 (diagonal pair), and 0111 → 1011, 1011 → 1101, 1101 → 1110, 0001 → 0010, 0010 → 0100, 0100 → 1000 (single square). The reverse shifts remove the same pieces. Straight trominoes can always be added when the staircase allows them; the other pieces depend on the neighbouring letters.</p>
@@ -153,6 +156,7 @@ dialog h2{margin-top:0}
   <p><b>Levels.</b> Choose “step” to place the vertices in rows by distance (number of steps) from X, or “I” to place them in rows by the area I under the staircase; with rows by I, steps that add cells go down and steps that remove cells go up. Next to each row label, c is the number of vertices in that row. Add <code>&amp;rows=I</code> to the address to open with rows by I.</p>
   <p><b>Full graph.</b> Tick “show full graph” to draw every vertex of the component of X, in rows by distance from X; vertices on shortest paths X → Y keep a dark outline, the others are grey. Vertices not reachable from X are listed in a dashed box. Hover a vertex for its word, a-vector, area and distances; click it to use it as Y. Add <code>&amp;full=1</code> to the address to open with the full graph.</p>
   <p><b>Controls.</b> Start/Pause, ◂ ▸ step, Reset, ← → previous/next path, Random picks a uniformly random shortest path. Click a thumbnail to select it. Keys: space, ← →.</p>
+  </div>
   <button class="primary" id="close">Close</button>
 </dialog>
 
