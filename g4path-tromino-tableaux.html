@@ -12,26 +12,29 @@
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
   --paper:#F7F9FC;--panel:#FFFFFF;--ink:#1E2740;--muted:#5B6478;--grid:#DCE2EC;--region:#E6EEFB;--line:#CBD3E1;
   --x:#C63D2F;--y:#2448B5;--win:#FFE29A;--vdom:#93D69A;--hdom:#F7BE7E;--single:#F09A9A;--diag:#8ED8E6;--vtro:#C9AEF0;--htro:#A98BE0;--xreg:#D5DBE5;
-  --btn:#2448B5;--btnText:#FFFFFF;--warn:#A23B12;--edge:#9AA5BA;
+  --btn:#2448B5;--btnText:#FFFFFF;--warn:#A23B12;--edge:#9AA5BA;--edgeB:#3A6FD8;--edgeR:#D9534F;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#141925;--panel:#1C2333;--ink:#E6EAF2;--muted:#9AA3B5;--grid:#2E3647;--region:#22304A;--line:#38425A;
   --x:#F07A6C;--y:#7C9BFF;--win:#6B5A20;--vdom:#4F9A57;--hdom:#B9782F;--single:#B05555;--diag:#3B8C99;--vtro:#7A5AB0;--htro:#6A4E9E;--xreg:#2C3447;
-  --btn:#7C9BFF;--btnText:#10131B;--warn:#FFAA80;--edge:#56607A;}}
+  --btn:#7C9BFF;--btnText:#10131B;--warn:#FFAA80;--edge:#56607A;--edgeB:#7C9BFF;--edgeR:#E07A72;}}
 :root[data-theme="dark"]{
   --paper:#141925;--panel:#1C2333;--ink:#E6EAF2;--muted:#9AA3B5;--grid:#2E3647;--region:#22304A;--line:#38425A;
   --x:#F07A6C;--y:#7C9BFF;--win:#6B5A20;--vdom:#4F9A57;--hdom:#B9782F;--single:#B05555;--diag:#3B8C99;--vtro:#7A5AB0;--htro:#6A4E9E;--xreg:#2C3447;
-  --btn:#7C9BFF;--btnText:#10131B;--warn:#FFAA80;--edge:#56607A;}
+  --btn:#7C9BFF;--btnText:#10131B;--warn:#FFAA80;--edge:#56607A;--edgeB:#7C9BFF;--edgeR:#E07A72;}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.55}
-.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 40px}
+.wrap{max-width:1560px;margin:0 auto;padding:20px 16px 40px}
 h1{font-size:1.6rem;font-weight:600;margin:0 0 4px;line-height:1.2}
 .lead{margin:0 0 16px;color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .panel h2{font-size:1.05rem;margin:0 0 8px;font-weight:600}
-.top{display:grid;grid-template-columns:1.05fr 1fr;gap:16px;margin-top:16px}
-@media (max-width:900px){.top{grid-template-columns:1fr}}
+.top{display:grid;grid-template-columns:1.15fr .85fr .8fr;gap:16px;margin-top:16px;align-items:start}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.side .panel{max-height:44vh;overflow:auto}
+@media (max-width:1250px){.top{grid-template-columns:1.1fr .9fr}.side{grid-column:1/-1;flex-direction:row}.side .panel{flex:1;max-height:none}}
+@media (max-width:900px){.top{grid-template-columns:1fr}.side{flex-direction:column}}
 .inputs{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .inputs .f{display:flex;flex-direction:column}
 label{font-size:.88rem;color:var(--muted);margin-bottom:2px}
@@ -47,16 +50,18 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--y);outline-offs
 .controls .sp{display:flex;align-items:center;gap:6px;font-size:.88rem;color:var(--muted);margin-left:auto}
 .controls .sp input{width:100px}
 svg{display:block;width:100%;height:auto}
-#tab{max-height:52vh}
-#graph{max-height:62vh}
+#tab{max-height:34vh}
+#graph{max-height:72vh}
+#fullg{max-height:85vh}
+.tog{font-size:.9rem;color:var(--muted);display:inline-flex;align-items:center;gap:6px;margin-left:10px;font-weight:400}
 .caption{color:var(--muted);font-size:.93rem;margin:6px 0 0;text-align:center}
 .stats{display:flex;flex-wrap:wrap;gap:4px 22px;font-size:.95rem;margin-top:8px}
 .stats span b{font-weight:600}
 .ok{color:#1F7A3A}.no{color:var(--warn)}
 .strings{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.strings .snap{width:118px;text-align:center;font-size:.8rem;color:var(--muted)}
+.strings .snap{width:84px;text-align:center;font-size:.8rem;color:var(--muted)}
 .strings .arr{color:var(--muted)}
-.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
 .gallery button{padding:4px;border-radius:6px;font-size:.78rem;color:var(--muted)}
 .gallery button.sel{outline:3px solid var(--y);outline-offset:1px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.86rem;color:var(--muted);margin-top:8px;justify-content:center}
@@ -94,7 +99,7 @@ dialog h2{margin-top:0}
 
 <div class="top">
   <section class="panel">
-    <h2>Graph: interval [X, Y] in G₄(k, n), wavy edges = selected path</h2>
+    <h2>Graph: G₄(k, n) from X, wavy edges = selected path <label class="tog"><input type="checkbox" id="fullT"> show full graph</label><span class="tog">levels: <label class="tog" style="margin-left:4px"><input type="radio" name="lev" id="levT" value="dist" checked> step</label><label class="tog" style="margin-left:4px"><input type="radio" name="lev" id="levI" value="area"> I</label></span></h2>
     <svg id="graph" role="img" aria-label="Subgraph of shortest paths"></svg>
     <p class="caption" id="gcap"></p>
   </section>
@@ -121,17 +126,18 @@ dialog h2{margin-top:0}
       <span><i style="background:var(--xreg)"></i>cells of X (start)</span>
     </div>
   </section>
+  <div class="side">
+    <section class="panel">
+      <h2>Motion of the string: positions at times t = 0, …, d</h2>
+      <div class="strings" id="strings"></div>
+    </section>
+    <section class="panel">
+      <h2 id="galH">All shortest paths</h2>
+      <div class="gallery" id="gallery"></div>
+    </section>
+  </div>
 </div>
 
-<section class="panel" style="margin-top:16px">
-  <h2>Motion of the string: positions at times t = 0, …, d</h2>
-  <div class="strings" id="strings"></div>
-</section>
-
-<section class="panel" style="margin-top:16px">
-  <h2 id="galH">All shortest paths</h2>
-  <div class="gallery" id="gallery"></div>
-</section>
 </div>
 
 <dialog id="dlg">
@@ -144,6 +150,8 @@ dialog h2{margin-top:0}
   <p><b>Non-monotone paths.</b> Unlike G₃, a shortest path in G₄ can remove cells: for X = 0111, Y = 1101 the path 0111 → 1110 → 1101 adds a vertical tromino and then removes a cell. Such paths are marked ↺ and are not tableaux; removed cells are drawn dashed with the label −t. The count of tableaux is computed separately (by adding admissible pieces to staircases) and compared with the number of shortest paths that only add pieces.</p>
   <p><b>Range.</b> Need n ≥ 4, 1 ≤ k ≤ n − 1 and C(n,k) ≤ 200,000. The graph is not drawn if the interval has more than 260 vertices; the gallery shows the first 120 paths.</p>
   <p><b>Links.</b> The page reads the address: <code>…/g4path-tromino-tableaux.html?X=1001101&amp;Y=1101001</code> opens that pair; add <code>&amp;path=2</code> to select a path and <code>&amp;step=1</code> to stop after a given move. The address bar is updated as you build and select paths, so it can be copied as a link.</p>
+  <p><b>Levels.</b> Choose “step” to place the vertices in rows by distance (number of steps) from X, or “I” to place them in rows by the area I under the staircase; with rows by I, steps that add cells go down and steps that remove cells go up. Next to each row label, c is the number of vertices in that row. Add <code>&amp;rows=I</code> to the address to open with rows by I.</p>
+  <p><b>Full graph.</b> Tick “show full graph” to draw every vertex of the component of X, in rows by distance from X; vertices on shortest paths X → Y keep a dark outline, the others are grey. Vertices not reachable from X are listed in a dashed box. Hover a vertex for its word, a-vector, area and distances; click it to use it as Y. Add <code>&amp;full=1</code> to the address to open with the full graph.</p>
   <p><b>Controls.</b> Start/Pause, ◂ ▸ step, Reset, ← → previous/next path, Random picks a uniformly random shortest path. Click a thumbnail to select it. Keys: space, ← →.</p>
   <button class="primary" id="close">Close</button>
 </dialog>
@@ -322,45 +330,112 @@ function renderStrings(){const geo=G.geo;let h="";
     if(t<G.d)h+=`<span class="arr">→</span>`;}
   $("strings").innerHTML=h;}
 
-/* ---------- graph ---------- */
-function layoutGraph(){
-  const L=[];for(const w of G.interval){const t=G.DX.get(w);(L[t]=L[t]||[]).push(w);}
-  L.forEach(l=>l.sort());
-  const pos=new Map();const setPos=()=>L.forEach(l=>l.forEach((w,j)=>pos.set(w,(j+.5)/l.length)));setPos();
-  const adj=w=>nbrs(w).map(e=>e.y).filter(y=>pos.has(y));
-  for(let pass=0;pass<4;pass++){const seq=pass%2?[...L.keys()].reverse():[...L.keys()];
-    for(const t of seq){const ref=pass%2?t+1:t-1;if(!L[ref])continue;
-      const bc=w=>{const ns=adj(w).filter(y=>G.DX.get(y)===ref);return ns.length?ns.reduce((s,y)=>s+pos.get(y),0)/ns.length:pos.get(w);};
-      L[t].sort((u,v)=>bc(u)-bc(v));L[t].forEach((w,j)=>pos.set(w,(j+.5)/L[t].length));}}
-  G.layers=L;G.pos=pos;
-}
+/* ---------- graph (v3: optional full graph, hover, click-to-set-Y) ---------- */
+const FULLMAX=300;
+function layoutGraph(){}
+function allWords(n,k){const out=[];const rec=(p,z)=>{if(p.length===n){if(z===k)out.push(p);return;}
+  if(z<k)rec(p+"0",z+1);if(p.length-z<n-k)rec(p+"1",z);};rec("",0);return out;}
+const areaOf=w=>aVec(w).reduce((t,v)=>t+v,0);
 function wavy(x1,y1,x2,y2,amp,wl){const Lh=Math.hypot(x2-x1,y2-y1),ux=(x2-x1)/Lh,uy=(y2-y1)/Lh,nx=-uy,ny=ux;
   const N=Math.max(4,Math.round(Lh/wl*6));let d=`M${x1},${y1}`;
   for(let j=1;j<=N;j++){const s=j/N*Lh,o=j<N?amp*Math.sin(2*Math.PI*s/wl):0;d+=` L${(x1+ux*s+nx*o).toFixed(1)},${(y1+uy*s+ny*o).toFixed(1)}`;}return d;}
-function drawGraph(){
-  const L=G.layers,maxW=Math.max(...L.map(l=>l.length));
-  if(G.interval.length>260){$("graph").setAttribute("viewBox","0 0 10 1");$("graph").innerHTML="";
-    $("gcap").textContent=`The interval has ${G.interval.length} vertices, too many to draw.`;return;}
-  const showLab=maxW<=5,W=Math.max(320,maxW*(showLab?110:34)),dy=showLab?70:56,H=40+G.d*dy,rad=6;
-  const P=w=>[30+G.pos.get(w)*(W-60),22+G.DX.get(w)*dy];
-  const onPath=new Map(G.geo.words.map((w,t)=>[w,t]));
-  let g="";
-  for(const w of G.interval){const [x1,y1]=P(w);
-    for(const e of nbrs(w)){if(!G.pos.has(e.y)||G.DX.get(e.y)!==G.DX.get(w)+1)continue;const [x2,y2]=P(e.y);
-      const t=onPath.get(w);
-      if(t!==undefined&&G.geo.words[t+1]===e.y){
-        const Lh=Math.hypot(x2-x1,y2-y1),ux=(x2-x1)/Lh,uy=(y2-y1)/Lh;
-        g+=`<path d="${wavy(x1+ux*rad,y1+uy*rad,x2-ux*(rad+3),y2-uy*(rad+3),3.2,10)}" fill="none" stroke="${css("--ink")}" stroke-width="${t<G.step?2.4:1.4}" stroke-opacity="${t<G.step?1:.55}"/>`;
-        const ax=x2-ux*(rad+1),ay=y2-uy*(rad+1);
-        g+=`<path d="M${ax},${ay} L${ax-ux*8-uy*4},${ay-uy*8+ux*4} L${ax-ux*8+uy*4},${ay-uy*8-ux*4}Z" fill="${css("--ink")}"/>`;
-      } else g+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${css("--edge")}" stroke-width="1.1"/>`;}}
-  for(const w of G.interval){const [x,y]=P(w),t=onPath.get(w);
-    const fill=t!==undefined?tColor(t):css("--panel");
-    g+=`<circle cx="${x}" cy="${y}" r="${t!==undefined?rad+1:rad-1}" fill="${fill}" stroke="${css("--ink")}" stroke-width="${t===G.step?2.5:1}"><title>${w}  a = (${aVec(w).join(", ")})</title></circle>`;
-    if(showLab)g+=`<text x="${x+10}" y="${y-8}" font-size="11.5" fill="${css("--ink")}" font-family="JetBrains Mono,ui-monospace,monospace">(${w})</text>`;}
-  $("graph").setAttribute("viewBox",`0 0 ${W} ${H}`);$("graph").innerHTML=g;
-  $("gcap").textContent=`${G.interval.length} of ${binom(G.n,G.k)} vertices lie on shortest paths; layer t = distance from X. A path vertex has the colour of the string at time t.`;
+function graphModel(full,layer){
+  const verts=full?[...G.DX.keys()]:G.interval.slice();
+  const key=layer==="area"?areaOf:(w=>G.DX.get(w));
+  const keys=[...new Set(verts.map(key))].sort((a,b)=>a-b);
+  const rowOf=new Map(keys.map((k,i)=>[k,i])),row=w=>rowOf.get(key(w));
+  const L=keys.map(()=>[]);for(const w of verts)L[row(w)].push(w);
+  L.forEach(l=>l.sort());
+  const set=new Set(verts),pos=new Map();
+  L.forEach(l=>l.forEach((w,j)=>pos.set(w,(j+.5)/l.length)));
+  const adj=new Map(verts.map(w=>[w,nbrs(w).map(e=>e.y).filter(y=>set.has(y))]));
+  for(let pass=0;pass<8;pass++){const down=pass%2===0,seq=down?[...L.keys()]:[...L.keys()].reverse();
+    for(const r of seq){
+      const bc=w=>{const ns=adj.get(w).filter(y=>down?row(y)<r:row(y)>r);return ns.length?ns.reduce((s,y)=>s+pos.get(y),0)/ns.length:pos.get(w);};
+      L[r].sort((u,v)=>bc(u)-bc(v));L[r].forEach((w,j)=>pos.set(w,(j+.5)/L[r].length));}}
+  if(full&&layer==="dist"&&G.interval.length){ // keep the shortest-path block in the middle, others left/right
+    const iv=graphModel(false,layer),ip=iv.pos,inI=new Set(G.interval);
+    const bcI=w=>{const ns=adj.get(w).filter(y=>ip.has(y));return ns.length?ns.reduce((s,y)=>s+ip.get(y),0)/ns.length:0.5;};
+    for(const r of L.keys()){const mid=L[r].filter(w=>inI.has(w)).sort((u,v)=>ip.get(u)-ip.get(v));
+      const rest=L[r].filter(w=>!inI.has(w)).map(w=>[w,bcI(w)]).sort((a,b)=>a[1]-b[1]);
+      let left=rest.filter(x=>x[1]<0.5).map(x=>x[0]),right=rest.filter(x=>x[1]>=0.5).map(x=>x[0]);
+      if(!mid.length){const h=Math.ceil(rest.length/2);left=rest.slice(0,h).map(x=>x[0]);right=rest.slice(h).map(x=>x[0]);}
+      L[r]=[...left,...mid,...right];}
+    const maxW=Math.max(...L.map(l=>l.length));
+    L.forEach(l=>{const off=(maxW-l.length)/2;l.forEach((w,j)=>pos.set(w,(off+j+.5)/maxW));});
+  }
+  return {verts,L,pos,row,adj,keys};
 }
+function graphSVG(full,layer){
+  const total=binom(G.n,G.k);
+  let note="";
+  if(full&&total>FULLMAX){full=false;note=` Full graph not drawn: C(n,k) = ${total} > ${FULLMAX}.`;}
+  if(!full&&G.interval.length>260)return {vb:"0 0 10 1",g:"",cap:`The interval has ${G.interval.length} vertices, too many to draw.`};
+  const M=graphModel(full,layer),maxW=Math.max(...M.L.map(l=>l.length));
+  const showLab=maxW<=(full?7:5);
+  const W=Math.max(360,maxW*(showLab?(full?100:110):34)),dy=showLab?66:52,rad=6,x0=70;
+  const inI=new Set(G.interval),onPath=new Map(G.geo.words.map((w,t)=>[w,t]));
+  const P=w=>[x0+M.pos.get(w)*(W-x0-26),24+M.row(w)*dy];
+  const ink=css("--ink");
+  let g="";
+  M.keys.forEach((k,i)=>{const yy=24+i*dy,ff=`fill="${css("--muted")}" font-family="Source Serif 4,Georgia,serif"`;
+    g+=`<text x="4" y="${yy-1}" font-size="10.5" ${ff}>${layer==="area"?"I = "+k:"step = "+k}</text>`;
+    g+=`<text x="4" y="${yy+11}" font-size="10" ${ff}>c = ${M.L[i].length}</text>`;});
+  const drawn=new Set(),edgesPath=[];let gR="",gB="";
+  for(const w of M.verts)for(const y of M.adj.get(w)){
+    const id=w<y?w+"|"+y:y+"|"+w;if(drawn.has(id))continue;drawn.add(id);
+    const tw=onPath.get(w),ty=onPath.get(y);
+    if(tw!==undefined&&ty===tw+1){edgesPath.push([w,y,tw]);continue;}
+    if(ty!==undefined&&tw===ty+1){edgesPath.push([y,w,ty]);continue;}
+    const [x1,y1]=P(w),[x2,y2]=P(y);
+    const geoEdge=inI.has(w)&&inI.has(y); // edges of the default picture
+    let E="";const st=geoEdge?`stroke="${css("--edgeB")}" stroke-width="2.4"`:`stroke="${css("--edgeR")}" stroke-width="0.9"`;
+    if(Math.abs(y1-y2)<1){const mx=(x1+x2)/2,my=y1-Math.min(28,Math.abs(x2-x1)*.25);
+      E+=`<path d="M${x1},${y1} Q${mx},${my} ${x2},${y2}" fill="none" ${st}/>`;}
+    else{ // curve the edge if it passes through another vertex (it would be hidden by other edges)
+      const L=Math.hypot(x2-x1,y2-y1)||1;let hit=false;
+      for(const v of M.verts){if(v===w||v===y)continue;const [vx,vy]=P(v);
+        const u=((vx-x1)*(x2-x1)+(vy-y1)*(y2-y1))/(L*L);if(u<=0.02||u>=0.98)continue;
+        const dd=Math.abs((vx-x1)*(y2-y1)-(vy-y1)*(x2-x1))/L;
+        if(dd<1.5&&(M.adj.get(v).includes(w)||M.adj.get(v).includes(y))){hit=true;break;}}
+      if(hit){const off=Math.min(34,Math.max(20,L*.1)),sg=(x1+x2)/2<W/2?-1:1;let nx=-(y2-y1)/L,ny=(x2-x1)/L;
+        if(nx*sg<0||(nx===0&&ny>0)){nx=-nx;ny=-ny;}
+        E+=`<path d="M${x1},${y1} Q${((x1+x2)/2+nx*off).toFixed(1)},${((y1+y2)/2+ny*off).toFixed(1)} ${x2},${y2}" fill="none" ${st}/>`;}
+      else E+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${st}/>`;}
+    if(geoEdge)gB+=E;else gR+=E;
+  }
+  g+=gR+gB; // blue edges of the default picture on top of the red ones
+  for(const [a,b,t] of edgesPath){const [x1,y1]=P(a),[x2,y2]=P(b);
+    const Lh=Math.hypot(x2-x1,y2-y1)||1,ux=(x2-x1)/Lh,uy=(y2-y1)/Lh;
+    g+=`<path d="${wavy(x1+ux*rad,y1+uy*rad,x2-ux*(rad+3),y2-uy*(rad+3),3.2,10)}" fill="none" stroke="${ink}" stroke-width="${t<G.step?3.6:2.8}" stroke-opacity="${t<G.step?1:.55}"/>`;
+    const ax=x2-ux*(rad+1),ay=y2-uy*(rad+1);
+    g+=`<path d="M${ax},${ay} L${ax-ux*8-uy*4},${ay-uy*8+ux*4} L${ax-ux*8+uy*4},${ay-uy*8-ux*4}Z" fill="${ink}"/>`;}
+  for(const w of M.verts){const [x,y]=P(w),t=onPath.get(w),I=inI.has(w);
+    const fill=t!==undefined?tColor(t):(I?css("--panel"):css("--paper"));
+    const dYv=G.DY.has(w)?G.DY.get(w):"–";
+    g+=`<g data-w="${w}" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="${t!==undefined?rad+1:(I?rad-1:rad-2)}" fill="${fill}" stroke="${I?ink:css("--edge")}" stroke-width="${t===G.step?2.5:1}"/>`;
+    g+=`<circle cx="${x}" cy="${y}" r="${rad+5}" fill="transparent"/><title>${w}\na = (${aVec(w).join(", ")}),  I = ${areaOf(w)}\nd(X,·) = ${G.DX.get(w)},  d(·,Y) = ${dYv}${I?"\non a shortest path X → Y":""}\nclick: use as Y</title>`;
+    if(showLab)g+=`<text x="${x+9}" y="${y-8}" font-size="${I?11.5:10.5}" fill="${I?ink:css("--muted")}" font-family="JetBrains Mono,ui-monospace,monospace">${w}</text>`;
+    g+=`</g>`;}
+  let H=40+(M.L.length-1)*dy;
+  if(full){const others=allWords(G.n,G.k).filter(w=>!G.DX.has(w));
+    if(others.length){const per=Math.max(1,Math.floor((W-60)/100)),rows=Math.ceil(others.length/per),top=H+8;
+      g+=`<rect x="8" y="${top}" width="${W-16}" height="${28+rows*30}" rx="8" fill="none" stroke="${css("--edge")}" stroke-dasharray="5 4"/>`;
+      g+=`<text x="18" y="${top+17}" font-size="11" fill="${css("--muted")}" font-family="Source Serif 4,Georgia,serif">other components (not reachable from X): ${others.length} vertices</text>`;
+      others.forEach((w,i)=>{const cx=30+(i%per)*100,cy=top+40+Math.floor(i/per)*30;
+        g+=`<circle cx="${cx}" cy="${cy}" r="4" fill="${css("--paper")}" stroke="${css("--edge")}"><title>${w}  a = (${aVec(w).join(", ")})  not in the component of X</title></circle>`;
+        g+=`<text x="${cx+8}" y="${cy+4}" font-size="10.5" fill="${css("--muted")}" font-family="JetBrains Mono,ui-monospace,monospace">${w}</text>`;});
+      H=top+36+rows*30;}}
+  const cap=full
+    ?`${G.interval.length} of the ${M.verts.length} vertices of the component of X lie on shortest paths X → Y (dark outline, thick blue edges); the others are grey, and the added edges are thin red lines.${M.verts.length<total?` ${total-M.verts.length} of the ${total} words lie in other components (dashed box).`:""} Rows: ${layer==="area"?"area I under the staircase; c = number of vertices in the row":"distance (step) from X; c = number of vertices in the row"}. Hover a vertex for details; click it to use it as Y.${note}`
+    :`${G.interval.length} of ${total} vertices lie on shortest paths; rows: ${layer==="area"?"area I under the staircase; c = number of vertices in the row":"distance (step) from X; c = number of vertices in the row"}. A path vertex has the colour of the string at time t. Click a vertex to use it as Y.${note}`;
+  return {vb:`0 0 ${W} ${H}`,g,cap};
+}
+function paintGraph(svgId,capId,full,layer){const r=graphSVG(full,layer);
+  const el=$(svgId);el.setAttribute("viewBox",r.vb);el.innerHTML=r.g;$(capId).textContent=r.cap;
+  el.onclick=e=>{const n=e.target.closest("[data-w]");if(!n)return;const w=n.dataset.w;if(w===G.X||w===G.Y)return;
+    $("Y").value=w;lastEdited=null;build();};}
+function drawGraph(){paintGraph("graph","gcap",$("fullT").checked,$("levI")&&$("levI").checked?"area":"dist");}
 
 /* ---------- gallery ---------- */
 function buildGallery(){const M=Math.min(G.N,120);let h="";
@@ -397,11 +472,14 @@ $("help").onclick=()=>$("dlg").showModal();$("close").onclick=()=>$("dlg").close
 ["X","Y"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")build();}));
 document.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA"].includes(document.activeElement.tagName)||$("dlg").open)return;
   if(e.key===" "){e.preventDefault();$("start").click();}else if(e.key==="ArrowRight")$("step").click();else if(e.key==="ArrowLeft")$("back").click();});
-/* ---------- URL parameters: ?X=...&Y=...&path=...&step=... ---------- */
+/* ---------- URL parameters: ?X=...&Y=...&path=...&step=...&full=1 ---------- */
 function syncURL(){try{const q=new URLSearchParams();q.set("X",G.X);q.set("Y",G.Y);
-  if(G.idx>0)q.set("path",G.idx+1);history.replaceState(null,"",location.pathname+"?"+q.toString());}catch(e){}}
+  if(G.idx>0)q.set("path",G.idx+1);if($("fullT")&&$("fullT").checked)q.set("full","1");if($("levI")&&$("levI").checked)q.set("rows","I");
+  history.replaceState(null,"",location.pathname+"?"+q.toString());}catch(e){}}
 (function(){let q;try{q=new URLSearchParams(location.search);}catch(e){q=new URLSearchParams();}
   const g=k=>q.get(k)||q.get(k.toLowerCase());
+  if($("fullT")){$("fullT").checked=g("full")==="1";$("fullT").onchange=()=>{drawGraph();syncURL();};}
+  if($("levI")){$("levI").checked=g("rows")==="I";$("levT").checked=!$("levI").checked;["levT","levI"].forEach(id=>$(id).onchange=()=>{drawGraph();syncURL();});}
   const X=g("X"),Y=g("Y");
   if(X&&Y){$("X").value=X.trim();$("Y").value=Y.trim();lastEdited=null;}
   build();
