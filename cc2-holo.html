@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cc2 Holography v3: d(X,Y) in G₂(n,k)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;1,400&family=Fira+Code:wght@300;400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --surface2: #faf9f6;
+    --border: #e2ddd4;
+    --text: #2e2a24;
+    --text-dim: #8a8278;
+    --text-bright: #1a1714;
+    --cft: #c85a35;
+    --cft-dim: #c85a3530;
+    --ads: #2e7dba;
+    --ads-dim: #2e7dba30;
+    --holo: #5a9a2e;
+    --area: #c43a78;
+    --walk: #d4960a;
+    --x: #d04040;
+    --y: #2a9a3a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Fira Code', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; opacity: 0.04; z-index: 0;
+    background-image: linear-gradient(#b8ad9e 1px, transparent 1px), linear-gradient(90deg, #b8ad9e 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 2px; }
+  header { text-align: center; padding: 36px 20px 6px; }
+  .tag-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; }
+  .tag { font-size: 0.55rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; padding: 3px 12px; border-radius: 2px; border: 1px solid; }
+  .tag.cft { color: var(--cft); border-color: var(--cft); }
+  .tag.ads { color: var(--ads); border-color: var(--ads); }
+  .tag.holo { color: var(--holo); border-color: var(--holo); }
+  header h1 { font-family: 'Newsreader', serif; font-weight: 600; font-size: clamp(1.6rem, 4vw, 2.6rem); color: var(--text-bright); line-height: 1.2; }
+  header h1 .cft { color: var(--cft); }
+  header h1 .ads { color: var(--ads); }
+  .subtitle { font-family: 'Newsreader', serif; font-style: italic; font-size: 0.95rem; line-height: 1.5; color: var(--text-dim); text-align: center; padding: 8px 20px 6px; }
+  p { max-width: none; }
+
+  .params { display: flex; justify-content: center; align-items: center; gap: 14px; padding: 14px 20px 20px; flex-wrap: wrap; }
+  .params-line { display: inline-flex; align-items: center; gap: 6px; }
+  label.lbl { font-size: 0.68rem; color: var(--text-dim); }
+  input[type=number], input[type=text], select {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    padding: 4px 8px; font-family: 'Fira Code', monospace; font-size: 0.72rem; border-radius: 3px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  input[type=number] { width: 92px; }
+  .info { font-size: 0.66rem; color: var(--text-dim); }
+  .info b { color: var(--text); font-weight: 500; }
+  :focus-visible { outline: 2px solid var(--ads); outline-offset: 2px; }
+
+  .btn-help {
+    font-family: 'Fira Code', monospace; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; color: #fff;
+    background: linear-gradient(180deg, #4a9eff 0%, #1a6fc4 50%, #0d5aa7 100%);
+    border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer;
+    box-shadow: 0 4px 0 #0a4a8c, 0 6px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .btn-help:hover { transform: translateY(1px); box-shadow: 0 3px 0 #0a4a8c, 0 5px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.35); }
+  .btn-help:active { transform: translateY(3px); box-shadow: 0 1px 0 #0a4a8c, 0 2px 4px rgba(0,0,0,0.2); }
+  .btn-help.reset { background: linear-gradient(180deg, #ff7a5c 0%, #d9482b 50%, #b8361c 100%); box-shadow: 0 4px 0 #8c2a14, 0 6px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3); }
+  .btn-help.reset:hover { box-shadow: 0 3px 0 #8c2a14, 0 5px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.35); }
+  .btn-help.reset:active { box-shadow: 0 1px 0 #8c2a14, 0 2px 4px rgba(0,0,0,0.2); }
+
+  .btn {
+    font-family: 'Fira Code', monospace; font-size: 0.66rem; color: var(--text-dim);
+    background: var(--surface2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; cursor: pointer;
+  }
+  .btn:hover { color: var(--text); background: var(--surface); border-color: var(--text-dim); }
+  .btn.blue { color: var(--ads); border-color: var(--ads); }
+  .btn.blue:hover { background: var(--ads-dim); }
+  .btn.play { color: var(--walk); border-color: var(--walk); min-width: 70px; }
+
+  .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: 8px; }
+  @media (max-width: 800px) { .main-layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--border); position: relative; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  .panel-header { padding: 14px 16px 8px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+  .panel-header h2 { font-family: 'Newsreader', serif; font-weight: 600; font-size: 1rem; color: var(--text-bright); }
+  .hint { font-size: 0.63rem; color: var(--text-dim); margin-top: 2px; }
+  .panel canvas { display: block; width: 100%; }
+  #graphCanvas { cursor: crosshair; touch-action: none; }
+  #graphCanvas.dragging { cursor: grabbing; }
+  .zoom-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .zoom-bar .btn { min-width: 30px; }
+  .zoom-bar .btn.sq { font-size: 0.85rem; font-weight: 700; padding: 1px 8px; }
+  .zoom-read { font-size: 0.66rem; color: var(--text-dim); margin-left: 4px; }
+  .zoom-hint { font-size: 0.6rem; color: var(--text-dim); margin-left: auto; }
+  .tip {
+    position: absolute; pointer-events: none; display: none; z-index: 5;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 6px 9px;
+    font-size: 0.66rem; line-height: 1.5; box-shadow: 0 4px 14px rgba(0,0,0,0.12); white-space: nowrap;
+  }
+
+  .box { background: var(--surface); border: 1px solid var(--border); padding: 12px 16px; margin-bottom: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.03); }
+  .sel-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 3px 0; }
+  .sel-row .who { font-weight: 700; width: 26px; font-size: 0.8rem; }
+  .sel-row input[type=text] { flex: 1; min-width: 220px; }
+  .who.x { color: var(--x); } .who.y { color: var(--y); }
+  .err { font-size: 0.66rem; color: var(--x); min-height: 1em; margin-top: 4px; }
+  .walk-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .walk-row input[type=range] { flex: 1; min-width: 200px; accent-color: var(--walk); }
+  .walk-read { font-size: 0.7rem; color: var(--walk); min-width: 230px; }
+
+  .log pre { margin: 0; white-space: pre-wrap; word-break: break-all; font-family: 'Fira Code', monospace; font-size: 0.76rem; line-height: 1.65; }
+  .log .lx { color: #c62828; } .log .ly { color: #2e7d32; } .log .la { color: var(--area); } .log .lw { color: #a87400; } .log .ld { color: var(--text-dim); }
+
+  .pair-check { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); font-size: 0.75rem; color: var(--text-dim); cursor: pointer; user-select: none; }
+  .pair-check:has(input:checked) { color: var(--area); border-bottom: none; }
+  .pair-wrap { display: none; background: var(--surface); border: 1px solid var(--border); padding: 10px; margin-bottom: 8px; }
+  .pair-section:has(.pair-check input:checked) .pair-wrap { display: block; }
+  .pair-wrap canvas { display: block; width: 100%; }
+
+  .legend-content { font-size: 0.7rem; line-height: 1.85; color: var(--text-dim); }
+  .legend-content strong { color: var(--text); font-weight: 500; }
+  .legend-content .cft { color: var(--cft); } .legend-content .ads { color: var(--ads); }
+  .legend-content .holo { color: var(--holo); } .legend-content .area-c { color: var(--area); } .legend-content .walk-c { color: #a87400; }
+  .legend { margin-bottom: 40px; }
+
+  .help-modal { display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,0.4); cursor: pointer; }
+  .help-modal.active { display: flex; }
+  .help-modal-content { position: relative; max-width: 560px; max-height: 85vh; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+  .help-modal-content h2 { font-family: 'Newsreader', serif; margin: 0 0 12px; font-size: 1.15rem; }
+  .help-modal-content ol { padding-left: 18px; font-size: 0.72rem; line-height: 1.8; color: var(--text); }
+  .help-modal-note { font-size: 0.72rem; line-height: 1.7; color: var(--text); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .help-modal-h3 { font-family: 'Newsreader', serif; font-size: 0.98rem; font-weight: 600; margin: 16px 0 6px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--text-bright); }
+  .help-modal-text { font-size: 0.72rem; line-height: 1.7; color: var(--text); margin: 6px 0; }
+  .help-modal-content ul { padding-left: 18px; font-size: 0.72rem; line-height: 1.7; color: var(--text); margin: 6px 0; }
+  .help-table { width: 100%; border-collapse: collapse; font-size: 0.66rem; line-height: 1.5; margin: 8px 0; color: var(--text); }
+  .help-table th, .help-table td { border: 1px solid var(--border); padding: 4px 6px; text-align: left; vertical-align: top; }
+  .help-table th { background: var(--surface2); font-weight: 500; }
+  .help-modal-formula { font-size: 0.8rem; text-align: center; color: var(--area); margin: 8px 0; }
+  .help-modal-content ol + .help-modal-text { margin-top: 8px; }
+  .help-modal-hint { font-size: 0.65rem; color: var(--text-dim); margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag-row">
+    <span class="tag cft">CFT-side</span>
+    <span class="tag holo">Holography</span>
+    <span class="tag ads">AdS-side</span>
+  </div>
+  <h1><span class="cft">Graph</span> ↔ <span class="ads">Rectangle</span> Holography for cc2</h1>
+</header>
+<div class="wrap">
+  <p class="subtitle">
+    Distance in the cc2 graph G₂(n,k) without searching it. Like measuring how far apart two towns are by laying their maps on top of each other instead of driving the roads:
+    each vertex becomes a staircase in a k × (n−k) box, and d(X,Y) is the number of unit boxes between the two staircases.
+  </p>
+</div>
+
+<div class="params">
+  <span class="params-line"><label class="lbl" for="inN">n =</label><input type="number" id="inN" min="2" max="200000" value="1000"></span>
+  <span class="params-line"><label class="lbl" for="inK">k =</label><input type="number" id="inK" min="1" max="500" value="300"></span>
+  <span class="params-line">
+    <label class="lbl" for="selPreset">preset</label>
+    <select id="selPreset">
+      <option value="">choose…</option>
+      <option value="6,3">n = 6, k = 3 (whole graph)</option>
+      <option value="8,2">n = 8, k = 2 (whole graph, grid)</option>
+      <option value="10,4">n = 10, k = 4 (whole graph)</option>
+      <option value="60,20">n = 60, k = 20</option>
+      <option value="1000,300">n = 1,000, k = 300</option>
+      <option value="20000,500">n = 20,000, k = 500</option>
+      <option value="200000,60000">n = 200,000, k = 60,000</option>
+    </select>
+  </span>
+  <span class="info">|V| = C(n,k) <b id="infoV"></b> &nbsp; diameter k(n−k) = <b id="infoDiam"></b></span>
+  <button type="button" id="btnReset" class="btn-help reset" title="Clear X and Y, then pick them again">RESET</button>
+  <button type="button" id="btnHelp" class="btn-help">HELP</button>
+</div>
+
+<div class="wrap">
+  <div class="main-layout">
+    <div class="panel" id="graphPanel">
+      <div class="panel-header">
+        <div>
+          <h2>Schreier graph G₂(n,k) (CFT side)</h2>
+          <p class="hint" id="graphHint"></p>
+        </div>
+        <button type="button" id="btnNext" class="btn blue" title="Which vertex the next click sets">Next click sets: X</button>
+      </div>
+      <div class="zoom-bar">
+        <button type="button" class="btn sq" id="zoomOut" title="Zoom out">−</button>
+        <button type="button" class="btn sq" id="zoomIn" title="Zoom in">+</button>
+        <button type="button" class="btn blue" id="zoomXY" title="Zoom so that X, Y and the walk between them fill the panel">Zoom to X, Y</button>
+        <button type="button" class="btn" id="zoomFit" title="Show all vertices">Fit all</button>
+        <span class="zoom-read" id="zoomRead">zoom ×1</span>
+        <label class="zoom-read" for="selLayout">layout</label>
+        <select id="selLayout" title="How sampled vertices are placed">
+          <option value="linear">Linear (U, tilt)</option>
+          <option value="stretch" selected>Stretched per layer</option>
+          <option value="rank">Even (ranks)</option>
+        </select>
+        <span class="zoom-hint">scroll to zoom, drag to pan</span>
+      </div>
+      <canvas id="graphCanvas" role="img" aria-label="Vertices of the cc2 graph with X, Y and a shortest walk between them"></canvas>
+      <div class="tip" id="tip"></div>
+    </div>
+    <div class="panel" id="rectPanel">
+      <div class="panel-header">
+        <div>
+          <h2>Staircases in the k × (n−k) box (AdS side)</h2>
+          <p class="hint">1 = step up, 0 = step right; column i has height aᵢ</p>
+        </div>
+      </div>
+      <canvas id="rectCanvas" role="img" aria-label="Staircases of X and Y with the area between them shaded"></canvas>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="sel-row">
+      <span class="who x">X</span>
+      <input type="text" id="inX" spellcheck="false" placeholder="0/1 word, or a: a₁,…,a_k, or z: positions of the zeros (1-based)">
+      <button type="button" class="btn" id="setX">Set</button>
+      <button type="button" class="btn" id="rndX">Random</button>
+      <button type="button" class="btn" id="ancX">Anchor A</button>
+      <button type="button" class="btn" id="cpyX">Copy word</button>
+    </div>
+    <div class="sel-row">
+      <span class="who y">Y</span>
+      <input type="text" id="inY" spellcheck="false" placeholder="0/1 word, or a: a₁,…,a_k, or z: positions of the zeros (1-based)">
+      <button type="button" class="btn" id="setY">Set</button>
+      <button type="button" class="btn" id="rndY">Random</button>
+      <button type="button" class="btn" id="ancY">Antipode Ā</button>
+      <button type="button" class="btn" id="cpyY">Copy word</button>
+      <button type="button" class="btn blue" id="btnSwap">Swap X ↔ Y</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="box">
+    <div class="walk-row">
+      <button type="button" class="btn play" id="btnPlay">Play</button>
+      <input type="range" id="walkSlider" min="0" max="1000" value="0" aria-label="Position of the walker W on the shortest walk from X to Y">
+      <span class="walk-read" id="walkRead"></span>
+    </div>
+  </div>
+
+  <div class="box log"><pre id="log"></pre></div>
+
+  <div class="pair-section">
+    <label class="pair-check">
+      <input type="checkbox" id="chkPair" checked>
+      Complexity = Area &nbsp;(column differences Δᵢ = aᵢ(X) − aᵢ(Y))
+    </label>
+    <div class="pair-wrap"><canvas id="pairCanvas" role="img" aria-label="Bar chart of the column differences between X and Y"></canvas></div>
+  </div>
+
+  <div class="box legend">
+    <div class="legend-content" id="legendText">
+      <strong>Vertices and edges:</strong> <span class="cft">G₂(n,k)</span> has the binary words of length n with k zeros as vertices; two words are joined when an adjacent swap 01 ↔ 10 turns one into the other.<br>
+      <strong>Holography map:</strong> X ↦ profile <span class="holo">a(X) = (a₁, …, a_k)</span>, where aᵢ is the number of 1s to the left of the i-th 0, so 0 ≤ a₁ ≤ … ≤ a_k ≤ n−k. Reading the word left to right with <span class="holo">1 = step up</span> and <span class="holo">0 = step right</span> draws a <span class="ads">staircase</span> in the k × (n−k) box whose i-th column has height aᵢ.<br>
+      <strong>Edges = boxes:</strong> an adjacent swap changes exactly one aᵢ by ±1, so it adds or removes exactly one unit box under the staircase.<br>
+      <strong>Complexity = Area:</strong> <span class="area-c">d(X,Y) = Σᵢ |aᵢ(X) − aᵢ(Y)|</span>, the number of boxes between the two staircases. This costs O(k) arithmetic; no search of the C(n,k) vertices is done.<br>
+      <strong>Shortest walk:</strong> <span class="walk-c">lower X column by column (i = 1, …, k) to the meet X ∧ Y with columns min(aᵢ(X), aᵢ(Y)), then raise it to Y (i = k, …, 1)</span>. Every intermediate profile stays non-decreasing, and the walk has exactly d steps, so it is a geodesic.<br>
+      <strong>Sampled view (large n):</strong> the left panel shows random vertices placed by layer U (vertical) and a tilt statistic (horizontal). One real edge moves a vertex by only about 1/(k(n−k)) of the picture's height, far less than a pixel, so edges cannot be drawn. The dotted links join each sample to its two nearest samples and usually stand for many steps; hover a link to see its d. Two vertices that look close can still be thousands of steps apart.<br>
+      <strong>Layouts of the sampled view:</strong> <i>Linear</i> plots (U, T) with tilt T = Σ wᵢaᵢ, where the weights wᵢ rise from −1 to 1. Because a non-decreasing profile always has T ≥ 0, with T = 0 only for flat profiles, and the steepest profile in layer U has T ≈ k(n−k)·u(1−u) with u = U/(k(n−k)), the cloud fills the region between a straight left edge (A to Ā) and a parabola: the "triangle". <i>Stretched</i> keeps the vertical coordinate U exactly and rescales T within each layer to run from the flattest (0) to the steepest (1) profile, which fills a square. <i>Even</i> replaces both coordinates by their ranks among the samples; it spreads the dots uniformly but is not to scale. Most vertices of G₂(n,k) are near the uniform-random profile, so a dense cluster stays in every layout: that is a real feature of the graph.<br>
+      <strong>Layers:</strong> U(X) = Σ aᵢ = d(A, X) for the anchor A = 0ᵏ1ⁿ⁻ᵏ (the empty staircase). Hence |U(X) − U(Y)| ≤ d(X,Y), with equality exactly when the staircases do not cross. Its partner Ā = 1ⁿ⁻ᵏ0ᵏ is the full box, at distance k(n−k) from A.
+    </div>
+  </div>
+</div>
+
+<div id="helpModal" class="help-modal" role="dialog" aria-label="Help" aria-hidden="true">
+  <div class="help-modal-content">
+    <h2>How to use</h2>
+    <ol>
+      <li>Pick n and k (k ≤ n/2), or a preset. When C(n,k) ≤ 400 the left panel shows the whole graph; otherwise it shows a sample of vertices.</li>
+      <li>Click two vertices on the left: the first click sets X, the second sets Y (the button in the panel header shows which comes next). You can also type a vertex: a 0/1 word, <i>a: 0,2,2,5</i> (the profile), or <i>z: 1,4,6,10</i> (positions of the zeros).</li>
+      <li>The right panel draws both staircases and hatches the boxes between them; their count is d(X,Y).</li>
+      <li>Press Play or drag the slider to walk W along a shortest walk. The gold region counts the steps taken: d(X,W) + d(W,Y) = d(X,Y) at every step.</li>
+      <li>Hover a vertex on the left to see its distances to X and Y, computed by the same formula.</li>
+      <li>Zoom the left panel when X and Y sit too close: scroll over it (zooms around the cursor), use the − and + buttons or keys, and drag to pan. <i>Zoom to X, Y</i> frames X, Y, the meet X ∧ Y and the walk; <i>Fit all</i> (or key 0) returns to the full view. The scale note in the corner updates with the zoom.</li>
+    </ol>
+    <p class="help-modal-note">For scale: the usual estimate is about 10⁸⁰ atoms in the observable universe, with a commonly quoted range of 10⁷⁸ to 10⁸².
+      For scale against the app: at n = 1000, k = 300, the cc2 graph has C(1000, 300) ≈ 5.4 × 10²⁶³ vertices. That’s about 10¹⁸³ times the number of atoms in the observable universe, so BFS was never an option there.</p>
+    <h3 class="help-modal-h3">The rhomb on the left panel: the meet X ∧ Y</h3>
+    <p class="help-modal-text">The rhomb is the meet X ∧ Y, the vertex where the shortest walk turns around. Its profile is the column-by-column minimum:</p>
+    <p class="help-modal-formula">aᵢ(X ∧ Y) = min(aᵢ(X), aᵢ(Y))</p>
+    <p class="help-modal-text">On the right panel it is the lower edge of the two staircases: it follows Y wherever Y is below X, and X everywhere else.
+      The pink walk from X to Y passes through it in two phases:</p>
+    <ol>
+      <li><b>X → X ∧ Y:</b> lower the columns of X down to the minimum. This removes the boxes of X that lie above Y and takes Σᵢ max(aᵢ(X) − aᵢ(Y), 0) steps.</li>
+      <li><b>X ∧ Y → Y:</b> raise the columns up to Y. This adds the boxes of Y that lie above X and takes Σᵢ max(aᵢ(Y) − aᵢ(X), 0) steps.</li>
+    </ol>
+    <p class="help-modal-text">The two parts add up to Σᵢ |aᵢ(X) − aᵢ(Y)| = d(X,Y), so the walk is a geodesic.
+      The rhomb sits above both X and Y because the meet has fewer boxes than either: U(X ∧ Y) ≤ min(U(X), U(Y)), and smaller U is drawn higher.
+      When you press Play, the walker readout shows “(at X∧Y)” at the moment W reaches it; that is when the gold region on the right stops removing boxes and starts adding them.</p>
+    <h3 class="help-modal-h3">Why the sampled view looks like a triangle</h3>
+    <p class="help-modal-text">The left panel is a linear projection of each profile a = (a₁, …, a_k) to two numbers. The vertical one is U = Σ aᵢ, and the horizontal one is the tilt T = Σ wᵢaᵢ, with weights wᵢ rising from −1 to 1. Two facts fix the shape:</p>
+    <ul>
+      <li><b>Left edge is straight.</b> Because a is non-decreasing and w is increasing, T ≥ 0, with T = 0 only for flat profiles (all aᵢ equal). This follows from Chebyshev’s sum inequality. Flat profiles in every layer line up on the vertical line from A to Ā.</li>
+      <li><b>Right edge is a parabola.</b> The steepest profile in layer U puts all its boxes in the last columns, (0, …, 0, r, M, …, M). For it, T / (k(n−k)) ≈ u(1 − u) with u = U / (k(n−k)). So the widest point is the middle layer, and the width shrinks to zero at A and Ā, which are each the only vertex in their layer.</li>
+    </ul>
+    <p class="help-modal-text">So the image is the region 0 ≤ x ≲ y(1 − y). The dense blob is real: almost every vertex of G₂(n,k) is close to the uniform-random profile, aᵢ ≈ i·M/k.</p>
+    <h3 class="help-modal-h3">Spreading it out: the layout menu</h3>
+    <p class="help-modal-text">The <i>layout</i> menu in the zoom bar has three choices:</p>
+    <table class="help-table">
+      <thead><tr><th>Layout</th><th>Vertical</th><th>Horizontal</th><th>Use it for</th></tr></thead>
+      <tbody>
+        <tr><td>Linear (U, tilt)</td><td>U, exact</td><td>T</td><td>the true geometry of the projection</td></tr>
+        <tr><td>Stretched per layer (default)</td><td>U, exact</td><td>T rescaled within each layer, flattest = 0 to steepest = 1</td><td>using the full width while keeping U exact</td></tr>
+        <tr><td>Even (ranks)</td><td>rank of U among the samples</td><td>rank of the stretched tilt</td><td>the most uniform-looking picture, but not to scale</td></tr>
+      </tbody>
+    </table>
+    <p class="help-modal-text">For Stretched, the flattest and steepest profiles in every layer map exactly to 0 and 1 (checked over all 2,002 vertices at n = 14, k = 5).
+      The sampler also draws steep profiles with a few big jumps. That fills the parabola side in every layout, so it is a better sample of the vertex set and not only a change in the drawing.
+      The walk and the walker W are placed exactly in all three layouts; in the two non-linear layouts the straight segments of the walk bend, so each is drawn as a curve.</p>
+    <h3 class="help-modal-h3">Is spreading advisable?</h3>
+    <p class="help-modal-text">Use Stretched for reading distances. Its vertical axis is still exactly U = d(A,·), so the scale note is valid and vertical separation still gives the bound |U(X) − U(Y)| ≤ d(X,Y). Only the horizontal axis is warped, and that axis never carried a distance meaning.</p>
+    <p class="help-modal-text">Even is fine for a clean, uniform-looking cloud, but it misleads in two ways:</p>
+    <ul>
+      <li>Equal spacing on screen is no longer equal steps of U, so the scale note says “not to scale”.</li>
+      <li>It hides how concentrated the vertices really are.</li>
+    </ul>
+    <p class="help-modal-text">The blob stays in all layouts on purpose, since it is a true property of the graph.</p>
+    <p class="help-modal-hint">Click anywhere or press Esc to close</p>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const COL = { x: '#d04040', y: '#2a9a3a', walk: '#d4960a', area: '#c43a78', ads: '#2e7dba', cft: '#c85a35',
+              node: '#3878c0', edge: '#a09888', text: '#2e2a24', dim: '#8a8278', grid: '#7eb8f5', border: '#e2ddd4' };
+let n = 1000, k = 300, M = 700;
+let X = null, Y = null, W = null;   // profiles (Int32Array of length k)
+let nodes = [];                      // [{a, label}] shown on the left
+let links = [];                      // [i, j, d]: real edges (whole graph) or nearest-sample links (sampled)
+let hoverLink = -1;
+let exact = false;                   // true when the whole graph is drawn
+let layoutKey = null;                // exact mode: profile string -> layout position
+let wts = null;                      // tilt weights for the projection
+let sufW = null;                     // suffix sums of wts
+let layoutMode = 'stretch';          // 'linear' | 'stretch' | 'rank' (sampled view only)
+let rankU = null, rankX = null;      // sorted sample coordinates for the rank layout
+let geo = null;                      // shortest-walk data for the current X, Y
+let t = 0, playing = false, nextPick = 'X', hoverIdx = -1;
+let gView = null;                    // graph canvas transform, for hit-testing
+let zoom = { z: 1, tx: 0, ty: 0 };      // user zoom/pan on top of the fitted view
+const ZMIN = 0.5, ZMAX = 5000;
+let vb = null;                       // layout bounds; only grow, so clicking never shifts the picture
+
+const $ = id => document.getElementById(id);
+const fmt = x => Number(x).toLocaleString('en-US');
+
+// ============================================================
+// HOLOGRAPHY MAP
+// ============================================================
+function profileFromWord(w) {
+  const a = new Int32Array(k); let ones = 0, i = 0;
+  for (let p = 0; p < w.length; p++) { if (w.charCodeAt(p) === 49) ones++; else a[i++] = ones; }
+  return a;
+}
+function wordFromProfile(a) {
+  const buf = new Uint8Array(n).fill(49);
+  for (let i = 0; i < k; i++) buf[a[i] + i] = 48;
+  let s = '';
+  for (let p = 0; p < n; p += 8192) s += String.fromCharCode.apply(null, buf.subarray(p, Math.min(n, p + 8192)));
+  return s;
+}
+function dist(a, b) { let s = 0; for (let i = 0; i < k; i++) s += Math.abs(a[i] - b[i]); return s; }
+function usum(a) { let s = 0; for (let i = 0; i < k; i++) s += a[i]; return s; }
+function tilt(a) { let s = 0; for (let i = 0; i < k; i++) s += wts[i] * a[i]; return s; }
+function sameProfile(a, b) { for (let i = 0; i < k; i++) if (a[i] !== b[i]) return false; return true; }
+function anchorA() { return new Int32Array(k); }
+function anchorB() { return new Int32Array(k).fill(M); }
+
+// Uniformly random vertex: choose the k zero positions by sequential sampling
+function uniformProfile() {
+  const a = new Int32Array(k); let zl = k, ones = 0, i = 0;
+  for (let p = 0; p < n && zl > 0; p++) {
+    if (Math.random() * (n - p) < zl) { a[i++] = ones; zl--; } else ones++;
+  }
+  return a;
+}
+// Random vertex whose columns lie in a random band [lo, hi]: spreads the sample over the layers
+function bandProfile() {
+  let u = Math.random(), v = Math.random(); if (u > v) [u, v] = [v, u];
+  const lo = Math.floor(u * (M + 1)), hi = Math.min(M, Math.floor(v * (M + 1)));
+  const g = new Float64Array(k + 1); let s = 0;
+  for (let j = 0; j <= k; j++) { g[j] = -Math.log(1 - Math.random()); s += g[j]; }
+  const a = new Int32Array(k); let c = 0; const span = hi - lo + 1;
+  for (let j = 0; j < k; j++) { c += g[j]; a[j] = Math.min(hi, lo + Math.floor(c / s * span)); }
+  return a;
+}
+
+// Random vertex with a few big jumps (steep profiles): covers the high-tilt part of each layer
+function stepProfile() {
+  const J = 1 + Math.floor(Math.random() * 3);
+  const cuts = Array.from({ length: J }, () => Math.floor(Math.random() * (k + 1))).sort((p, q) => p - q);
+  const lev = Array.from({ length: J }, () => Math.floor(Math.random() * (M + 1))).sort((p, q) => p - q);
+  const a = new Int32Array(k); let j = 0;
+  for (let i = 0; i < k; i++) { while (j < J && cuts[j] <= i) j++; a[i] = j ? lev[j - 1] : 0; }
+  return a;
+}
+
+// ============================================================
+// COUNTS
+// ============================================================
+function lnFact(m) {
+  if (m < 2) return 0;
+  if (m < 256) { let s = 0; for (let j = 2; j <= m; j++) s += Math.log(j); return s; }
+  return m * Math.log(m) - m + 0.5 * Math.log(2 * Math.PI * m) + 1 / (12 * m) - 1 / (360 * m ** 3);
+}
+function binomSmall() { let r = 1; for (let j = 1; j <= k; j++) { r = r * (n - k + j) / j; if (r > 1e15) return Infinity; } return Math.round(r); }
+function sup(x) { const m = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹' }; return String(x).split('').map(c => m[c]).join(''); }
+function binomText() {
+  const e = binomSmall();
+  if (isFinite(e)) return '= ' + fmt(e);
+  const l10 = (lnFact(n) - lnFact(k) - lnFact(n - k)) / Math.LN10;
+  const ex = Math.floor(l10);
+  return '≈ ' + (10 ** (l10 - ex)).toFixed(2) + ' × 10' + sup(ex);
+}
+
+// ============================================================
+// LEFT PANEL CONTENT: whole graph (small) or a sample (large)
+// ============================================================
+function allProfiles() {
+  const out = [], a = new Int32Array(k);
+  (function rec(i, lo) {
+    if (i === k) { out.push(Int32Array.from(a)); return; }
+    for (let v = lo; v <= M; v++) { a[i] = v; rec(i + 1, v); }
+  })(0, 0);
+  return out;
+}
+function buildNodes() {
+  wts = new Float64Array(k);
+  for (let i = 0; i < k; i++) wts[i] = k > 1 ? (2 * i / (k - 1) - 1) : 0;
+  sufW = new Float64Array(k + 1);
+  for (let i = k - 1; i >= 0; i--) sufW[i] = sufW[i + 1] + wts[i];
+  const V = binomSmall();
+  exact = isFinite(V) && V <= 400;
+  links = [];
+  if (exact) {
+    const ps = allProfiles();
+    nodes = ps.map(a => ({ a }));
+    for (let i = 0; i < ps.length; i++)
+      for (let j = i + 1; j < ps.length; j++)
+        if (dist(ps[i], ps[j]) === 1) links.push([i, j, 1]);
+    // layout: line (k = 1), grid x = a1, y = a2 (k = 2), layers by U (k >= 3)
+    layoutKey = new Map();
+    if (k <= 2) {
+      for (const nd of nodes) layoutKey.set(nd.a.join(','), { x: nd.a[0], y: k === 2 ? nd.a[1] : 0 });
+    } else {
+      const layers = new Map();
+      for (const nd of nodes) { const u = usum(nd.a); if (!layers.has(u)) layers.set(u, []); layers.get(u).push(nd.a); }
+      for (const [u, L] of layers) {
+        L.sort((p, q) => tilt(p) - tilt(q) || (p.join(',') < q.join(',') ? -1 : 1));
+        L.forEach((a, j) => layoutKey.set(a.join(','), { x: j - (L.length - 1) / 2, y: u }));
+      }
+    }
+  } else {
+    const S = Math.max(24, Math.min(300, Math.floor(Math.sqrt(8e7 / k))));
+    nodes = [{ a: anchorA(), label: 'A' }, { a: anchorB(), label: 'Ā' }];
+    for (let s = 0; s < S; s++) { const r = Math.random(); nodes.push({ a: r < 0.25 ? uniformProfile() : r < 0.65 ? bandProfile() : stepProfile() }); }
+    // join each sample to its two nearest samples, using the true distance d
+    const seen = new Set();
+    for (let i = 0; i < nodes.length; i++) {
+      let b1 = -1, d1 = Infinity, b2 = -1, d2 = Infinity;
+      for (let j = 0; j < nodes.length; j++) {
+        if (j === i) continue;
+        const d = dist(nodes[i].a, nodes[j].a);
+        if (d < d1) { b2 = b1; d2 = d1; b1 = j; d1 = d; } else if (d < d2) { b2 = j; d2 = d; }
+      }
+      for (const [j, dj] of [[b1, d1], [b2, d2]]) {
+        if (j < 0) continue;
+        const key = Math.min(i, j) + ',' + Math.max(i, j);
+        if (!seen.has(key)) { seen.add(key); links.push([i, j, dj]); }
+      }
+    }
+  }
+  if (!exact) {
+    for (const nd of nodes) { nd.U = usum(nd.a); nd.T = tilt(nd.a); }
+    rankU = Float64Array.from(nodes.map(nd => nd.U / (k * M))).sort();
+    rankX = Float64Array.from(nodes.map(nd => stretchX(nd.U, nd.T))).sort();
+  }
+  for (const nd of nodes) nd.p = exact ? posOf(nd.a) : mapUT(nd.U, nd.T);
+  if (exact) {
+    for (const nd of nodes) {
+      if (sameProfile(nd.a, anchorA())) nd.label = 'A';
+      else if (sameProfile(nd.a, anchorB())) nd.label = 'Ā';
+    }
+  }
+}
+// Layout position of any vertex. Large graphs: y = U / (k(n−k)) (layer), x = tilt
+function posOf(a) {
+  if (exact) return layoutKey.get(a.join(','));
+  return mapUT(usum(a), tilt(a));
+}
+// Within layer U the tilt T ranges from Tmin (flattest profile) to Tmax (all 1s bunched in the last columns).
+function stretchX(U, T) {
+  const Ui = Math.max(0, Math.min(k * M, Math.floor(U + 1e-9)));
+  const q = Math.min(k, Math.floor(Ui / M)), r = Ui - q * M;
+  const tmax = M * sufW[k - q] + (q < k ? r * wts[k - q - 1] : 0);
+  const tmin = sufW[k - (Ui % k)];
+  const span = tmax - tmin;
+  return span > 1e-9 ? Math.min(1, Math.max(0, (T - tmin) / span)) : 0;
+}
+function rankOf(sorted, v) {
+  const L = sorted.length;
+  if (L < 2) return 0.5;
+  if (v <= sorted[0]) return 0;
+  if (v >= sorted[L - 1]) return 1;
+  let lo = 0, hi = L - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (sorted[m] <= v) lo = m; else hi = m; }
+  const f = sorted[hi] > sorted[lo] ? (v - sorted[lo]) / (sorted[hi] - sorted[lo]) : 0;
+  return (lo + f) / (L - 1);
+}
+// Map (layer U, tilt T) of a vertex to layout coordinates
+function mapUT(U, T) {
+  const s = k * M;
+  if (layoutMode === 'linear') return { x: T / s, y: U / s };
+  const xs = stretchX(U, T);
+  if (layoutMode === 'stretch') return { x: xs, y: U / s };
+  return { x: rankOf(rankX, xs), y: rankOf(rankU, U / s) };
+}
+
+// ============================================================
+// SHORTEST WALK X → X∧Y → Y (built from the profiles, no search)
+// ============================================================
+function buildGeo() {
+  const meet = new Int32Array(k);
+  for (let i = 0; i < k; i++) meet[i] = Math.min(X[i], Y[i]);
+  const blocks = [];
+  for (let i = 0; i < k; i++) if (X[i] > meet[i]) blocks.push({ i, from: X[i], to: meet[i] });
+  const meetStep = blocks.reduce((s, b) => s + Math.abs(b.to - b.from), 0);
+  for (let i = k - 1; i >= 0; i--) if (Y[i] > meet[i]) blocks.push({ i, from: meet[i], to: Y[i] });
+  const d = dist(X, Y);
+  // corners of the walk in layout space, with step counts (positions are linear in a within a block)
+  // U and T change linearly within a block, so corners carry (U, T); the drawn path maps them to the layout
+  const corners = [];
+  let path;
+  if (exact) {
+    for (let s = 0; s <= d; s++) corners.push({ s, p: posOf(profileAt(s, blocks)) });
+    path = corners;
+  } else {
+    let U = usum(X), T = tilt(X), s = 0;
+    corners.push({ s: 0, U, T });
+    for (const b of blocks) {
+      const del = b.to - b.from; U += del; T += wts[b.i] * del; s += Math.abs(del);
+      corners.push({ s, U, T });
+    }
+    // non-linear layouts bend each straight block: subdivide it when there are few enough corners
+    const sub = layoutMode === 'linear' || corners.length > 3000 ? 1 : 6;
+    path = [{ s: 0, p: mapUT(corners[0].U, corners[0].T) }];
+    for (let j = 1; j < corners.length; j++) {
+      const a = corners[j - 1], b = corners[j];
+      for (let q = 1; q <= sub; q++) {
+        const f = q / sub;
+        path.push({ s: a.s + f * (b.s - a.s), p: mapUT(a.U + f * (b.U - a.U), a.T + f * (b.T - a.T)) });
+      }
+    }
+  }
+  geo = { meet, blocks, d, corners, path, meetStep, meetPos: posOf(meet) };
+}
+function profileAt(s, blocks = geo.blocks) {
+  const a = Int32Array.from(X); let rem = s;
+  for (const b of blocks) {
+    const len = Math.abs(b.to - b.from);
+    if (rem >= len) { a[b.i] = b.to; rem -= len; }
+    else { a[b.i] = b.from + Math.sign(b.to - b.from) * rem; break; }
+  }
+  return a;
+}
+function walkPos(s) {
+  const c = geo.corners;
+  if (exact) return c[Math.min(s, c.length - 1)].p;
+  for (let j = 1; j < c.length; j++) {
+    if (s <= c[j].s) {
+      const f = (s - c[j - 1].s) / (c[j].s - c[j - 1].s || 1);
+      return mapUT(c[j - 1].U + f * (c[j].U - c[j - 1].U), c[j - 1].T + f * (c[j].T - c[j - 1].T));
+    }
+  }
+  const e = c[c.length - 1]; return mapUT(e.U, e.T);
+}
+function curStep() { return geo ? Math.round(t * geo.d) : 0; }
+
+// ============================================================
+// RENDERING
+// ============================================================
+const graphCanvas = $('graphCanvas'), rectCanvas = $('rectCanvas'), pairCanvas = $('pairCanvas');
+function sizeCanvas(canvas, w, h) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
+function panelSize() {
+  const w = $('graphPanel').clientWidth - 2;
+  return { w, h: Math.max(340, Math.min(560, Math.round(w * 0.85))) };
+}
+function trunc(w, m = 22) { return w.length <= 2 * m + 3 ? w : w.slice(0, m) + '…' + w.slice(-m); }
+
+function drawGraph() {
+  const { w, h } = panelSize();
+  const ctx = sizeCanvas(graphCanvas, w, h);
+  const { x0, x1, y0, y1 } = vb;
+  const pad = 40, rx = (x1 - x0) || 1, ry = (y1 - y0) || 1;
+  let sx = (w - 2 * pad) / rx, sy = (h - 2 * pad) / ry;
+  if (exact && k === 2) sx = sy = Math.min(sx, sy);
+  const ox = (w - sx * rx) / 2 - x0 * sx, oy = (h - sy * ry) / 2 - y0 * sy;
+  const { z, tx, ty } = zoom;
+  const P = p => [(ox + p.x * sx) * z + tx, (oy + p.y * sy) * z + ty];
+  gView = { P, base: p => [ox + p.x * sx, oy + p.y * sy], w, h };
+  const stepsPerPx = exact ? 0 : k * M / (sy * z);
+  $('zoomRead').textContent = 'zoom ×' + (z >= 100 ? fmt(Math.round(z)) : z >= 10 ? z.toFixed(1) : z.toFixed(2).replace(/\.?0+$/, ''));
+
+  // layer axis
+  ctx.font = "10px 'Fira Code', monospace"; ctx.fillStyle = COL.dim; ctx.textAlign = 'left';
+  if (!(exact && k <= 2)) ctx.fillText(!exact && layoutMode === 'rank' ? '↓ layer U (rank-spaced)' : '↓ layer U = d(A,·)', 8, 16);
+  if (!exact) { ctx.save(); ctx.textAlign = 'left'; ctx.fillText(layoutMode === 'linear' ? '→ tilt T' : layoutMode === 'stretch' ? '→ tilt within the layer (flat … steep)' : '→ tilt within the layer (rank-spaced)', 8, h - 8); ctx.restore(); }
+
+  // edges (whole graph: solid) or nearest-sample links (sampled: dotted, not edges)
+  ctx.strokeStyle = COL.edge; ctx.lineWidth = exact ? 1.6 : 1; ctx.globalAlpha = exact ? 0.55 : 0.4;
+  if (!exact) ctx.setLineDash([1.5, 3.5]);
+  ctx.beginPath();
+  for (const [i, j] of links) { const [ax, ay] = P(nodes[i].p), [bx, by] = P(nodes[j].p); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); }
+  ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  if (hoverLink >= 0 && hoverLink < links.length) {
+    const [i, j, d] = links[hoverLink], [ax, ay] = P(nodes[i].p), [bx, by] = P(nodes[j].p);
+    ctx.strokeStyle = COL.text; ctx.lineWidth = 2; ctx.setLineDash(exact ? [] : [4, 3]);
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.setLineDash([]);
+    const lbl = 'd = ' + fmt(d), mx = (ax + bx) / 2, my = (ay + by) / 2;
+    ctx.font = "bold 11px 'Fira Code', monospace"; const tw = ctx.measureText(lbl).width;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(mx - tw / 2 - 4, my - 16, tw + 8, 15);
+    ctx.fillStyle = COL.text; ctx.textAlign = 'center'; ctx.fillText(lbl, mx, my - 5);
+  }
+  // scale note: how many steps one pixel of height stands for
+  if (!exact) {
+    ctx.font = "10px 'Fira Code', monospace"; ctx.fillStyle = COL.dim; ctx.textAlign = 'right';
+    const sc = layoutMode === 'rank' ? 'not to scale (rank layout)' : stepsPerPx >= 1 ? `1 px ≈ ${fmt(Math.round(stepsPerPx))} steps of U` : `1 step of U ≈ ${fmt(Math.round(1 / stepsPerPx))} px`;
+    ctx.fillText(`vertical scale: ${sc}`, w - 8, h - 8);
+    ctx.fillText('dotted = nearest-sample link, not an edge', w - 8, h - 22);
+  }
+
+  // shortest walk X -> Y
+  if (geo && geo.d > 0) {
+    ctx.strokeStyle = COL.area; ctx.lineWidth = exact ? 5 : 3; ctx.globalAlpha = 0.55; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    geo.path.forEach((c, j) => { const [px, py] = P(c.p); j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+    ctx.stroke(); ctx.globalAlpha = 1;
+    // walked part in gold
+    const s = curStep();
+    if (s > 0) {
+      ctx.strokeStyle = COL.walk; ctx.lineWidth = exact ? 5 : 3.5; ctx.beginPath();
+      let started = false;
+      for (const c of geo.path) {
+        if (c.s > s) break;
+        const [px, py] = P(c.p); started ? ctx.lineTo(px, py) : ctx.moveTo(px, py); started = true;
+      }
+      const [wx, wy] = P(walkPos(s)); ctx.lineTo(wx, wy); ctx.stroke();
+    }
+  }
+
+  // nodes
+  const r0 = exact ? (nodes.length > 120 ? 4 : 6) : 3.2;
+  for (let i = 0; i < nodes.length; i++) {
+    const [px, py] = P(nodes[i].p);
+    ctx.beginPath(); ctx.arc(px, py, i === hoverIdx ? r0 + 3 : r0, 0, 2 * Math.PI);
+    ctx.fillStyle = nodes[i].label ? COL.cft : COL.node; ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  // word labels for small whole graphs
+  if (exact && nodes.length <= 70 && n <= 12) {
+    ctx.font = "bold 10px 'Fira Code', monospace"; ctx.fillStyle = COL.text; ctx.textAlign = 'center'; ctx.globalAlpha = 0.85;
+    for (const nd of nodes) { const [px, py] = P(nd.p); ctx.fillText(wordFromProfile(nd.a), px, py + r0 + 12); }
+    ctx.globalAlpha = 1;
+  }
+  // anchor labels
+  ctx.font = "bold 12px 'Fira Code', monospace"; ctx.fillStyle = COL.cft; ctx.textAlign = 'left';
+  for (const nd of nodes) if (nd.label) { const [px, py] = P(nd.p); ctx.fillText(nd.label, px + r0 + 4, py - r0 - 2); }
+
+  // meet X ∧ Y
+  if (geo && geo.d > 0 && !sameProfile(geo.meet, X) && !sameProfile(geo.meet, Y)) {
+    const [mx, my] = P(geo.meetPos);
+    ctx.save(); ctx.translate(mx, my); ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = COL.surface || '#fff'; ctx.strokeStyle = COL.area; ctx.lineWidth = 2;
+    ctx.fillRect(-5, -5, 10, 10); ctx.strokeRect(-5, -5, 10, 10); ctx.restore();
+    ctx.font = "11px 'Fira Code', monospace"; ctx.fillStyle = COL.area; ctx.textAlign = 'left';
+    ctx.fillText('X∧Y', mx + 9, my + 4);
+  }
+
+  // X, Y, W
+  const mark = (p, color, txt) => {
+    const [px, py] = P(p);
+    const g = ctx.createRadialGradient(px, py, 0, px, py, 34);
+    g.addColorStop(0, color + '40'); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, 34, 0, 2 * Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(px, py, 11, 0, 2 * Math.PI); ctx.fillStyle = color; ctx.fill();
+    ctx.font = "bold 11px 'Fira Code', monospace"; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(txt, px, py + 0.5); ctx.textBaseline = 'alphabetic';
+  };
+  if (Y) mark(posOf(Y), COL.y, 'Y');
+  if (X) mark(posOf(X), COL.x, 'X');
+  const s = curStep();
+  if (geo && s > 0 && s < geo.d) {
+    const [px, py] = P(walkPos(s));
+    ctx.beginPath(); ctx.arc(px, py, 7, 0, 2 * Math.PI); ctx.fillStyle = COL.walk; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.font = "bold 11px 'Fira Code', monospace"; ctx.fillStyle = '#a87400'; ctx.textAlign = 'left';
+    ctx.fillText('W', px + 10, py - 8);
+  }
+  if (geo) drawBadge(ctx, `d(X,Y) = ${fmt(geo.d)}`, w - 10, 10);
+}
+
+// Value badge in a canvas corner (right-aligned at x, top at y)
+function drawBadge(ctx, text, x, y) {
+  ctx.save();
+  ctx.font = "bold 15px 'Fira Code', monospace";
+  const tw = ctx.measureText(text).width, bw = tw + 20, bh = 28, x0 = x - bw;
+  ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.strokeStyle = COL.area; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x0, y, bw, bh, 5) : ctx.rect(x0, y, bw, bh); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = COL.area; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x0 + 10, y + bh / 2 + 1);
+  ctx.restore();
+}
+
+// Staircase points in data coordinates (column index, height); per-pixel when k is large
+function stairPts(a, gw) {
+  const pts = [[0, 0]];
+  if (k <= 2 * gw) {
+    for (let i = 0; i < k; i++) { pts.push([i, a[i]]); pts.push([i + 1, a[i]]); }
+  } else {
+    const cols = Math.floor(gw);
+    for (let c = 0; c < cols; c++) {
+      const i = Math.min(k - 1, Math.floor((c + 0.5) / cols * k));
+      pts.push([c / cols * k, a[i]]); pts.push([(c + 1) / cols * k, a[i]]);
+    }
+  }
+  pts.push([k, M]);
+  return pts;
+}
+
+function drawRect() {
+  const { w, h } = panelSize();
+  const ctx = sizeCanvas(rectCanvas, w, h);
+  const mL = 58, mR = 26, mT = 30, mB = 40;
+  const gw = w - mL - mR, gh = h - mT - mB;
+  const sx = gw / k, sy = gh / M, ox = mL, oy = mT + gh;
+  const P = ([x, y]) => [ox + x * sx, oy - y * sy];
+  const path = pts => { ctx.beginPath(); pts.forEach((q, j) => { const [px, py] = P(q); j ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); };
+
+  // unit grid when small, otherwise just the frame
+  ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+  if (k <= 60 && M <= 60) {
+    ctx.globalAlpha = 0.45;
+    for (let x = 0; x <= k; x++) { ctx.beginPath(); ctx.moveTo(ox + x * sx, oy); ctx.lineTo(ox + x * sx, oy - gh); ctx.stroke(); }
+    for (let y = 0; y <= M; y++) { ctx.beginPath(); ctx.moveTo(ox, oy - y * sy); ctx.lineTo(ox + gw, oy - y * sy); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  ctx.lineWidth = 1.5; ctx.strokeRect(ox, oy - gh, gw, gh);
+
+  // axis labels
+  ctx.font = "10px 'Fira Code', monospace"; ctx.fillStyle = COL.dim; ctx.textAlign = 'center';
+  ctx.fillText('0', ox, oy + 14); ctx.fillText(fmt(k), ox + gw, oy + 14);
+  ctx.fillText('column i (one per 0)', ox + gw / 2, oy + 30);
+  ctx.textAlign = 'right';
+  ctx.fillText('0', ox - 6, oy + 4); ctx.fillText(fmt(M), ox - 6, oy - gh + 4);
+  ctx.save(); ctx.translate(ox - 40, oy - gh / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center';
+  ctx.fillText('height aᵢ (1s so far)', 0, 0); ctx.restore();
+  ctx.textAlign = 'right'; ctx.fillStyle = COL.ads; ctx.globalAlpha = 0.7;
+  ctx.fillText(`${fmt(k)} × ${fmt(M)} box`, ox + gw, oy - gh - 10); ctx.globalAlpha = 1;
+
+  const pX = X ? stairPts(X, gw) : null, pY = Y ? stairPts(Y, gw) : null;
+  const s = curStep();
+
+  // hatched area between X and Y
+  const pc = document.createElement('canvas'); pc.width = pc.height = 12;
+  const pctx = pc.getContext('2d'); pctx.strokeStyle = COL.area; pctx.globalAlpha = 0.55; pctx.lineWidth = 1;
+  for (let i = -12; i < 24; i += 4) { pctx.beginPath(); pctx.moveTo(i, -1); pctx.lineTo(i + 13, 13); pctx.stroke(); }
+  if (pX && pY) {
+    path(pX.concat(pY.slice().reverse())); ctx.closePath();
+    ctx.fillStyle = COL.area + '14'; ctx.fill();
+    ctx.fillStyle = ctx.createPattern(pc, 'repeat'); ctx.fill();
+  }
+
+  // gold: boxes already flipped by the walker (area between X and W = s)
+  if (geo && s > 0) {
+    const pW = stairPts(W, gw);
+    path(pX.concat(pW.slice().reverse())); ctx.closePath();
+    ctx.fillStyle = COL.walk + '66'; ctx.fill();
+  }
+
+  ctx.lineJoin = 'miter';
+  if (pX) { path(pX); ctx.strokeStyle = COL.x; ctx.lineWidth = 3; ctx.stroke(); }
+  if (pY) { path(pY); ctx.strokeStyle = COL.y; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.stroke(); ctx.setLineDash([]); }
+  if (geo && s > 0 && s < geo.d) { path(stairPts(W, gw)); ctx.strokeStyle = COL.walk; ctx.lineWidth = 2.5; ctx.stroke(); }
+
+  // vertex dots and step arrows when the box is small
+  if (k <= 12 && M <= 12 && X) {
+    for (const [a, c] of [[X, COL.x]]) {
+      const w0 = wordFromProfile(a); let px = 0, py = 0;
+      ctx.font = "bold 18px 'Fira Code', monospace"; ctx.fillStyle = c; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      if (a === X) for (const ch of w0) {
+        const nx = ch === '0' ? px + 1 : px, ny = ch === '1' ? py + 1 : py;
+        const [qx, qy] = P([(px + nx) / 2, (py + ny) / 2]);
+        ctx.fillText(ch === '1' ? '↑' : '→', qx + (ch === '1' ? -12 : 0), qy + (ch === '0' ? -11 : 0));
+        px = nx; py = ny;
+      }
+      ctx.textBaseline = 'alphabetic';
+    }
+  }
+  ctx.font = "11px 'Fira Code', monospace"; ctx.fillStyle = COL.dim; ctx.textAlign = 'left';
+  ctx.fillText('(0,0)', ox - 4, oy + 30 > h - 2 ? h - 2 : oy + 30);
+  if (geo) drawBadge(ctx, `Area = ${fmt(dist(X, Y))}`, ox + 10 + Math.min(gw - 20, 240), oy - gh + 10);
+}
+
+function drawPair() {
+  if (!$('chkPair').checked) return;
+  const w = $('graphPanel').parentElement.clientWidth - 22, h = 190;
+  const ctx = sizeCanvas(pairCanvas, w, h);
+  if (!geo) {
+    ctx.font = "13px 'Newsreader', serif"; ctx.fillStyle = COL.dim; ctx.textAlign = 'center';
+    ctx.fillText('Select X and Y on the graph to compare their staircases', w / 2, h / 2);
+    return;
+  }
+  const mL = 58, mR = 20, mT = 34, mB = 26, gw = w - mL - mR, gh = h - mT - mB;
+  let maxAbs = 1;
+  for (let i = 0; i < k; i++) maxAbs = Math.max(maxAbs, Math.abs(X[i] - Y[i]));
+  const zero = mT + gh / 2, sc = (gh / 2) / maxAbs;
+  ctx.strokeStyle = COL.border; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(mL, zero); ctx.lineTo(mL + gw, zero); ctx.stroke();
+  const cols = Math.min(k, Math.floor(gw)), bw = gw / cols;
+  for (let c = 0; c < cols; c++) {
+    const i0 = Math.floor(c * k / cols), i1 = Math.max(i0 + 1, Math.floor((c + 1) * k / cols));
+    let lo = 0, hi = 0;
+    for (let i = i0; i < i1; i++) { const d = X[i] - Y[i]; if (d > hi) hi = d; if (d < lo) lo = d; }
+    const x = mL + c * bw, ww = Math.max(1, bw - (cols < 120 ? 1.5 : 0));
+    if (hi > 0) { ctx.fillStyle = COL.x; ctx.globalAlpha = 0.75; ctx.fillRect(x, zero - hi * sc, ww, hi * sc); }
+    if (lo < 0) { ctx.fillStyle = COL.y; ctx.globalAlpha = 0.75; ctx.fillRect(x, zero, ww, -lo * sc); }
+  }
+  ctx.globalAlpha = 1;
+  ctx.font = "10px 'Fira Code', monospace"; ctx.fillStyle = COL.dim; ctx.textAlign = 'right';
+  ctx.fillText('+' + fmt(maxAbs), mL - 6, mT + 4); ctx.fillText('0', mL - 6, zero + 4); ctx.fillText('−' + fmt(maxAbs), mL - 6, mT + gh + 4);
+  ctx.textAlign = 'center'; ctx.fillText('column i = 1 … ' + fmt(k), mL + gw / 2, h - 6);
+  const UX = usum(X), UY = usum(Y);
+  ctx.font = "bold 13px 'Newsreader', serif"; ctx.fillStyle = COL.area;
+  ctx.fillText(`d(X,Y) = Σ|Δᵢ| = ${fmt(geo.d)}     |ΣΔᵢ| = |U(X) − U(Y)| = ${fmt(Math.abs(UX - UY))}     ` +
+    (geo.d === Math.abs(UX - UY) ? 'staircases do not cross' : 'staircases cross'), mL + gw / 2, 18);
+}
+
+function updateLog() {
+  if (!geo) {
+    const line = (a, cls, name) => a
+      ? `<span class="${cls}">${name} = ${trunc(wordFromProfile(a))}   U(${name}) = d(A,${name}) = ${fmt(usum(a))}</span>`
+      : `<span class="ld">${name} not set${nextPick === name ? ': click a vertex on the left' : ''}</span>`;
+    $('log').innerHTML = line(X, 'lx', 'X') + '\n' + line(Y, 'ly', 'Y');
+    $('walkRead').textContent = 'W: select X and Y first';
+    return;
+  }
+  const wx = wordFromProfile(X), wy = wordFromProfile(Y);
+  const UX = usum(X), UY = usum(Y);
+  const t0 = performance.now(); let d = 0; for (let r = 0; r < 20; r++) d = dist(X, Y); const ms = (performance.now() - t0) / 20;
+  const s = curStep();
+  let html = `<span class="lx">X = ${trunc(wx)}   U(X) = d(A,X) = ${fmt(UX)}</span>\n`;
+  html += `<span class="ly">Y = ${trunc(wy)}   U(Y) = d(A,Y) = ${fmt(UY)}</span>\n`;
+  html += `<span class="la">d(X,Y) = Σ|aᵢ(X) − aᵢ(Y)| = area between staircases = ${fmt(d)}</span>` +
+          `<span class="ld">   (${k} columns, ${ms < 0.01 ? '< 0.01' : ms.toFixed(2)} ms, no search)</span>\n`;
+  html += `<span class="ld">lower bound |U(X) − U(Y)| = ${fmt(Math.abs(UX - UY))}${d === Math.abs(UX - UY) ? ' (tight: no crossing)' : ' (not tight: the staircases cross)'}</span>\n`;
+  const dXW = dist(X, W), dWY = dist(W, Y);
+  html += `<span class="lw">W after ${fmt(s)} steps: d(X,W) = ${fmt(dXW)}, d(W,Y) = ${fmt(dWY)}, sum = ${fmt(dXW + dWY)} ${dXW + dWY === d ? '= d(X,Y) ✓' : '≠ d(X,Y) ✗'}</span>`;
+  $('log').innerHTML = html;
+  $('walkRead').textContent = `W: step ${fmt(s)} of ${fmt(geo.d)}` + (s === geo.meetStep && s > 0 && s < geo.d ? ' (at X∧Y)' : '');
+}
+
+function render() {
+  W = geo ? profileAt(curStep()) : null;
+  drawGraph(); drawRect(); drawPair(); updateLog();
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+function vertexToInput(a) {
+  if (!a) return '';
+  if (n <= 120) return wordFromProfile(a);
+  if (k <= 300) return 'a: ' + Array.from(a).join(',');
+  return '';
+}
+function parseVertex(str) {
+  const s = str.trim().replace(/\s+/g, '');
+  if (/^[01]+$/.test(s)) {
+    if (s.length !== n) throw `The word has length ${s.length}; it needs length n = ${n}.`;
+    let z = 0; for (const c of s) if (c === '0') z++;
+    if (z !== k) throw `The word has ${z} zeros; it needs k = ${k}.`;
+    return profileFromWord(s);
+  }
+  const m = s.match(/^([azAZ])[:=](.*)$/);
+  if (!m) throw 'Enter a 0/1 word, a: a₁,…,a_k (the profile), or z: z₁,…,z_k (positions of the zeros, 1-based).';
+  const nums = m[2].split(',').filter(x => x !== '').map(Number);
+  if (nums.some(x => !Number.isInteger(x))) throw 'Use whole numbers separated by commas.';
+  if (nums.length !== k) throw `Enter exactly k = ${k} numbers; got ${nums.length}.`;
+  const a = new Int32Array(k);
+  if (m[1].toLowerCase() === 'a') {
+    for (let i = 0; i < k; i++) {
+      if (nums[i] < 0 || nums[i] > M) throw `Each aᵢ must lie in 0…${M}.`;
+      if (i && nums[i] < nums[i - 1]) throw 'The profile must be non-decreasing: a₁ ≤ a₂ ≤ … ≤ a_k.';
+      a[i] = nums[i];
+    }
+  } else {
+    for (let i = 0; i < k; i++) {
+      if (nums[i] < 1 || nums[i] > n) throw `Zero positions must lie in 1…${n}.`;
+      if (i && nums[i] <= nums[i - 1]) throw 'Zero positions must be strictly increasing.';
+      a[i] = nums[i] - 1 - i;
+    }
+  }
+  return a;
+}
+function growBounds(p) {
+  if (!vb) vb = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+  vb.x0 = Math.min(vb.x0, p.x); vb.x1 = Math.max(vb.x1, p.x); vb.y0 = Math.min(vb.y0, p.y); vb.y1 = Math.max(vb.y1, p.y);
+}
+function setVertex(which, a) {
+  if (which === 'X') X = a; else Y = a;
+  if (X) growBounds(posOf(X)); if (Y) growBounds(posOf(Y));
+  $('inX').value = vertexToInput(X); $('inY').value = vertexToInput(Y);
+  $('err').textContent = '';
+  stopPlay(); t = 0; $('walkSlider').value = 0;
+  if (X && Y) buildGeo(); else geo = null;
+  render();
+}
+function setNext(p) { nextPick = p; $('btnNext').textContent = 'Next click sets: ' + p; if (!geo && nodes.length) updateLog(); }
+
+function rebuild() {
+  M = n - k;
+  $('inK').max = Math.floor(n / 2);
+  $('infoV').textContent = binomText();
+  $('infoDiam').textContent = fmt(k * M);
+  buildNodes();
+  vb = null; for (const nd of nodes) growBounds(nd.p);
+  zoom = { z: 1, tx: 0, ty: 0 };
+  $('selLayout').disabled = exact;
+  $('selLayout').title = exact ? 'The whole graph is drawn with its own exact layout' : 'How sampled vertices are placed';
+  $('graphHint').textContent = exact
+    ? `Whole graph: ${nodes.length} vertices, ${links.length} edges. Click to set X, then Y.`
+    : `${nodes.length} sampled vertices. Dotted links are not edges: each joins a sample to its 2 nearest samples (hover to see d). Click to set X, then Y.`;
+  const pool = exact ? nodes.map((_, i) => i) : nodes.map((_, i) => i).slice(2);
+  const i1 = pool[Math.floor(Math.random() * pool.length)];
+  let i2 = pool[Math.floor(Math.random() * pool.length)];
+  if (pool.length > 1) while (i2 === i1) i2 = pool[Math.floor(Math.random() * pool.length)];
+  X = Int32Array.from(nodes[i1].a); Y = Int32Array.from(nodes[i2].a);
+  hoverIdx = -1; hoverLink = -1; setNext('X');
+  setVertex('X', X);
+}
+function readParams() {
+  let nn = Math.round(Number($('inN').value)), kk = Math.round(Number($('inK').value));
+  if (!Number.isFinite(nn)) nn = 1000;
+  nn = Math.max(2, Math.min(200000, nn));
+  if (!Number.isFinite(kk)) kk = 1;
+  kk = Math.max(1, Math.min(Math.floor(nn / 2), kk));
+  $('inN').value = nn; $('inK').value = kk;
+  n = nn; k = kk; rebuild();
+}
+
+// ============================================================
+// INTERACTION
+// ============================================================
+function nodeAt(e) {
+  const r = graphCanvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  let best = -1, bd = 12;
+  for (let i = 0; i < nodes.length; i++) {
+    const [px, py] = gView.P(nodes[i].p), d = Math.hypot(px - mx, py - my);
+    if (d < bd) { bd = d; best = i; }
+  }
+  return { best, mx, my };
+}
+// ---------- zoom and pan ----------
+function zoomAt(f, mx, my) {
+  const z2 = Math.max(ZMIN, Math.min(ZMAX, zoom.z * f)), r = z2 / zoom.z;
+  zoom.tx = mx - (mx - zoom.tx) * r; zoom.ty = my - (my - zoom.ty) * r; zoom.z = z2;
+  drawGraph();
+}
+function zoomFit() { zoom = { z: 1, tx: 0, ty: 0 }; drawGraph(); }
+function zoomToXY() {
+  if (!X && !Y) { $('err').textContent = 'Select X or Y first.'; return; }
+  const pts = [];
+  if (X) pts.push(posOf(X)); if (Y) pts.push(posOf(Y));
+  if (geo) { pts.push(geo.meetPos); for (const c of geo.path) pts.push(c.p); }
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const p of pts) { const [bx, by] = gView.base(p); x0 = Math.min(x0, bx); x1 = Math.max(x1, bx); y0 = Math.min(y0, by); y1 = Math.max(y1, by); }
+  const { w, h } = gView, pad = 70;
+  const bw = Math.max(x1 - x0, 1e-9), bh = Math.max(y1 - y0, 1e-9);
+  let z = Math.min((w - 2 * pad) / bw, (h - 2 * pad) / bh);
+  if (pts.length === 1) z = Math.max(zoom.z, 4);
+  z = Math.max(ZMIN, Math.min(ZMAX, z));
+  zoom = { z, tx: w / 2 - z * (x0 + x1) / 2, ty: h / 2 - z * (y0 + y1) / 2 };
+  drawGraph();
+}
+$('zoomIn').addEventListener('click', () => zoomAt(1.6, gView.w / 2, gView.h / 2));
+$('zoomOut').addEventListener('click', () => zoomAt(1 / 1.6, gView.w / 2, gView.h / 2));
+$('zoomFit').addEventListener('click', zoomFit);
+$('zoomXY').addEventListener('click', zoomToXY);
+$('selLayout').addEventListener('change', e => {
+  layoutMode = e.target.value;
+  if (exact) return;
+  for (const nd of nodes) nd.p = mapUT(nd.U, nd.T);
+  vb = null; for (const nd of nodes) growBounds(nd.p);
+  if (X) growBounds(posOf(X)); if (Y) growBounds(posOf(Y));
+  if (X && Y) buildGeo();
+  zoom = { z: 1, tx: 0, ty: 0 };
+  render();
+});
+graphCanvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = graphCanvas.getBoundingClientRect();
+  zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+let drag = null, suppressClick = false;
+graphCanvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  drag = { x: e.clientX, y: e.clientY, tx: zoom.tx, ty: zoom.ty, moved: false };
+  graphCanvas.setPointerCapture(e.pointerId);
+});
+graphCanvas.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) > 4) { drag.moved = true; graphCanvas.classList.add('dragging'); $('tip').style.display = 'none'; }
+  if (drag.moved) { zoom.tx = drag.tx + dx; zoom.ty = drag.ty + dy; drawGraph(); }
+});
+const endDrag = () => { if (drag && drag.moved) suppressClick = true; drag = null; graphCanvas.classList.remove('dragging'); };
+graphCanvas.addEventListener('pointerup', endDrag);
+graphCanvas.addEventListener('pointercancel', endDrag);
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === '+' || e.key === '=') zoomAt(1.6, gView.w / 2, gView.h / 2);
+  else if (e.key === '-' || e.key === '_') zoomAt(1 / 1.6, gView.w / 2, gView.h / 2);
+  else if (e.key === '0') zoomFit();
+});
+
+graphCanvas.addEventListener('click', e => {
+  if (suppressClick) { suppressClick = false; return; }
+  const { best } = nodeAt(e);
+  if (best < 0) return;
+  const a = Int32Array.from(nodes[best].a);
+  if (nextPick === 'X') { setVertex('X', a); setNext('Y'); } else { setVertex('Y', a); setNext('X'); }
+});
+function linkAt(mx, my) {
+  let best = -1, bd = 5;
+  for (let q = 0; q < links.length; q++) {
+    const [i, j] = links[q], [ax, ay] = gView.P(nodes[i].p), [bx, by] = gView.P(nodes[j].p);
+    const vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy || 1;
+    const u = Math.max(0, Math.min(1, ((mx - ax) * vx + (my - ay) * vy) / L2));
+    const d = Math.hypot(ax + u * vx - mx, ay + u * vy - my);
+    if (d < bd) { bd = d; best = q; }
+  }
+  return best;
+}
+function placeTip(mx, my) {
+  const tip = $('tip'), pr = $('graphPanel').getBoundingClientRect(), cr = graphCanvas.getBoundingClientRect();
+  let left = cr.left - pr.left + mx + 14, top = cr.top - pr.top + my + 14;
+  if (left + 260 > pr.width) left -= 290;
+  tip.style.left = left + 'px'; tip.style.top = top + 'px'; tip.style.display = 'block';
+}
+graphCanvas.addEventListener('mousemove', e => {
+  if (drag && drag.moved) return;
+  const { best, mx, my } = nodeAt(e), tip = $('tip');
+  const lk = best < 0 ? linkAt(mx, my) : -1;
+  if (best !== hoverIdx || lk !== hoverLink) { hoverIdx = best; hoverLink = lk; drawGraph(); }
+  if (best < 0 && lk >= 0) {
+    const [i, j, d] = links[lk];
+    tip.innerHTML = exact
+      ? `edge: one adjacent swap<br>d = 1`
+      : `<b>d = ${fmt(d)}</b> (a shortest walk of ${fmt(d)} swaps)<br>` +
+        `dotted link: these two samples are nearest<br>neighbours among the samples, not adjacent<br>` +
+        `<span style="color:${COL.dim}">${trunc(wordFromProfile(nodes[i].a), 10)}<br>${trunc(wordFromProfile(nodes[j].a), 10)}</span>`;
+    placeTip(mx, my); return;
+  }
+  if (best < 0) { tip.style.display = 'none'; return; }
+  const a = nodes[best].a;
+  tip.innerHTML = `${nodes[best].label ? '<b>' + nodes[best].label + '</b>  ' : ''}${trunc(wordFromProfile(a), 14)}<br>` +
+    `U = d(A,·) = ${fmt(usum(a))}` +
+    (X ? `<br><span style="color:${COL.x}">d(·,X) = ${fmt(dist(a, X))}</span>` : '') +
+    (Y ? `<br><span style="color:${COL.y}">d(·,Y) = ${fmt(dist(a, Y))}</span>` : '');
+  placeTip(mx, my);
+});
+graphCanvas.addEventListener('mouseleave', () => { hoverIdx = -1; hoverLink = -1; $('tip').style.display = 'none'; drawGraph(); });
+
+$('btnNext').addEventListener('click', () => setNext(nextPick === 'X' ? 'Y' : 'X'));
+for (const which of ['X', 'Y']) {
+  const tryset = () => { try { setVertex(which, parseVertex($('in' + which).value)); } catch (msg) { $('err').textContent = which + ': ' + msg; } };
+  $('set' + which).addEventListener('click', tryset);
+  $('in' + which).addEventListener('keydown', e => { if (e.key === 'Enter') tryset(); });
+  $('rnd' + which).addEventListener('click', () => setVertex(which, uniformProfile()));
+  $('cpy' + which).addEventListener('click', async () => {
+    const v = which === 'X' ? X : Y;
+    if (!v) { $('err').textContent = which + ' is not set.'; return; }
+    const w = wordFromProfile(v);
+    try { await navigator.clipboard.writeText(w); $('err').textContent = `Copied the word of ${which} (${fmt(n)} letters).`; }
+    catch { $('err').textContent = 'The browser blocked clipboard access.'; }
+  });
+}
+function resetXY() {
+  stopPlay(); t = 0; $('walkSlider').value = 0;
+  X = null; Y = null; W = null; geo = null; hoverIdx = -1;
+  $('inX').value = ''; $('inY').value = ''; $('err').textContent = '';
+  setNext('X'); zoom = { z: 1, tx: 0, ty: 0 }; render();
+}
+$('btnReset').addEventListener('click', resetXY);
+$('ancX').addEventListener('click', () => setVertex('X', anchorA()));
+$('ancY').addEventListener('click', () => setVertex('Y', anchorB()));
+$('btnSwap').addEventListener('click', () => { const tmp = X; X = Y; Y = tmp; setVertex('X', X); });
+
+$('inN').addEventListener('change', readParams);
+$('inK').addEventListener('change', readParams);
+$('selPreset').addEventListener('change', e => {
+  if (!e.target.value) return;
+  const [a, b] = e.target.value.split(',').map(Number);
+  $('inN').value = a; $('inK').value = b; readParams(); e.target.value = '';
+});
+
+$('walkSlider').addEventListener('input', e => { stopPlay(); t = e.target.value / 1000; render(); });
+let raf = null, tStart = 0, t0 = 0;
+function stopPlay() { playing = false; if (raf) cancelAnimationFrame(raf); raf = null; $('btnPlay').textContent = 'Play'; }
+$('btnPlay').addEventListener('click', () => {
+  if (playing) { stopPlay(); return; }
+  if (!geo || geo.d === 0) return;
+  if (t >= 1) t = 0;
+  playing = true; $('btnPlay').textContent = 'Pause'; tStart = performance.now(); t0 = t;
+  const dur = 5000;
+  const step = now => {
+    t = Math.min(1, t0 + (now - tStart) / dur);
+    $('walkSlider').value = Math.round(t * 1000);
+    render();
+    if (t < 1 && playing) raf = requestAnimationFrame(step); else stopPlay();
+  };
+  raf = requestAnimationFrame(step);
+});
+$('chkPair').addEventListener('change', drawPair);
+
+const helpModal = $('helpModal');
+$('btnHelp').addEventListener('click', () => { helpModal.classList.add('active'); helpModal.setAttribute('aria-hidden', 'false'); });
+function closeHelp() { helpModal.classList.remove('active'); helpModal.setAttribute('aria-hidden', 'true'); }
+helpModal.addEventListener('click', closeHelp);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
+
+let resizeTimer = null;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 80); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());
+
+readParams();
+</script>
+</body>
+</html>
